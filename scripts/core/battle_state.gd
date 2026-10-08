@@ -15,7 +15,6 @@ const ATTACKS_PER_TURN: int = 1
 const ETHERIUM_GROWTH_PER_TURN: int = 1
 const MAX_ETHERIUM: int = 10
 const HERO_MAX_HEALTH: int = 30
-const MOVE_ETHERIUM_COST: int = 1
 const HERO_ATTACK_POWER: int = 5
 
 const PLAYER_SLOTS: int = BOARD_CELLS
@@ -130,7 +129,12 @@ func draw_card() -> CardDefinition:
 	return card
 
 func can_play(card: CardDefinition) -> bool:
-	return not finished and card != null and hand.has(card) and card.cost <= player_etherium and player_actions > 0
+	return not finished and card != null and hand.has(card) and get_etherium_cost_for_card(card) <= player_etherium and player_actions > 0
+
+func get_etherium_cost_for_card(card: CardDefinition) -> int:
+	if card == null or card.card_type != CardDefinition.CardType.IUM:
+		return 0
+	return max(0, card.cost)
 
 func play_card(card: CardDefinition, slot: int = -1, target_enemy: bool = false) -> bool:
 	if not can_play(card):
@@ -145,7 +149,7 @@ func play_card(card: CardDefinition, slot: int = -1, target_enemy: bool = false)
 		if not _resolve_non_unit(card, slot, target_enemy):
 			return false
 
-	player_etherium -= card.cost
+	player_etherium -= get_etherium_cost_for_card(card)
 	player_actions -= 1
 	hand.erase(card)
 	_check_finished()
@@ -189,7 +193,7 @@ func _resolve_non_unit(card: CardDefinition, target_slot: int, target_enemy: boo
 	return false
 
 func move_unit(player_slot: int, target_slot: int) -> bool:
-	if finished or player_etherium < MOVE_ETHERIUM_COST:
+	if finished:
 		return false
 	var unit: CardDefinition = board.get_card(player_slot)
 	if board.get_owner(player_slot) != BattleBoard.Owner.PLAYER or unit == null:
@@ -198,8 +202,7 @@ func move_unit(player_slot: int, target_slot: int) -> bool:
 		return false
 	if not board.move(player_slot, target_slot, BattleBoard.Owner.PLAYER, unit.movement):
 		return false
-	player_etherium -= MOVE_ETHERIUM_COST
-	_event("%s se movió por %d Eterium." % [unit.display_name, MOVE_ETHERIUM_COST])
+	_event("%s se movió sin consumir Eterium." % unit.display_name)
 	state_changed.emit()
 	return true
 
@@ -405,7 +408,7 @@ func _enemy_turn() -> void:
 				var enemy_card: CardDefinition = enemy_deck.pop_at(best_index)
 				if board.place(slot, enemy_card, BattleBoard.Owner.ENEMY):
 					enemy_card.exhausted = true
-					enemy_etherium -= enemy_card.cost
+					enemy_etherium -= get_etherium_cost_for_card(enemy_card)
 					enemy_actions -= 1
 					played = true
 					_event("El enemigo jugó %s." % enemy_card.display_name)
@@ -445,10 +448,10 @@ func _enemy_turn() -> void:
 	_cleanup_boards()
 
 func _enemy_move_units() -> void:
-	if enemy_etherium < MOVE_ETHERIUM_COST or player_hero == null or not player_hero.alive():
+	if player_hero == null or not player_hero.alive():
 		return
 
-	while enemy_etherium >= MOVE_ETHERIUM_COST:
+	while true:
 		var best_source: int = -1
 		var best_target: int = -1
 		var best_distance: int = board.distance(0, player_hero_slot)
