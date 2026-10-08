@@ -19,7 +19,7 @@ func _populate() -> void:
 	source_label.text = canon_repository.get_status_text()
 
 	var entries: Array = []
-	var canonical_cards: Array[CardDefinition] = CardCatalog.from_canon(GarliaCanonRepository)
+	var canonical_cards: Array[CardDefinition] = CardCatalog.from_canon(canon_repository)
 
 	if not canonical_cards.is_empty():
 		for card in canonical_cards:
@@ -55,7 +55,7 @@ func _populate() -> void:
 		button.custom_minimum_size = Vector2(0, 82)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.add_theme_font_size_override("font_size", 11)
-		button.text = "%s\\n%s" % [entry["name"], entry["type"]]
+		button.text = "%s\n%s" % [entry["name"], entry["type"]]
 		button.pressed.connect(_show_detail.bind(entry))
 		grid.add_child(button)
 
@@ -68,7 +68,7 @@ func _show_detail(entry: Dictionary) -> void:
 			int(entry.get("cost", 0))
 		]
 
-	detail_label.text = "%s\\n\\n%s%s\\n\\n%s" % [
+	detail_label.text = "%s\n\n%s%s\n\n%s" % [
 		entry.get("name", "Carta"),
 		entry.get("type", ""),
 		stats,
