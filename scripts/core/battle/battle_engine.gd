@@ -99,7 +99,6 @@ func debug_snapshot() -> Dictionary:
 		"player_max_attacks_per_turn": state.player_max_attacks_per_turn,
 		"player_etherium": state.player_etherium,
 		"player_max_etherium": state.player_max_etherium,
-		"player_max_etherium": state.player_max_etherium,
 		"hand_size": state.hand.size(),
 		"deck_size": state.deck.size(),
 		"discard_size": state.discard.size(),
