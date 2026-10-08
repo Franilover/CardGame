@@ -196,13 +196,11 @@ func hero_attack(player_slot: int, direction: Vector2i) -> bool:
 	if attack_slots.is_empty():
 		return false
 
-	var hit_count: int = 0
 	for index in attack_slots:
 		var target: CardDefinition = board.get_card(index)
 		if board.get_owner(index) != BattleBoard.Owner.ENEMY or target == null:
 			continue
 		_damage_unit(target, player_hero.attack)
-		hit_count += 1
 
 	player_hero.has_attacked = true
 	player_hero.has_acted = true
