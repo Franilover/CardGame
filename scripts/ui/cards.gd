@@ -55,7 +55,7 @@ func _populate() -> void:
 		button.custom_minimum_size = Vector2(0, 82)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.add_theme_font_size_override("font_size", 11)
-		button.text = "%s\n%s" % [entry["name"], entry["type"]]
+		button.text = "%s  ·  %s" % [entry["name"], entry["type"]]
 		button.pressed.connect(_show_detail.bind(entry))
 		grid.add_child(button)
 
