@@ -35,7 +35,6 @@ var tags: PackedStringArray = []
 var source_data: Dictionary = {}
 
 var has_acted: bool = false
-var has_moved: bool = false
 var has_attacked: bool = false
 var exhausted: bool = false
 
@@ -82,7 +81,6 @@ func make_runtime_copy() -> CardDefinition:
 	copy.tags = tags.duplicate()
 	copy.source_data = source_data.duplicate(true)
 	copy.has_acted = false
-	copy.has_moved = false
 	copy.has_attacked = false
 	copy.exhausted = false
 	return copy
