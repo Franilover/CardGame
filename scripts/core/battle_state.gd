@@ -144,7 +144,7 @@ func _resolve_non_unit(card: CardDefinition, target_slot: int, target_enemy: boo
 		"damage":
 			if target_enemy and target_slot >= 0 and target_slot < ENEMY_SLOTS and enemy_board[target_slot] != null:
 				var enemy_unit: CardDefinition = enemy_board[target_slot]
-			_damage_unit(enemy_unit, card.effect_value, true)
+				_damage_unit(enemy_unit, card.effect_value, true)
 			else:
 				enemy_health = max(0, enemy_health - card.effect_value)
 			_event("%s hizo %d de daño." % [card.display_name, card.effect_value])
@@ -191,9 +191,9 @@ func _damage_unit(unit: CardDefinition, amount: int, is_enemy_unit: bool) -> voi
 	if unit == null:
 		return
 
-	var remaining := amount
+	var remaining: int = amount
 	if unit.armor > 0:
-		var absorbed := min(unit.armor, remaining)
+		var absorbed: int = min(unit.armor, remaining)
 		unit.armor -= absorbed
 		remaining -= absorbed
 
