@@ -49,6 +49,8 @@ func execute(command: BattleCommand) -> BattleResult:
 			resolved = _execute_play_card(command)
 		BattleCommand.CommandType.ATTACK:
 			resolved = _execute_attack(command)
+		BattleCommand.CommandType.HERO_ATTACK:
+			resolved = _execute_hero_attack(command)
 		BattleCommand.CommandType.MOVE_UNIT:
 			resolved = _execute_move(command)
 		BattleCommand.CommandType.MIXER_PLACE:
@@ -126,6 +128,19 @@ func _execute_attack(command: BattleCommand) -> BattleResult:
 		"target_slot": command.target_slot
 	})
 	return BattleResult.ok("Ataque resuelto: %s." % name)
+
+func _execute_hero_attack(command: BattleCommand) -> BattleResult:
+	var name: String = state.player_hero.display_name if state.player_hero != null else "REY"
+	if not state.hero_attack(command.attacker_slot, command.direction):
+		return BattleResult.error("ENGINE_REJECTED", "BattleState rechazó el ataque del Rey.")
+	_emit_event(BattleEvent.EventType.ATTACK_RESOLVED, name, {
+		"attacker_slot": command.attacker_slot,
+		"attack_direction": {
+			"x": command.direction.x,
+			"y": command.direction.y
+		}
+	})
+	return BattleResult.ok("El Rey atacó las 3 casillas frontales.")
 
 func _execute_move(command: BattleCommand) -> BattleResult:
 	var unit: CardDefinition = state.board.get_card(command.attacker_slot)
