@@ -60,6 +60,10 @@ func is_player_zone(index: int) -> bool:
 	var position := position_from_index(index)
 	return position.y >= PLAYER_ZONE_MIN_ROW and position.y < ROWS
 
+func is_player_back_row(index: int) -> bool:
+	var position := position_from_index(index)
+	return position.y == ROWS - 1
+
 func is_neutral_zone(index: int) -> bool:
 	var position := position_from_index(index)
 	return position.y == 3 or position.y == 4
