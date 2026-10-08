@@ -321,8 +321,8 @@ func _start_battle() -> void:
 	var enemies := CardCatalog.enemy_deck()
 
 	if canon_repository.has_canon_data():
-		player_deck = CardCatalog.starter_deck_from_canon(GarliaCanonRepository)
-		enemies = CardCatalog.enemy_deck_from_canon(GarliaCanonRepository)
+		player_deck = CardCatalog.starter_deck_from_canon(canon_repository)
+		enemies = CardCatalog.enemy_deck_from_canon(canon_repository)
 
 	state = BattleState.new()
 	state.setup(player_deck, enemies)
