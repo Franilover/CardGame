@@ -55,10 +55,17 @@ var end_turn_button: Button
 var hero_attack_panel: HBoxContainer
 var hero_attack_buttons: Array[Button] = []
 var hero_attack_directions: Array[Vector2i] = []
+var middle_container: Control
+var board_grid: GridContainer
 
 func _ready() -> void:
 	_build_ui()
 	_start_battle()
+	call_deferred("_fit_board_cells")
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED and is_inside_tree():
+		call_deferred("_fit_board_cells")
 
 func _style_box(background: Color, border: Color, radius: int = 8, width: int = 1) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -110,7 +117,6 @@ func _build_ui() -> void:
 
 	root.add_child(_build_header())
 	root.add_child(_build_middle())
-	root.add_child(_build_hand_bar())
 	root.add_child(_build_bottom_bar())
 
 func _build_header() -> Control:
@@ -193,6 +199,7 @@ func _build_character_panel(player: bool) -> PanelContainer:
 
 func _build_middle() -> Control:
 	var middle := HBoxContainer.new()
+	middle_container = middle
 	middle.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	middle.add_theme_constant_override("separation", 8)
 
@@ -216,8 +223,9 @@ func _build_middle() -> Control:
 	board_margin.add_child(board_root)
 
 	var grid := GridContainer.new()
+	board_grid = grid
 	grid.columns = BattleBoard.COLUMNS
-	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	grid.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	grid.add_theme_constant_override("h_separation", 0)
 	grid.add_theme_constant_override("v_separation", 0)
@@ -228,7 +236,7 @@ func _build_middle() -> Control:
 		var cell_size: float = 48.0 if RunProgress.mode == "exploration" else 52.0
 		cell.custom_minimum_size = Vector2(cell_size, cell_size)
 		cell.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		cell.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		cell.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		cell.clip_contents = true
 		cell.autowrap_mode = TextServer.AUTOWRAP_OFF
 		cell.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -237,10 +245,18 @@ func _build_middle() -> Control:
 		grid.add_child(cell)
 		board_buttons.append(cell)
 
+	var side_column := VBoxContainer.new()
+	side_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	side_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	side_column.size_flags_stretch_ratio = 1.0
+	side_column.add_theme_constant_override("separation", 7)
+	middle.add_child(side_column)
+
 	var mixer_panel := _new_panel(Vector2(315, 0))
 	mixer_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mixer_panel.size_flags_stretch_ratio = 1.0
-	middle.add_child(mixer_panel)
+	mixer_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	mixer_panel.size_flags_stretch_ratio = 2.0
+	side_column.add_child(mixer_panel)
 
 	var mixer_margin := MarginContainer.new()
 	mixer_margin.add_theme_constant_override("margin_left", 9)
@@ -315,7 +331,26 @@ func _build_middle() -> Control:
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	mixer_root.add_child(status_label)
 
+	var hand_panel := _build_hand_bar()
+	hand_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hand_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	hand_panel.size_flags_stretch_ratio = 1.0
+	side_column.add_child(hand_panel)
+
 	return middle
+
+
+func _fit_board_cells() -> void:
+	if middle_container == null or board_grid == null or board_buttons.is_empty():
+		return
+	if middle_container.size.y <= 0.0:
+		return
+	var height_limit: float = (middle_container.size.y - 22.0) / float(BattleBoard.ROWS)
+	var width_limit: float = (size.x * 0.46) / float(BattleBoard.COLUMNS)
+	var cell_size: float = clampf(floor(minf(height_limit, width_limit)), 48.0, 100.0)
+	for cell in board_buttons:
+		cell.custom_minimum_size = Vector2(cell_size, cell_size)
+	board_grid.custom_minimum_size = Vector2(cell_size * BattleBoard.COLUMNS, cell_size * BattleBoard.ROWS)
 
 func _build_hand_bar() -> Control:
 	var panel := _new_panel(Vector2(0, 115))
