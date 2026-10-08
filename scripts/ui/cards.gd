@@ -14,10 +14,10 @@ func _ready() -> void:
 	back_button.grab_focus()
 
 func _populate() -> void:
-	source_label.text = CanonRepository.get_status_text()
+	source_label.text = GarliaCanonRepository.get_status_text()
 
 	var entries: Array = []
-	var canonical_cards := CardCatalog.from_canon(CanonRepository)
+	var canonical_cards: Array[CardDefinition] = CardCatalog.from_canon(GarliaCanonRepository)
 
 	if not canonical_cards.is_empty():
 		for card in canonical_cards:
@@ -58,7 +58,7 @@ func _populate() -> void:
 		grid.add_child(button)
 
 func _show_detail(entry: Dictionary) -> void:
-	var stats := ""
+	var stats: String = ""
 	if int(entry.get("attack", 0)) > 0 or int(entry.get("health", 0)) > 0:
 		stats = "\n\n%d ATQ  ·  %d VIDA  ·  %d E" % [
 			int(entry.get("attack", 0)),
