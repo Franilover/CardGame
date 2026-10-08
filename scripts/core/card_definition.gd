@@ -30,8 +30,8 @@ var image_url: String = ""
 var tags: PackedStringArray = []
 var source_data: Dictionary = {}
 
-var has_attacked := false
-var exhausted := false
+var has_attacked: bool = false
+var exhausted: bool = false
 
 func is_unit() -> bool:
 	return card_type == CardType.CREATURE or card_type == CardType.CHARACTER
@@ -53,7 +53,28 @@ func type_name() -> String:
 	return "CARTA"
 
 func make_runtime_copy() -> CardDefinition:
-	return duplicate(true) as CardDefinition
+	var copy := CardDefinition.new()
+	copy.id = id
+	copy.canonical_id = canonical_id
+	copy.canonical_table = canonical_table
+	copy.display_name = display_name
+	copy.card_type = card_type
+	copy.cost = cost
+	copy.attack = attack
+	copy.health = health
+	copy.armor = armor
+	copy.effect_kind = effect_kind
+	copy.effect_value = effect_value
+	copy.effect_secondary = effect_secondary
+	copy.ability_text = ability_text
+	copy.description = description
+	copy.canonical_source = canonical_source
+	copy.image_url = image_url
+	copy.tags = tags.duplicate()
+	copy.source_data = source_data.duplicate(true)
+	copy.has_attacked = false
+	copy.exhausted = false
+	return copy
 
 func alive() -> bool:
 	return health > 0
