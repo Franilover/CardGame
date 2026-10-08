@@ -366,7 +366,7 @@ func _build_bottom_bar() -> Control:
 	bar.custom_minimum_size.y = 42
 	bar.add_theme_constant_override("separation", 7)
 
-	var hint := _make_label("Arrastra Rey o criatura para mover · 1 Eterium por desplazamiento · puedes repetir mientras tengas Eterium.", 10, MUTED_COLOR)
+	var hint := _make_label("Arrastra Rey o criatura para mover · movimiento gratuito · puedes repetir durante el turno.", 10, MUTED_COLOR)
 	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	bar.add_child(hint)
@@ -492,7 +492,7 @@ func _on_board_gui_input(event: InputEvent, index: int) -> void:
 			if event.global_position.distance_to(drag_press_position) >= 8.0:
 				drag_active = true
 				selected_unit_slot = drag_source_slot
-				status_label.text = "Arrastrando %s · cada desplazamiento cuesta %d Eterium." % [state.board.get_card(drag_source_slot).display_name, BattleState.MOVE_ETHERIUM_COST]
+				status_label.text = "Arrastrando %s · movimiento gratuito." % state.board.get_card(drag_source_slot).display_name
 				_refresh()
 				get_viewport().set_input_as_handled()
 
@@ -566,7 +566,7 @@ func _on_board_pressed(index: int) -> void:
 	if _is_draggable_player_unit(index):
 		selected_unit_slot = index
 		var selected_card: CardDefinition = state.board.get_card(index)
-		status_label.text = "%s seleccionado. Cada desplazamiento cuesta %d Eterium." % [selected_card.display_name, BattleState.MOVE_ETHERIUM_COST]
+		status_label.text = "%s seleccionado. El movimiento es gratuito." % selected_card.display_name
 		_refresh()
 
 func _on_hero_attack_pressed(direction: Vector2i) -> void:
@@ -679,9 +679,9 @@ func _refresh() -> void:
 		var hand_button: Button = hand_buttons[index]
 		if index < state.hand.size():
 			var card: CardDefinition = state.hand[index]
-			hand_button.text = "%s\n%s\n%d E" % [card.display_name, card.type_name(), card.cost]
+			var etherium_cost: int = state.get_etherium_cost_for_card(card)\n\t\t\thand_button.text = "%s\n%s\n%d E" % [card.display_name, card.type_name(), etherium_cost] if etherium_cost > 0 else "%s\n%s\nSIN COSTE E" % [card.display_name, card.type_name()]
 			hand_button.tooltip_text = card.description
-			hand_button.disabled = state.finished or card.cost > state.player_etherium or state.player_actions <= 0
+			hand_button.disabled = state.finished or state.get_etherium_cost_for_card(card) > state.player_etherium or state.player_actions <= 0
 			hand_button.add_theme_stylebox_override("normal", _button_style(SELECTED_COLOR if index == selected_card_index else SURFACE_ALT_COLOR, GOLD_COLOR if index == selected_card_index else BORDER_COLOR, 7, 2 if index == selected_card_index else 1))
 		else:
 			hand_button.text = ""
