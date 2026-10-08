@@ -5,13 +5,13 @@ var selected_card: CardDefinition
 var hand_buttons: Array[Button] = []
 var slot_buttons: Array[Button] = []
 var enemy_slots: Array[PanelContainer] = []
-var status_label: Label
 var enemy_label: Label
 var player_label: Label
 var etherium_label: Label
 var turn_label: Label
 var phase_label: Label
 var end_turn_button: Button
+var title_label: Label
 
 const BG_COLOR := Color("#071E16")
 const SURFACE_COLOR := Color("#0F3024")
@@ -81,26 +81,22 @@ func _build_ui() -> void:
 	header_row.add_theme_constant_override("separation", 10)
 	header.add_child(header_row)
 
-	var title := _make_label("GARLIA / BATALLA", 20, TEXT_COLOR)
+	var title := _make_label("ENEMIGO", 20, TEXT_COLOR)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_row.add_child(title)
 
 	turn_label = _make_label("TURNO 1", 14, MUTED_COLOR)
-	phase_label = _make_label("JUGADOR", 14, CYAN_COLOR)
 	player_label = _make_label("VIDA 30", 14, TEXT_COLOR)
 	enemy_label = _make_label("ENEMIGO 30", 14, TEXT_COLOR)
 	etherium_label = _make_label("ETERIUM 3 / 3", 14, GOLD_COLOR)
 
-	for label in [turn_label, phase_label, player_label, enemy_label, etherium_label]:
+	for label in [turn_label, player_label, enemy_label, etherium_label]:
 		header_row.add_child(label)
 
 	var enemy_panel := _make_panel(layout, Vector2(0, 92))
 	var enemy_content := VBoxContainer.new()
 	enemy_content.add_theme_constant_override("separation", 8)
 	enemy_panel.add_child(enemy_content)
-
-	var enemy_title := _make_label("CAMPO ENEMIGO", 14, MUTED_COLOR)
-	enemy_content.add_child(enemy_title)
 
 	var enemy_row := HBoxContainer.new()
 	enemy_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -109,7 +105,7 @@ func _build_ui() -> void:
 
 	for i in range(BattleState.ENEMY_SLOTS):
 		var slot := _make_panel(enemy_row, Vector2(196, 62))
-		var label := _make_label("[ VACÍO ]", 16, MUTED_COLOR)
+		var label := _make_label("", 16, MUTED_COLOR)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		slot.add_child(label)
@@ -142,9 +138,6 @@ func _build_ui() -> void:
 	player_content.add_theme_constant_override("separation", 8)
 	player_panel.add_child(player_content)
 
-	var player_title := _make_label("TU CAMPO", 14, MUTED_COLOR)
-	player_content.add_child(player_title)
-
 	var player_row := HBoxContainer.new()
 	player_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	player_row.add_theme_constant_override("separation", 12)
@@ -164,18 +157,6 @@ func _build_ui() -> void:
 		player_row.add_child(slot)
 		slot_buttons.append(slot)
 
-	var hand_header := HBoxContainer.new()
-	hand_header.add_theme_constant_override("separation", 12)
-	layout.add_child(hand_header)
-
-	var hand_title := _make_label("MANO", 14, MUTED_COLOR)
-	hand_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hand_header.add_child(hand_title)
-
-	status_label = _make_label("Selecciona una carta.", 14, CYAN_COLOR)
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hand_header.add_child(status_label)
 
 	var hand_panel := _make_panel(layout, Vector2(0, 112))
 	var hand := HBoxContainer.new()
@@ -200,14 +181,8 @@ func _build_ui() -> void:
 
 	var action_row := HBoxContainer.new()
 	action_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	action_row.add_theme_constant_override("separation", 16)
-	action_row.custom_minimum_size = Vector2(0, 52)
+	action_row.custom_minimum_size = Vector2(0, 50)
 	layout.add_child(action_row)
-
-	status_label = _make_label("SELECCIONA UNA CARTA", 14, CYAN_COLOR)
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	status_label.custom_minimum_size.x = 320
-	action_row.add_child(status_label)
 
 	end_turn_button = Button.new()
 	end_turn_button.text = "TERMINAR TURNO"
@@ -233,6 +208,11 @@ func _start_battle() -> void:
 	for i in range(5):
 		state.draw_card()
 
+	if not enemies.is_empty():
+		title_label.text = enemies[0].display_name
+	else:
+		title_label.text = "ENEMIGO"
+
 	state.state_changed.connect(_refresh)
 	_refresh()
 
@@ -240,19 +220,16 @@ func _on_hand_pressed(index: int) -> void:
 	if index >= state.hand.size():
 		return
 	selected_card = state.hand[index]
-	status_label.text = "SELECCIONADA · %s" % selected_card.display_name
 	_refresh()
 
 func _on_slot_pressed(index: int) -> void:
 	if selected_card == null:
-		status_label.text = "Selecciona una carta de la mano."
-		return
+			return
 
 	if selected_card.is_unit():
 		if state.play_card(selected_card, index):
 			selected_card = null
 		else:
-			status_label.text = "No puedes jugar esa carta ahí."
 	else:
 		if state.play_card(selected_card):
 			selected_card = null
@@ -266,7 +243,6 @@ func _on_end_turn_pressed() -> void:
 	state.end_turn()
 
 	if state.is_finished():
-		status_label.text = "VICTORIA" if state.player_won() else "DERROTA"
 		end_turn_button.disabled = true
 
 	_refresh()
