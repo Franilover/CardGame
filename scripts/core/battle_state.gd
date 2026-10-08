@@ -102,7 +102,7 @@ func setup(
 	ium_catalog = _runtime_copies(canonical_iums)
 	deck.shuffle()
 	enemy_deck.shuffle()
-	for index in range(START_HAND):
+	for index in range(min(START_HAND, deck.size())):
 		draw_card()
 	state_changed.emit()
 
