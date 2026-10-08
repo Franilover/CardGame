@@ -297,6 +297,43 @@ func _enemy_turn() -> void:
 		if finished:
 			return
 
+func _resolve_enemy_non_unit(card: CardDefinition) -> bool:
+	match card.effect_kind:
+		"damage":
+			var target := _first_player_unit()
+			if target >= 0:
+				_damage_unit(player_board[target], card.effect_value, false)
+				_cleanup_boards()
+			else:
+				player_health = max(0, player_health - card.effect_value)
+			_event("El enemigo usó %s." % card.display_name)
+			_check_finished()
+			return true
+
+		"buff":
+			var target := _first_enemy_unit()
+			if target < 0:
+				return false
+			var unit: CardDefinition = enemy_board[target]
+			unit.attack += card.effect_value
+			unit.health += card.effect_secondary
+			_event("El enemigo reforzó una unidad.")
+			return true
+
+	return false
+
+func _first_player_unit() -> int:
+	for i in range(PLAYER_SLOTS):
+		if player_board[i] != null:
+			return i
+	return -1
+
+func _first_enemy_unit() -> int:
+	for i in range(ENEMY_SLOTS):
+		if enemy_board[i] != null:
+			return i
+	return -1
+
 func _first_empty_enemy_slot() -> int:
 	for i in range(ENEMY_SLOTS):
 		if enemy_board[i] == null:
