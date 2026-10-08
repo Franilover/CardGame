@@ -66,6 +66,8 @@ func setup(player_cards: Array[CardDefinition], enemy_cards: Array[CardDefinitio
 	reset()
 	deck = _runtime_copies(player_cards)
 	enemy_deck = _runtime_copies(enemy_cards)
+	deck.shuffle()
+	enemy_deck.shuffle()
 
 	for i in range(START_HAND):
 		draw_card()
