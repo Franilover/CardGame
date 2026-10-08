@@ -207,7 +207,7 @@ func _build_middle() -> Control:
 	board_margin.add_theme_constant_override("margin_top", 7)
 	board_margin.add_theme_constant_override("margin_bottom", 7)
 	board_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	board_margin.add_child(board_margin)
+	board_panel.add_child(board_margin)
 
 	var board_root := VBoxContainer.new()
 	board_root.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
