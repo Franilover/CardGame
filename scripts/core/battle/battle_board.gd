@@ -12,8 +12,8 @@ const ROWS: int = 8
 const CELL_COUNT: int = COLUMNS * ROWS
 const ENEMY_ZONE_MAX_ROW: int = 2
 const PLAYER_ZONE_MIN_ROW: int = 5
-const ENEMY_HERO_SLOT: int = COLUMNS / 2
-const PLAYER_HERO_SLOT: int = (ROWS - 1) * COLUMNS + COLUMNS / 2
+const ENEMY_HERO_SLOT: int = (COLUMNS - 1) >> 1
+const PLAYER_HERO_SLOT: int = (ROWS - 1) * COLUMNS + ((COLUMNS - 1) >> 1)
 
 var occupants: Array[CardDefinition] = []
 var owners: Array[int] = []
