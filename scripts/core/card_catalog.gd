@@ -97,17 +97,22 @@ static func enemy_deck_from_canon(repository: CanonRepository) -> Array[CardDefi
 	var all := from_canon(repository)
 	var deck: Array[CardDefinition] = []
 	var creatures: Array[CardDefinition] = []
+	var effects: Array[CardDefinition] = []
 
 	for card in all:
 		if card.card_type == CardDefinition.CardType.CREATURE:
 			creatures.append(card)
+		elif card.card_type == CardDefinition.CardType.IUM or card.card_type == CardDefinition.CardType.PROCESS or card.card_type == CardDefinition.CardType.ORIS:
+			effects.append(card)
 
 	if creatures.is_empty():
 		return enemy_deck()
 
 	for i in range(20):
-		var source: CardDefinition = creatures[i % creatures.size()]
-		deck.append(source.make_runtime_copy())
+		if not effects.is_empty() and i % 5 == 4:
+			deck.append(effects[(i / 5) as int % effects.size()].make_runtime_copy())
+		else:
+			deck.append(creatures[i % creatures.size()].make_runtime_copy())
 
 	return deck
 
