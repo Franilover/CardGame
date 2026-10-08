@@ -110,7 +110,7 @@ static func enemy_deck_from_canon(repository: Variant) -> Array[CardDefinition]:
 
 	for i in range(20):
 		if not effects.is_empty() and i % 5 == 4:
-			deck.append(effects[(int(i / 5)) % effects.size()].make_runtime_copy())
+			deck.append(effects[floori(float(i) / 5.0) % effects.size()].make_runtime_copy())
 		else:
 			deck.append(creatures[i % creatures.size()].make_runtime_copy())
 
@@ -126,15 +126,15 @@ static func _creature_from_canon(row: Dictionary) -> CardDefinition:
 	var attack_raw: Variant = ai.get("ataque", null)
 	var attack_data: Dictionary = attack_raw if attack_raw is Dictionary else {}
 
-	var attack: int = int(attack_data.get("danio", 2))
+	var attack: int = _value_as_int(attack_data.get("danio", 2), 2)
 	if attack <= 0:
 		attack = 2
 
-	var health: int = int(stats.get("hp_max", 0))
+	var health: int = _value_as_int(stats.get("hp_max", 0), 0)
 	if health <= 0:
 		health = 6
 
-	var cost: int = 1 + int(clamp(float(health - 5) / 3.0, 0.0, 4.0))
+	var cost: int = 1 + floori(clamp(float(health - 5) / 3.0, 0.0, 4.0))
 
 	var nombre_raw: Variant = row.get("nombre", null)
 	var display: String = ""
@@ -172,14 +172,14 @@ static func _object_from_canon(row: Dictionary, repository: Variant) -> CardDefi
 		return null
 
 	var props: Dictionary = game_data.get("propiedades", {}) if game_data.get("propiedades") is Dictionary else {}
-	var effect_value: int = int(props.get("danio", 2))
+	var effect_value: int = _value_as_int(props.get("danio", 2), 2)
 	if effect_value <= 0:
 		effect_value = 2
 
 	var card: CardDefinition = _object(
 		item_id,
 		str(row.get("nombre", "Objeto")),
-		1 + int(clamp(effect_value / 4.0, 0.0, 2.0)),
+		1 + floori(clamp(float(effect_value) / 4.0, 0.0, 2.0)),
 		str(row.get("descripcion", "Objeto canónico.")),
 		effect_value,
 		1
@@ -244,6 +244,18 @@ static func _oris_from_canon(row: Dictionary) -> CardDefinition:
 	card.canonical_table = "oris"
 	card.source_data = row.duplicate(true)
 	return card
+
+
+static func _value_as_int(value: Variant, fallback: int = 0) -> int:
+	match typeof(value):
+		TYPE_INT:
+			return value
+		TYPE_FLOAT:
+			return floori(value)
+		TYPE_STRING:
+			var text_value: String = str(value).strip_edges()
+			return text_value.to_int() if not text_value.is_empty() else fallback
+	return fallback
 
 static func _base(id: String, name: String, type: CardDefinition.CardType, cost: int, description: String) -> CardDefinition:
 	var card := CardDefinition.new()
