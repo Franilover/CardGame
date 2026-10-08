@@ -107,8 +107,6 @@ static func _validate_move(state: BattleState, command: BattleCommand) -> Battle
 		return BattleResult.error("UNIT_MISSING", "No existe una unidad aliada.")
 	if not unit.is_unit():
 		return BattleResult.error("UNIT_CANNOT_MOVE", "El objetivo no es una unidad movible.")
-	if state.player_etherium < BattleState.MOVE_ETHERIUM_COST:
-		return BattleResult.error("NO_ETHERIUM_FOR_MOVE", "Necesitas 1 Eterium para mover.")
 	if not state.board.can_move(command.attacker_slot, command.target_slot, BattleBoard.Owner.PLAYER, unit.movement):
 		return BattleResult.error("MOVE_INVALID", "Destino bloqueado, ocupado o fuera de movimiento.")
 	return BattleResult.ok()
