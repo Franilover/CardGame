@@ -27,6 +27,7 @@ var enemy_etherium: int = 3
 var enemy_max_etherium: int = 3
 var player_health: int = HERO_MAX_HEALTH
 var enemy_health: int = HERO_MAX_HEALTH
+
 var player_hero: CardDefinition
 var enemy_hero: CardDefinition
 var player_hero_slot: int = BattleBoard.PLAYER_HERO_SLOT
@@ -53,8 +54,8 @@ func reset() -> void:
 	player_max_etherium = 3
 	enemy_etherium = 3
 	enemy_max_etherium = 3
-	player_health = 30
-	enemy_health = 30
+	player_health = HERO_MAX_HEALTH
+	enemy_health = HERO_MAX_HEALTH
 	finished = false
 	winner_is_player = false
 	fatigue_damage = 1
@@ -162,8 +163,9 @@ func _resolve_non_unit(card: CardDefinition, target_slot: int, target_enemy: boo
 			return true
 		"damage_all":
 			for index in board.indices_for_owner(BattleBoard.Owner.ENEMY):
-				_damage_unit(board.get_card(index), card.effect_value)
-			enemy_health = max(0, enemy_health - card.effect_secondary)
+				if index != enemy_hero_slot:
+					_damage_unit(board.get_card(index), card.effect_value)
+			_damage_unit(enemy_hero, card.effect_secondary)
 			_event("%s afectó todo el campo enemigo." % card.display_name)
 			_cleanup_boards()
 			return true
@@ -181,7 +183,11 @@ func move_unit(player_slot: int, target_slot: int) -> bool:
 		return false
 	unit.has_moved = true
 	player_etherium -= MOVE_ETHERIUM_COST
-	_event("%func attack_unit(player_slot: int, enemy_slot: int = -1) -> bool:
+	_event("%s se movió por %d Eterium." % [unit.display_name, MOVE_ETHERIUM_COST])
+	state_changed.emit()
+	return true
+
+func attack_unit(player_slot: int, enemy_slot: int = -1) -> bool:
 	if finished or player_actions <= 0:
 		return false
 	var attacker: CardDefinition = board.get_card(player_slot)
@@ -392,44 +398,6 @@ func _enemy_turn() -> void:
 
 	_cleanup_boards()
 
-func _resolve_enemy_non_unit(card: CardDefinition) -> bool:
-	match card.effect_kind:
-		"damage":
-			var target: int = board.first_index_for_owner(BattleBoard.Owner.PLAYER)
-			if target >= 0:
-				_damage_unit(board.get_card(target), card.effect_value)
-				_cleanup_boards()
-			else:
-				_damage_unit(player_hero, card.effect_value)
-			_event("El enemigo usó %s." % card.display_name)
-			_check_finished()
-			return true
-		"buff":
-			var target: int = board.first_index_for_owner(BattleBoard.Owner.ENEMY)
-			if target < 0:
-				return false
-			var unit: CardDefinition = board.get_card(target)
-			unit.attack += card.effect_value
-			unit.health += card.effect_secondary
-			_event("El enemigo reforzó una unidad.")
-			return true
-	return false
-
-func _check_finished() -> void:
-	if finished:
-		return
-	_sync_health_mirrors()
-	if enemy_hero == null or enemy_hero.health <= 0:
-		finished = true
-		winner_is_player = true
-		_event("La Reina enemiga fue derrotada.")
-		battle_finished.emit(true)
-	elif player_hero == null or player_hero.health <= 0:
-		finished = true
-		winner_is_player = false
-		_event("El Rey aliado fue derrotado.")
-		battle_finished.emit(false)
-
 func _enemy_move_units() -> void:
 	if enemy_etherium < MOVE_ETHERIUM_COST or player_hero == null or not player_hero.alive():
 		return
@@ -454,6 +422,52 @@ func _enemy_move_units() -> void:
 			unit.has_moved = true
 			enemy_etherium -= MOVE_ETHERIUM_COST
 			_event("%s avanzó por %d Eterium." % [unit.display_name, MOVE_ETHERIUM_COST])
+
+func _resolve_enemy_non_unit(card: CardDefinition) -> bool:
+	match card.effect_kind:
+		"damage":
+			var target: int = -1
+			for index in board.indices_for_owner(BattleBoard.Owner.PLAYER):
+				if index != player_hero_slot:
+					target = index
+					break
+			if target >= 0:
+				_damage_unit(board.get_card(target), card.effect_value)
+				_cleanup_boards()
+			else:
+				_damage_unit(player_hero, card.effect_value)
+			_event("El enemigo usó %s." % card.display_name)
+			_check_finished()
+			return true
+		"buff":
+			var target: int = -1
+			for index in board.indices_for_owner(BattleBoard.Owner.ENEMY):
+				if index != enemy_hero_slot:
+					target = index
+					break
+			if target < 0:
+				return false
+			var unit: CardDefinition = board.get_card(target)
+			unit.attack += card.effect_value
+			unit.health += card.effect_secondary
+			_event("El enemigo reforzó una unidad.")
+			return true
+	return false
+
+func _check_finished() -> void:
+	if finished:
+		return
+	_sync_health_mirrors()
+	if enemy_hero == null or enemy_hero.health <= 0:
+		finished = true
+		winner_is_player = true
+		_event("La Reina enemiga fue derrotada.")
+		battle_finished.emit(true)
+	elif player_hero == null or player_hero.health <= 0:
+		finished = true
+		winner_is_player = false
+		_event("El Rey aliado fue derrotado.")
+		battle_finished.emit(false)
 
 func _event(message: String) -> void:
 	event_occurred.emit(message)
