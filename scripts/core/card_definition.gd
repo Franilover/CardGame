@@ -34,10 +34,6 @@ var image_url: String = ""
 var tags: PackedStringArray = []
 var source_data: Dictionary = {}
 
-var has_acted: bool = false
-var has_attacked: bool = false
-var has_moved: bool = false
-var exhausted: bool = false
 
 func is_unit() -> bool:
 	return card_type == CardType.CREATURE or card_type == CardType.CHARACTER
@@ -81,14 +77,10 @@ func make_runtime_copy() -> CardDefinition:
 	copy.image_url = image_url
 	copy.tags = tags.duplicate()
 	copy.source_data = source_data.duplicate(true)
-	copy.has_acted = false
-	copy.has_attacked = false
-	copy.has_moved = false
-	copy.exhausted = false
 	return copy
 
 func alive() -> bool:
 	return health > 0
 
 func can_attack() -> bool:
-	return is_unit() and health > 0 and not has_attacked and not has_acted and not exhausted and attack > 0
+	return is_unit() and health > 0 and attack > 0
