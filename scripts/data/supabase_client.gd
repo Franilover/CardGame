@@ -49,7 +49,7 @@ func get_rows(path: String, query: String = "") -> Array:
 		request.queue_free()
 		return []
 
-	var response = await request.request_completed
+	var response: Array = await request.request_completed
 	request.queue_free()
 
 	var response_code: int = response[1]
@@ -60,7 +60,7 @@ func get_rows(path: String, query: String = "") -> Array:
 		online = false
 		return []
 
-	var parsed = JSON.parse_string(body.get_string_from_utf8())
+	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
 	if not parsed is Array:
 		last_error = "Respuesta inesperada para %s" % path
 		online = false
