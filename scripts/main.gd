@@ -436,7 +436,7 @@ func _refresh() -> void:
 		var button := enemy_slot_buttons[i]
 		if i < state.enemy_board.size() and state.enemy_board[i] != null:
 			var card: CardDefinition = state.enemy_board[i]
-			button.text = "%s\\n%d · %d" % [card.display_name, card.attack, card.health]
+			button.text = "%s\n%d · %d" % [card.display_name, card.attack, card.health]
 			button.disabled = false
 		else:
 			button.text = ""
@@ -446,7 +446,7 @@ func _refresh() -> void:
 		var button := hand_buttons[i]
 		if i < state.hand.size():
 			var card: CardDefinition = state.hand[i]
-			button.text = "%s\\n%s · %d E" % [card.display_name, card.type_name(), card.cost]
+			button.text = "%s\n%s · %d E" % [card.display_name, card.type_name(), card.cost]
 			button.disabled = state.finished or card.cost > state.player_etherium or state.player_actions <= 0
 		else:
 			button.text = ""
@@ -456,7 +456,7 @@ func _refresh() -> void:
 		var button := player_slot_buttons[i]
 		if i < state.player_board.size() and state.player_board[i] != null:
 			var card: CardDefinition = state.player_board[i]
-			button.text = "%s\\n%d · %d" % [card.display_name, card.attack, card.health]
+			button.text = "%s\n%d · %d" % [card.display_name, card.attack, card.health]
 			button.disabled = false
 			button.add_theme_stylebox_override(
 				"normal",
