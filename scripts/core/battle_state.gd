@@ -10,7 +10,9 @@ const BOARD_COLUMNS: int = BattleBoard.COLUMNS
 const BOARD_CELLS: int = BattleBoard.CELL_COUNT
 const MAX_HAND: int = 8
 const START_HAND: int = 5
-const ACTIONS_PER_TURN: int = 3
+const ACTIONS_PER_TURN: int = 2
+const ATTACKS_PER_TURN: int = 1
+const ETHERIUM_GROWTH_PER_TURN: int = 1
 const MAX_ETHERIUM: int = 10
 const HERO_MAX_HEALTH: int = 30
 const MOVE_ETHERIUM_COST: int = 1
@@ -21,11 +23,18 @@ const ENEMY_SLOTS: int = BOARD_CELLS
 const GRID_COLUMNS: int = BOARD_COLUMNS
 
 var turn: int = 1
+var player_max_actions: int = ACTIONS_PER_TURN
 var player_actions: int = ACTIONS_PER_TURN
+var player_max_attacks_per_turn: int = ATTACKS_PER_TURN
+var player_attacks_remaining: int = ATTACKS_PER_TURN
 var player_etherium: int = 3
 var player_max_etherium: int = 3
 var enemy_etherium: int = 3
 var enemy_max_etherium: int = 3
+var enemy_max_actions: int = ACTIONS_PER_TURN
+var enemy_actions: int = ACTIONS_PER_TURN
+var enemy_max_attacks_per_turn: int = ATTACKS_PER_TURN
+var enemy_attacks_remaining: int = ATTACKS_PER_TURN
 var player_health: int = HERO_MAX_HEALTH
 var enemy_health: int = HERO_MAX_HEALTH
 
@@ -50,11 +59,18 @@ var fatigue_damage: int = 1
 
 func reset() -> void:
 	turn = 1
-	player_actions = ACTIONS_PER_TURN
+	player_max_actions = ACTIONS_PER_TURN
+	player_actions = player_max_actions
+	player_max_attacks_per_turn = ATTACKS_PER_TURN
+	player_attacks_remaining = player_max_attacks_per_turn
 	player_etherium = 3
 	player_max_etherium = 3
 	enemy_etherium = 3
 	enemy_max_etherium = 3
+	enemy_max_actions = ACTIONS_PER_TURN
+	enemy_actions = enemy_max_actions
+	enemy_max_attacks_per_turn = ATTACKS_PER_TURN
+	enemy_attacks_remaining = enemy_max_attacks_per_turn
 	player_health = HERO_MAX_HEALTH
 	enemy_health = HERO_MAX_HEALTH
 	finished = false
@@ -188,12 +204,12 @@ func move_unit(player_slot: int, target_slot: int) -> bool:
 	return true
 
 func hero_attack(player_slot: int, direction: Vector2i) -> bool:
-	if finished or player_actions <= 0:
+	if finished or player_actions <= 0 or player_attacks_remaining <= 0:
 		return false
 	if player_slot != player_hero_slot or player_hero == null or not player_hero.can_attack():
 		return false
 	var attack_slots: Array[int] = board.front_attack_indices(player_slot, direction)
-	if attack_slots.is_empty():
+	if attack_slots.size() != 3:
 		return false
 
 	for index in attack_slots:
@@ -205,14 +221,15 @@ func hero_attack(player_slot: int, direction: Vector2i) -> bool:
 	player_hero.has_attacked = true
 	player_hero.has_acted = true
 	player_actions -= 1
-	_event("%s atacó %d casillas frontales." % [player_hero.display_name, attack_slots.size()])
+	player_attacks_remaining -= 1
+	_event("%s atacó 3 casillas frontales. Ataques restantes: %d." % [player_hero.display_name, player_attacks_remaining])
 	_cleanup_boards()
 	_check_finished()
 	state_changed.emit()
 	return true
 
 func attack_unit(player_slot: int, enemy_slot: int = -1) -> bool:
-	if finished or player_actions <= 0:
+	if finished or player_actions <= 0 or player_attacks_remaining <= 0:
 		return false
 	var attacker: CardDefinition = board.get_card(player_slot)
 	if board.get_owner(player_slot) != BattleBoard.Owner.PLAYER or attacker == null or not attacker.can_attack():
@@ -229,10 +246,11 @@ func attack_unit(player_slot: int, enemy_slot: int = -1) -> bool:
 	attacker.has_attacked = true
 	attacker.has_acted = true
 	player_actions -= 1
+	player_attacks_remaining -= 1
 	_damage_unit(defender, attacker.attack)
 	if defender.health > 0 and defender.counter_attack and board.distance(player_slot, enemy_slot) <= max(1, defender.attack_range):
 		_damage_unit(attacker, defender.attack)
-	_event("%s atacó a %s." % [attacker.display_name, defender.display_name])
+	_event("%s atacó a %s. Ataques restantes: %d." % [attacker.display_name, defender.display_name, player_attacks_remaining])
 
 	_cleanup_boards()
 	_check_finished()
@@ -348,9 +366,10 @@ func end_turn() -> void:
 		return
 	turn += 1
 	_reset_units_for_owner(BattleBoard.Owner.PLAYER)
-	player_max_etherium = min(MAX_ETHERIUM, player_max_etherium + 1)
+	player_max_etherium = min(MAX_ETHERIUM, player_max_etherium + ETHERIUM_GROWTH_PER_TURN)
 	player_etherium = player_max_etherium
-	player_actions = ACTIONS_PER_TURN
+	player_actions = player_max_actions
+	player_attacks_remaining = player_max_attacks_per_turn
 	draw_card()
 	_cleanup_boards()
 	state_changed.emit()
@@ -359,8 +378,10 @@ func _enemy_turn() -> void:
 	_reset_units_for_owner(BattleBoard.Owner.ENEMY)
 	enemy_max_etherium = min(MAX_ETHERIUM, enemy_max_etherium + 1)
 	enemy_etherium = enemy_max_etherium
+	enemy_actions = enemy_max_actions
+	enemy_attacks_remaining = enemy_max_attacks_per_turn
 
-	var actions: int = ACTIONS_PER_TURN
+	var actions: int = enemy_actions
 	while actions > 0:
 		var best_card: CardDefinition = null
 		var best_index: int = -1
@@ -403,6 +424,8 @@ func _enemy_turn() -> void:
 	_enemy_move_units()
 
 	for index in board.indices_for_owner(BattleBoard.Owner.ENEMY):
+		if enemy_attacks_remaining <= 0:
+			break
 		var attacker: CardDefinition = board.get_card(index)
 		if attacker == null or attacker.exhausted or not attacker.can_attack():
 			continue
@@ -412,6 +435,7 @@ func _enemy_turn() -> void:
 			var defender: CardDefinition = board.get_card(target)
 			attacker.has_attacked = true
 			attacker.has_acted = true
+			enemy_attacks_remaining -= 1
 			_damage_unit(defender, attacker.attack)
 			_cleanup_boards()
 			_event("%s atacó al jugador." % attacker.display_name)
