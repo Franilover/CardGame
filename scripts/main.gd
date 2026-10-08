@@ -30,6 +30,7 @@ var hand_objects_row: HBoxContainer
 var ium_bar_row: HBoxContainer
 var ium_buttons: Array[Button] = []
 var available_iums: Array[CardDefinition] = []
+var catalog_cards: Array[CardDefinition] = []
 var selected_ium_index: int = -1
 
 var drag_source_slot: int = -1
@@ -425,14 +426,16 @@ func _start_battle() -> void:
 	var enemy_deck: Array[CardDefinition] = CardCatalog.enemy_deck()
 	var process_catalog: Array[CardDefinition] = []
 	available_iums.clear()
+	catalog_cards.clear()
 
-	var all_cards: Array[CardDefinition] = []
 	if canon_repository.has_canon_data():
-		all_cards = CardCatalog.from_canon(canon_repository)
+		catalog_cards = CardCatalog.from_canon(canon_repository)
 		player_deck = CardCatalog.starter_deck_from_canon(canon_repository)
 		enemy_deck = CardCatalog.enemy_deck_from_canon(canon_repository)
+	else:
+		catalog_cards = CardCatalog.starter_deck()
 
-	for card in all_cards:
+	for card in catalog_cards:
 		if card.card_type == CardDefinition.CardType.IUM:
 			available_iums.append(card)
 		elif card.card_type == CardDefinition.CardType.PROCESS:
@@ -441,9 +444,19 @@ func _start_battle() -> void:
 	if available_iums.is_empty():
 		available_iums = CardCatalog.starter_ium_catalog()
 
+	RunProgress.ensure_deck(player_deck)
+	player_deck = RunProgress.build_player_deck(catalog_cards, player_deck)
+	enemy_deck = RunProgress.build_enemy_deck(enemy_deck)
+
 	engine = BattleEngine.new()
 	engine.setup(player_deck, enemy_deck, process_catalog, available_iums)
 	state = engine.get_state()
+	if RunProgress.is_boss_encounter():
+		state.enemy_hero.display_name = "Jefe de Garlia"
+		state.enemy_hero.health = 45
+		state.enemy_hero.attack = 8
+		state.enemy_hero_max_health = 45
+		state.enemy_health = 45
 
 	engine.state_changed.connect(_refresh)
 	engine.event_emitted.connect(_on_engine_event)
