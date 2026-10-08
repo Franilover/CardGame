@@ -94,7 +94,7 @@ static func starter_deck_from_canon(repository: GarliaCanonRepository) -> Array[
 	return deck
 
 static func enemy_deck_from_canon(repository: GarliaCanonRepository) -> Array[CardDefinition]:
-	var all := from_canon(repository)
+	var all: Array[CardDefinition] = from_canon(repository)
 	var deck: Array[CardDefinition] = []
 	var creatures: Array[CardDefinition] = []
 	var effects: Array[CardDefinition] = []
