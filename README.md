@@ -54,7 +54,7 @@ Cada bando tiene un Rey/Reina permanente fuera del mazo con 30 V. Derrotar al h�
 ## Movimiento
 
 Mover una criatura cuesta 1 Eterium y no consume una acción de turno.
-Cada criatura puede moverse una vez por turno, hasta su atributo de movimiento. El Rey/Reina no puede moverse.
+Cada desplazamiento cuesta 1 Eterium y no consume una acción. Una misma criatura o héroe puede desplazarse repetidamente durante el turno mientras haya Eterium suficiente, respetando su atributo de movimiento por desplazamiento.
 
 ## Mezclador
 
