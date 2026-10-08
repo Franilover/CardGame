@@ -58,12 +58,10 @@ layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="Grid" type="GridContainer" parent="Margin/Columns/Library/Scroll"]
+[node name="Grid" type="VBoxContainer" parent="Margin/Columns/Library/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-columns = 3
-theme_override_constants/h_separation = 6
-theme_override_constants/v_separation = 6
+theme_override_constants/separation = 12
 
 [node name="Sidebar" type="VBoxContainer" parent="Margin/Columns"]
 custom_minimum_size = Vector2(260, 0)
