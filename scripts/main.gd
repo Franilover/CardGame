@@ -115,7 +115,6 @@ func _build_ui() -> void:
 	root.add_theme_constant_override("separation", 7)
 	margin.add_child(root)
 
-	root.add_child(_build_header())
 	root.add_child(_build_middle())
 	root.add_child(_build_bottom_bar())
 
@@ -148,6 +147,60 @@ func _build_header() -> Control:
 	header.add_child(player_panel)
 
 	return header
+
+func _build_side_status() -> PanelContainer:
+	var panel := _new_panel(Vector2(315, 94))
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 4)
+	panel.add_child(content)
+
+	var heroes_row := HBoxContainer.new()
+	heroes_row.add_theme_constant_override("separation", 8)
+	content.add_child(heroes_row)
+
+	var enemy_info := VBoxContainer.new()
+	enemy_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enemy_info.add_theme_constant_override("separation", 2)
+	heroes_row.add_child(enemy_info)
+	enemy_name_label = _make_label("ENEMIGO", 11, DANGER_COLOR)
+	enemy_info.add_child(enemy_name_label)
+	enemy_health_bar = ProgressBar.new()
+	enemy_health_bar.custom_minimum_size.y = 12
+	enemy_health_bar.max_value = 30
+	enemy_health_bar.value = 30
+	enemy_health_bar.show_percentage = false
+	enemy_health_bar.add_theme_stylebox_override("background", _style_box(Color("#07150F"), BORDER_COLOR, 4, 1))
+	enemy_health_bar.add_theme_stylebox_override("fill", _style_box(DANGER_COLOR, DANGER_COLOR, 4, 1))
+	enemy_info.add_child(enemy_health_bar)
+	enemy_health_label = _make_label("30 / 30", 9, TEXT_COLOR)
+	enemy_info.add_child(enemy_health_label)
+
+	var player_info := VBoxContainer.new()
+	player_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	player_info.add_theme_constant_override("separation", 2)
+	heroes_row.add_child(player_info)
+	player_name_label = _make_label("JUGADOR", 11, CYAN_COLOR)
+	player_info.add_child(player_name_label)
+	player_health_bar = ProgressBar.new()
+	player_health_bar.custom_minimum_size.y = 12
+	player_health_bar.max_value = 30
+	player_health_bar.value = 30
+	player_health_bar.show_percentage = false
+	player_health_bar.add_theme_stylebox_override("background", _style_box(Color("#07150F"), BORDER_COLOR, 4, 1))
+	player_health_bar.add_theme_stylebox_override("fill", _style_box(CYAN_COLOR, CYAN_COLOR, 4, 1))
+	player_info.add_child(player_health_bar)
+	player_health_label = _make_label("30 / 30", 9, TEXT_COLOR)
+	player_info.add_child(player_health_label)
+
+	var turn_row := HBoxContainer.new()
+	turn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	turn_row.add_theme_constant_override("separation", 12)
+	content.add_child(turn_row)
+	turn_label = _make_label("T1", 10, TEXT_COLOR)
+	actions_label = _make_label("ACCIONES 2/2", 10, CYAN_COLOR)
+	turn_row.add_child(turn_label)
+	turn_row.add_child(actions_label)
+	return panel
 
 func _build_character_panel(player: bool) -> PanelContainer:
 	var panel := _new_panel(Vector2(260, 82))
@@ -251,6 +304,10 @@ func _build_middle() -> Control:
 	side_column.size_flags_stretch_ratio = 1.0
 	side_column.add_theme_constant_override("separation", 7)
 	middle.add_child(side_column)
+
+	var battle_status_panel := _build_side_status()
+	battle_status_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	side_column.add_child(battle_status_panel)
 
 	var mixer_panel := _new_panel(Vector2(315, 0))
 	mixer_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -450,13 +507,6 @@ func _build_bottom_bar() -> Control:
 	end_turn_button.pressed.connect(_on_end_turn_pressed)
 	end_turn_button.visible = false
 	bar.add_child(end_turn_button)
-
-	var back_button := Button.new()
-	back_button.text = "RETROCEDER"
-	back_button.custom_minimum_size = Vector2(120, 38)
-	back_button.add_theme_font_size_override("font_size", 11)
-	back_button.pressed.connect(_return_to_menu)
-	bar.add_child(back_button)
 
 	return bar
 
