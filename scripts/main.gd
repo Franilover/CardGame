@@ -42,8 +42,6 @@ var etherium_label: Label
 var etherium_bar: ProgressBar
 var mixer_result_label: Label
 var status_label: Label
-var hand_count_label: Label
-var deck_count_label: Label
 var process_button: Button
 var end_turn_button: Button
 var hero_attack_panel: HBoxContainer
@@ -108,239 +106,6 @@ func _build_ui() -> void:
 	root.add_child(_build_bottom_bar())
 
 func _build_header() -> Control:
-	var header := HBoxContainer.new()
-	header.custom_minimum_size.y = 82
-	header.add_theme_constant_override("separation", 8)
-
-	var enemy_panel := _build_character_panel(false)
-	var center_panel := _new_panel(Vector2(0, 82))
-	center_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
-	var center := VBoxContainer.new()
-	center.alignment = BoxContainer.ALIGNMENT_CENTER
-	center_panel.add_child(center)
-
-	var title := _make_label("CAMPO DE BATALLA", 19, TEXT_COLOR)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	center.add_child(title)
-
-	var subtitle := _make_label("CAMPO ÚNICO · 9 × 8 · 72 CASILLAS", 10, MUTED_COLOR)
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	center.add_child(subtitle)
-
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 14)
-	center.add_child(row)
-
-	turn_label = _make_label("T1", 12, TEXT_COLOR)
-	actions_label = _make_label("ACCIONES 2 · ATAQUE 1", 12, CYAN_COLOR)
-	row.add_child(turn_label)
-	row.add_child(actions_label)
-
-	var player_panel := _build_character_panel(true)
-	header.add_child(enemy_panel)
-	header.add_child(center_panel)
-	header.add_child(player_panel)
-
-	return header
-
-func _build_character_panel(player: bool) -> PanelContainer:
-	var panel := _new_panel(Vector2(260, 82))
-	panel.custom_minimum_size.x = 260
-
-	var content := HBoxContainer.new()
-	content.add_theme_constant_override("separation", 8)
-	panel.add_child(content)
-
-	var portrait := Button.new()
-	portrait.custom_minimum_size = Vector2(70, 62)
-	portrait.text = "J" if player else "E"
-	portrait.add_theme_font_size_override("font_size", 18)
-	portrait.add_theme_color_override("font_color", TEXT_COLOR)
-	portrait.add_theme_stylebox_override("normal", _button_style(SURFACE_ALT_COLOR, CYAN_COLOR if player else DANGER_COLOR, 8, 2))
-	portrait.add_theme_stylebox_override("hover", _button_style(SELECTED_COLOR, GOLD_COLOR, 8, 2))
-	content.add_child(portrait)
-
-	var info := VBoxContainer.new()
-	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.alignment = BoxContainer.ALIGNMENT_CENTER
-	content.add_child(info)
-
-	var name_label := _make_label("JUGADOR" if player else "ENEMIGO", 14, CYAN_COLOR if player else DANGER_COLOR)
-	info.add_child(name_label)
-
-	var health_bar := ProgressBar.new()
-	health_bar.custom_minimum_size.y = 16
-	health_bar.max_value = 30
-	health_bar.value = 30
-	health_bar.show_percentage = false
-	health_bar.add_theme_stylebox_override("background", _style_box(Color("#07150F"), BORDER_COLOR, 5, 1))
-	health_bar.add_theme_stylebox_override("fill", _style_box(CYAN_COLOR if player else DANGER_COLOR, CYAN_COLOR if player else DANGER_COLOR, 5, 1))
-	info.add_child(health_bar)
-
-	var health_label := _make_label("30 / 30", 11, TEXT_COLOR)
-	info.add_child(health_label)
-
-	if player:
-		player_name_label = name_label
-		player_health_bar = health_bar
-		player_health_label = health_label
-	else:
-		enemy_name_label = name_label
-		enemy_health_bar = health_bar
-		enemy_health_label = health_label
-
-	return panel
-
-func _build_middle() -> Control:
-	var middle := HBoxContainer.new()
-	middle.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	middle.add_theme_constant_override("separation", 8)
-
-	var board_panel := _new_panel()
-	board_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	board_panel.size_flags_stretch_ratio = 2.8
-	middle.add_child(board_panel)
-
-	var board_margin := MarginContainer.new()
-	board_margin.add_theme_constant_override("margin_left", 7)
-	board_margin.add_theme_constant_override("margin_right", 7)
-	board_margin.add_theme_constant_override("margin_top", 7)
-	board_margin.add_theme_constant_override("margin_bottom", 7)
-	board_panel.add_child(board_margin)
-
-	var board_root := VBoxContainer.new()
-	board_root.add_theme_constant_override("separation", 4)
-	board_margin.add_child(board_root)
-
-	var title := _make_label("CAMPO DE BATALLA", 11, MUTED_COLOR)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	board_root.add_child(title)
-
-	var grid := GridContainer.new()
-	grid.columns = BattleBoard.COLUMNS
-	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 3)
-	grid.add_theme_constant_override("v_separation", 3)
-	board_root.add_child(grid)
-
-	for index in range(BattleBoard.CELL_COUNT):
-		var cell := Button.new()
-		cell.custom_minimum_size = Vector2(0, 46)
-		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		cell.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		cell.add_theme_font_size_override("font_size", 8)
-		cell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		cell.gui_input.connect(_on_board_gui_input.bind(index))
-		grid.add_child(cell)
-		board_buttons.append(cell)
-
-	var mixer_panel := _new_panel(Vector2(315, 0))
-	mixer_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mixer_panel.size_flags_stretch_ratio = 1.0
-	middle.add_child(mixer_panel)
-
-	var mixer_margin := MarginContainer.new()
-	mixer_margin.add_theme_constant_override("margin_left", 9)
-	mixer_margin.add_theme_constant_override("margin_right", 9)
-	mixer_margin.add_theme_constant_override("margin_top", 9)
-	mixer_margin.add_theme_constant_override("margin_bottom", 9)
-	mixer_panel.add_child(mixer_margin)
-
-	var mixer_root := VBoxContainer.new()
-	mixer_root.add_theme_constant_override("separation", 7)
-	mixer_margin.add_child(mixer_root)
-
-	var mixer_title := _make_label("MEZCLADOR", 17, GOLD_COLOR)
-	mixer_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mixer_root.add_child(mixer_title)
-
-	var subtitle := _make_label("IUM → preparación de proceso", 10, MUTED_COLOR)
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mixer_root.add_child(subtitle)
-
-	var mixer_grid := GridContainer.new()
-	mixer_grid.columns = 3
-	mixer_grid.custom_minimum_size = Vector2(0, 165)
-	mixer_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mixer_grid.add_theme_constant_override("h_separation", 4)
-	mixer_grid.add_theme_constant_override("v_separation", 4)
-	mixer_root.add_child(mixer_grid)
-
-	for index in range(MixerState.SIZE):
-		var cell := Button.new()
-		cell.custom_minimum_size = Vector2(0, 51)
-		cell.add_theme_font_size_override("font_size", 10)
-		cell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		cell.text = "+"
-		cell.pressed.connect(_on_mixer_pressed.bind(index))
-		mixer_grid.add_child(cell)
-		mixer_buttons.append(cell)
-
-	var etherium_title := _make_label("ETERIUM", 11, GOLD_COLOR)
-	etherium_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mixer_root.add_child(etherium_title)
-
-	etherium_bar = ProgressBar.new()
-	etherium_bar.custom_minimum_size.y = 20
-	etherium_bar.max_value = BattleState.MAX_ETHERIUM
-	etherium_bar.value = 3
-	etherium_bar.show_percentage = false
-	etherium_bar.add_theme_stylebox_override("background", _style_box(Color("#151308"), BORDER_COLOR, 6, 1))
-	etherium_bar.add_theme_stylebox_override("fill", _style_box(GOLD_COLOR, GOLD_COLOR, 6, 1))
-	mixer_root.add_child(etherium_bar)
-
-	etherium_label = _make_label("3 / 3", 12, GOLD_COLOR)
-	etherium_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mixer_root.add_child(etherium_label)
-
-	mixer_result_label = _make_label("MEZCLADOR VACÍO", 10, MUTED_COLOR)
-	mixer_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mixer_result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	mixer_root.add_child(mixer_result_label)
-
-	process_button = Button.new()
-	process_button.text = "PROCESAR"
-	process_button.custom_minimum_size.y = 34
-	process_button.add_theme_font_size_override("font_size", 11)
-	process_button.add_theme_stylebox_override("normal", _button_style(GOLD_COLOR, Color("#F0D76A"), 7, 1))
-	process_button.add_theme_color_override("font_color", Color("#182016"))
-	process_button.pressed.connect(_on_process_pressed)
-	mixer_root.add_child(process_button)
-
-	status_label = _make_label("", 10, CYAN_COLOR)
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	mixer_root.add_child(status_label)
-
-	return middle
-
-func _build_hand_bar() -> Control:
-	var panel := _new_panel(Vector2(0, 115))
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 7)
-	margin.add_theme_constant_override("margin_right", 7)
-	margin.add_theme_constant_override("margin_top", 6)
-	margin.add_theme_constant_override("margin_bottom", 6)
-	panel.add_child(margin)
-
-	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 4)
-	margin.add_child(root)
-
-	var header := HBoxContainer.new()
-	root.add_child(header)
-
-	hand_count_label = _make_label("INVENTARIO · 0 CARTAS", 11, MUTED_COLOR)
-	hand_count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(hand_count_label)
-
-	deck_count_label = _make_label("MAZO 0", 11, MUTED_COLOR)
-	header.add_child(deck_count_label)
-
-	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -366,19 +131,9 @@ func _build_bottom_bar() -> Control:
 	bar.custom_minimum_size.y = 42
 	bar.add_theme_constant_override("separation", 7)
 
-	var hint := _make_label("Arrastra Rey o criatura para mover · movimiento gratuito · una vez por turno por unidad.", 10, MUTED_COLOR)
-	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	bar.add_child(hint)
-
-	hero_attack_panel = HBoxContainer.new()
 	hero_attack_panel.add_theme_constant_override("separation", 3)
 	hero_attack_panel.visible = false
 
-	var hero_title := _make_label("REY · ATAQUE 3", 9, GOLD_COLOR)
-	hero_attack_panel.add_child(hero_title)
-
-	var directions: Array[Dictionary] = [
 		{"label": "ARRIBA", "direction": Vector2i.UP},
 		{"label": "ABAJO", "direction": Vector2i.DOWN},
 		{"label": "IZQ", "direction": Vector2i.LEFT},
@@ -492,7 +247,7 @@ func _on_board_gui_input(event: InputEvent, index: int) -> void:
 			if event.global_position.distance_to(drag_press_position) >= 8.0:
 				drag_active = true
 				selected_unit_slot = drag_source_slot
-				status_label.text = "Arrastrando %s · movimiento gratuito · una vez por turno." % state.board.get_card(drag_source_slot).display_name
+				status_label.text = state.board.get_card(drag_source_slot).display_name
 				_refresh()
 				get_viewport().set_input_as_handled()
 
@@ -566,7 +321,7 @@ func _on_board_pressed(index: int) -> void:
 	if _is_draggable_player_unit(index):
 		selected_unit_slot = index
 		var selected_card: CardDefinition = state.board.get_card(index)
-		status_label.text = "%s seleccionado. Movimiento gratuito · una vez por turno." % selected_card.display_name
+		status_label.text = "%s" % selected_card.display_name
 		_refresh()
 
 func _on_hero_attack_pressed(direction: Vector2i) -> void:
@@ -629,22 +384,20 @@ func _refresh() -> void:
 		return
 
 	turn_label.text = "T%d" % state.turn
-	actions_label.text = "ACCIONES %d/%d · ATAQUE %d/%d" % [state.player_actions, state.player_max_actions, state.player_attacks_remaining, state.player_max_attacks_per_turn]
+	actions_label.text = "ACCIONES %d/%d" % [state.player_actions, state.player_max_actions]
 	player_health_label.text = "%d / %d" % [state.player_hero.health, BattleState.HERO_MAX_HEALTH]
 	enemy_health_label.text = "%d / %d" % [state.enemy_hero.health, BattleState.HERO_MAX_HEALTH]
 	player_health_bar.value = state.player_hero.health
 	enemy_health_bar.value = state.enemy_hero.health
 	etherium_bar.value = state.player_etherium
 	etherium_label.text = "%d / %d" % [state.player_etherium, state.player_max_etherium]
-	hand_count_label.text = "INVENTARIO · %d CARTAS" % state.hand.size()
-	deck_count_label.text = "MAZO %d" % state.deck.size()
 
 	var recipe: CardDefinition = MixerEngine.find_process(state.mixer, state.process_catalog)
 	if state.mixer.count() == 0:
-		mixer_result_label.text = "MEZCLADOR VACÍO"
+		mixer_result_label.text = ""
 		process_button.disabled = true
 	elif recipe != null:
-		mixer_result_label.text = "RESULTADO · %s" % recipe.display_name
+		mixer_result_label.text = recipe.display_name
 		process_button.disabled = state.player_actions <= 0 or state.player_etherium <= 0 or state.hand.size() >= BattleState.MAX_HAND
 	else:
 		mixer_result_label.text = "%s\nSIN RECETA CANÓNICA" % MixerEngine.describe(state.mixer)
@@ -657,13 +410,13 @@ func _refresh() -> void:
 		var selected: bool = index == selected_unit_slot
 		if occupant != null:
 			if index == state.player_hero_slot:
-				button.text = "REY\n%s\n%d / %d V\nMOVER" % [occupant.display_name, occupant.health, BattleState.HERO_MAX_HEALTH]
+				button.text = "REY\n%s\n%d V" % [occupant.display_name, occupant.health]
 			elif index == state.enemy_hero_slot:
-				button.text = "REINA\n%s\n%d / %d V\nMOVER" % [occupant.display_name, occupant.health, BattleState.HERO_MAX_HEALTH]
+				button.text = "REINA\n%s\n%d V" % [occupant.display_name, occupant.health]
 			else:
 				var mark: String = "E" if owner == BattleBoard.Owner.ENEMY else "J"
-				var status_text: String = "Agotada" if occupant.exhausted else "Disponible"
-				button.text = "%s\n%s\n%d ATQ · %d V\n%s" % [mark, occupant.display_name, occupant.attack, occupant.health, status_text]
+				
+				button.text = "%s\n%s\n%d ATQ · %d V" % [mark, occupant.display_name, occupant.attack, occupant.health]
 		else:
 			button.text = ""
 		button.add_theme_stylebox_override("normal", _cell_style(index, selected))
@@ -680,9 +433,9 @@ func _refresh() -> void:
 		if index < state.hand.size():
 			var card: CardDefinition = state.hand[index]
 			var etherium_cost: int = state.get_etherium_cost_for_card(card)
-			hand_button.text = "%s\n%s\n%d E" % [card.display_name, card.type_name(), etherium_cost] if etherium_cost > 0 else "%s\n%s\nSIN COSTE E" % [card.display_name, card.type_name()]
+			hand_button.text = "%s\n%s\n%d E" % [card.display_name, card.type_name(), etherium_cost] if etherium_cost > 0 else "%s\n%s" % [card.display_name, card.type_name()]
 			hand_button.tooltip_text = card.description
-			hand_button.disabled = state.finished or state.get_etherium_cost_for_card(card) > state.player_etherium or state.player_actions <= 0
+			hand_button.disabled = state.finished or etherium_cost > state.player_etherium or state.player_actions <= 0
 			hand_button.add_theme_stylebox_override("normal", _button_style(SELECTED_COLOR if index == selected_card_index else SURFACE_ALT_COLOR, GOLD_COLOR if index == selected_card_index else BORDER_COLOR, 7, 2 if index == selected_card_index else 1))
 		else:
 			hand_button.text = ""
@@ -694,7 +447,7 @@ func _refresh() -> void:
 	for direction_index in range(hero_attack_buttons.size()):
 		var direction: Vector2i = hero_attack_directions[direction_index]
 		var valid_three_cell_attack: bool = state.board.front_attack_indices(state.player_hero_slot, direction).size() == 3
-		hero_attack_buttons[direction_index].disabled = state.finished or state.player_actions <= 0 or state.player_attacks_remaining <= 0 or not state.player_hero.can_attack() or not valid_three_cell_attack
+		hero_attack_buttons[direction_index].disabled = state.finished or state.player_actions <= 0 or not state.player_hero.can_attack() or not valid_three_cell_attack
 
 func _cell_style(index: int, selected: bool) -> StyleBoxFlat:
 	var background := SURFACE_ALT_COLOR
