@@ -929,16 +929,10 @@ func _refresh() -> void:
 		hero_attack_buttons[direction_index].disabled = state.finished or state.player_actions <= 0 or not state.player_hero.can_attack() or not valid_three_cell_attack
 
 func _cell_style(index: int, selected: bool) -> StyleBoxFlat:
-	var background := SURFACE_ALT_COLOR
-	if state != null:
-		if state.board.is_hero_slot(index):
-			background = HERO_BG_COLOR
-		elif state.board.is_enemy_zone(index):
-			background = Color("#2C2024")
-		elif state.board.is_player_zone(index):
-			background = Color("#15352A")
-		else:
-			background = NEUTRAL_COLOR
+	# Tablero ajedrezado: alterna verde y azul apagados sin distinguir bandos.
+	var row: int = floori(float(index) / float(BattleBoard.COLUMNS))
+	var column: int = index % BattleBoard.COLUMNS
+	var background: Color = Color("#24483F") if (row + column) % 2 == 0 else Color("#293F58")
 	if selected:
 		background = SELECTED_COLOR
 
