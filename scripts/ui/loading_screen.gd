@@ -43,7 +43,7 @@ func _process(delta: float) -> void:
 			progress_bar.value = 100.0
 			percent_label.text = "100%"
 			status_label.text = "LISTO"
-			detail_label.text = GarliaCanon.get_status_text()
+			detail_label.text = GarliaCanonRepository.get_status_text()
 
 			if boot_finished and elapsed_time >= MINIMUM_DISPLAY_TIME:
 				_open_menu()
@@ -54,7 +54,7 @@ func _process(delta: float) -> void:
 				progress_bar.value = 100.0
 				percent_label.text = "100%"
 				status_label.text = "LISTO"
-				detail_label.text = GarliaCanon.get_status_text()
+				detail_label.text = GarliaCanonRepository.get_status_text()
 				if boot_finished:
 					_open_menu()
 			else:
@@ -70,12 +70,12 @@ func _boot() -> void:
 	scene_loading = true
 	status_label.text = "SINCRONIZANDO"
 	detail_label.text = "Consultando el canon..."
-	var online: bool = await GarliaCanon.initialize()
+	var online: bool = await GarliaCanonRepository.initialize()
 	boot_finished = true
 
 	if online:
 		detail_label.text = "Canon sincronizado."
-	elif GarliaCanon.has_canon_data():
+	elif GarliaCanonRepository.has_canon_data():
 		detail_label.text = "Usando canon en caché."
 	else:
 		detail_label.text = "Modo local."
