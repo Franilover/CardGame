@@ -177,7 +177,7 @@ func move_unit(player_slot: int, target_slot: int) -> bool:
 	var unit: CardDefinition = board.get_card(player_slot)
 	if board.get_owner(player_slot) != BattleBoard.Owner.PLAYER or unit == null:
 		return false
-	if player_slot == player_hero_slot or unit.exhausted or unit.has_moved:
+	if unit.exhausted or unit.has_moved:
 		return false
 	if not board.move(player_slot, target_slot, BattleBoard.Owner.PLAYER, unit.movement):
 		return false
@@ -291,7 +291,7 @@ func _create_hero(name: String) -> CardDefinition:
 	hero.health = HERO_MAX_HEALTH
 	hero.cost = 0
 	hero.attack = 0
-	hero.movement = 0
+	hero.movement = 1
 	hero.attack_range = 0
 	hero.counter_attack = false
 	hero.canonical_source = "local"
