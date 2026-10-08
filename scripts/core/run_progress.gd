@@ -112,7 +112,7 @@ func finish_battle(state: BattleState, player_won: bool, catalog_cards: Array[Ca
 	_save_progress()
 	return reward_message
 
-func _find_reward_card(cards: Array[CardDefinition], desired_type: CardDefinition.CardType, offset: int) -> CardDefinition:
+func _find_reward_card(cards: Array[CardDefinition], desired_type: int, offset: int) -> CardDefinition:
 	var options: Array[CardDefinition] = []
 	for card in cards:
 		if card != null and card.card_type == desired_type:
