@@ -116,13 +116,7 @@ func _find_reward_card(cards: Array[CardDefinition], desired_type: int, offset: 
 	var options: Array[CardDefinition] = []
 	for card in cards:
 		if card != null and card.card_type == desired_type:
-			var already_added := false
-			for current_id in deck_ids:
-				if current_id == card.id:
-					already_added = true
-					break
-			if not already_added:
-				options.append(card)
+			options.append(card)
 	if options.is_empty():
 		for card in CardCatalog.starter_deck():
 			if card.card_type == desired_type:
