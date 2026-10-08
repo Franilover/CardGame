@@ -37,8 +37,11 @@ func ensure_deck(seed_cards: Array[CardDefinition]) -> void:
 			creatures.append(card)
 		elif card.card_type == CardDefinition.CardType.OBJECT and objects.is_empty():
 			objects.append(card)
-	for card in creatures + objects:
-		for copy_index in range(3):
+	var starter_cards: Array[CardDefinition] = []
+	starter_cards.append_array(creatures)
+	starter_cards.append_array(objects)
+	for card in starter_cards:
+		for _copy_index in range(3):
 			deck_ids.append(card.id)
 	if deck_ids.is_empty():
 		for card in seed_cards:
