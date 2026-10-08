@@ -185,7 +185,11 @@ func _emit_event(event_type: int, message: String, data: Dictionary = {}) -> Bat
 	return event
 
 func _record_diagnostic(event: BattleEvent) -> void:
-	var diagnostics: Node = get_node_or_null("/root/GarliaDiagnostics")
+	var main_loop: MainLoop = Engine.get_main_loop()
+	if not main_loop is SceneTree:
+		return
+	var scene_tree: SceneTree = main_loop
+	var diagnostics: Node = scene_tree.root.get_node_or_null("GarliaDiagnostics")
 	if diagnostics == null:
 		return
 	var level: String = "ERROR" if event.type == BattleEvent.EventType.COMMAND_REJECTED else "INFO"

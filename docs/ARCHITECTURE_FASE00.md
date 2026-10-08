@@ -1,77 +1,105 @@
 # Garlia CardGame — Arquitectura FASE 00
 
-## Objetivo
+## Estado
 
-Crear una frontera clara entre interfaz, comandos, motor de batalla y estado.
-La batalla existente permanece como implementación de transición para no romper el prototipo.
+FASE 00A: Foundation validada mediante smoke test.
+
+FASE 00B: campo de batalla unificado, pantalla de batalla y mezclador estructural.
 
 ## Flujo obligatorio
 
-UI -> BattleCommand -> BattleValidator -> BattleEngine -> BattleState -> BattleEvent -> UI / Debug
+UI
+-> BattleCommand
+-> BattleValidator
+-> BattleEngine
+-> BattleState
+-> BattleEvent
+-> UI / Debug
 
-Supabase no participa directamente en la resolución de combate.
+Supabase entrega canon; nunca resuelve directamente una batalla.
 
-## Responsabilidades
+## Campo de batalla
 
-### BattleCommand
+Un solo campo compartido de 9 x 8 = 72 casillas.
 
-Describe una intención del jugador.
-No modifica estado.
+Zonas iniciales:
 
-### BattleValidator
+- filas 0-2: enemigo
+- filas 3-4: centro
+- filas 5-7: jugador
 
-Comprueba si el comando puede ejecutarse.
-No modifica estado.
+BattleBoard administra ocupación, propietario, terreno, bloqueos, distancia y posiciones.
 
-### BattleEngine
+## Pantalla de batalla
 
-Único punto autorizado para ejecutar comandos durante una batalla.
-En FASE 00 funciona como fachada sobre BattleState.
+La pantalla central contiene:
 
-### BattleState
+- personaje enemigo con retrato y vida
+- personaje jugador con retrato y vida
+- campo de batalla
+- inventario de cartas
+- mezclador 3 x 3
+- indicador de Eterium
+- procesar
+- terminar turno
+- retroceder
 
-Mantiene el estado actual de la partida.
-En fases posteriores se irá vaciando de lógica de resolución.
+La interfaz solo crea controles, mantiene selección y envía comandos.
 
-### BattleEvent
+## Mezclador
 
-Describe algo que ya ocurrió.
-Será la base de UI reactiva, diagnóstico, replay y online.
+MixerState guarda nueve posiciones.
 
-### Definitions
+MixerEngine solamente reconoce una mezcla cuando existe una receta estructurada en el canon de procesos.
 
-BoardDefinition, BoardCellDefinition, RuleDefinition y EncounterDefinition contienen datos.
-No ejecutan reglas de combate.
+No se inventan recetas en Godot.
 
-### DiagnosticsService
+La condición esperada para una receta es una lista estructurada de identificadores IUM en los datos de proceso. Mientras esa relación no exista, la interfaz muestra los IUM colocados pero no genera un proceso ficticio.
 
-Centraliza contexto, sesión, nivel, sistema, evento y datos de diagnóstico.
+## Unidades
 
-## Regla crítica
+CardDefinition conserva:
 
-Nunca agregar lógica nueva de gameplay a scripts/main.gd.
+- vida
+- ataque
+- armadura
+- movimiento
+- alcance
+- contraataque
+- estado de acción
+- agotamiento
 
-Nunca hacer que la UI cambie directamente BattleState.
+Una unidad realiza una acción por turno: mover o atacar.
 
-Nunca hacer consultas de Supabase desde BattleEngine o BattleState.
+Una unidad recién invocada comienza agotada.
 
-## Migración
+La geometría usa distancia Chebyshev inicialmente para mantener una lógica espacial simple y extensible.
 
-1. Integrar BattleEngine en la UI existente.
-2. Confirmar que el prototipo sigue funcionando.
-3. Mover resolución real desde BattleState a BattleEngine gradualmente.
-4. Añadir BoardDefinition y EncounterDefinition al flujo real.
-5. Añadir RuleResolver.
-6. Reemplazar efectos hardcodeados por definiciones declarativas.
+## Diagnóstico
 
-## Gate FASE 00A
+Todos los comandos pasan por BattleValidator y BattleEngine.
 
-Antes de pasar a la migración de UI, el proyecto debe:
+BattleEngine emite BattleEvent y registra eventos en GarliaDiagnostics.
 
-- arrancar sin errores de parseo;
-- cargar el autoload GarliaDiagnostics;
-- poder ejecutar BattleSmokeTest;
-- conservar el combate actual intacto;
-- permitir rastrear comandos y eventos desde BattleEngine.
+## Reglas de arquitectura
 
-La validación real del proyecto Godot debe ejecutarse localmente porque este repositorio no se ejecuta dentro del entorno de esta edición.
+- No agregar nueva lógica de gameplay a scripts/main.gd.
+- La UI nunca modifica BattleState directamente.
+- BattleEngine es la frontera de ejecución de comandos.
+- BattleState conserva estado y comportamiento de transición mientras se extraen los resolvers especializados.
+- BattleBoard es el dueño de ocupación y posiciones.
+- Supabase no se consulta desde BattleEngine ni BattleState.
+
+## Próximos pasos
+
+1. Extraer DamageResolver.
+2. Extraer MovementResolver.
+3. Extraer AttackResolver.
+4. Crear BoardCatalog.
+5. Crear EncounterCatalog.
+6. Añadir reglas de tablero.
+7. Añadir recetas estructuradas IUM -> Proceso al canon.
+8. Crear cinco encuentros únicos.
+9. Progresión de run.
+10. Arena.
+11. Online.
