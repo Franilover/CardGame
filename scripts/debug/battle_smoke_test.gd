@@ -41,6 +41,7 @@ static func run() -> Dictionary:
 	_report(report, "execute_end_turn", end_result.success, end_result.describe())
 
 	var moved: bool = false
+	var moved_again: bool = false
 	var player_unit_slot: int = -1
 	for candidate_slot in state.board.indices_for_owner(BattleBoard.Owner.PLAYER):
 		if candidate_slot != state.player_hero_slot:
@@ -56,7 +57,17 @@ static func run() -> Dictionary:
 		_report(report, "move_keeps_actions", state.player_actions == previous_actions)
 		_report(report, "move_costs_etherium", state.player_etherium == previous_etherium - BattleState.MOVE_ETHERIUM_COST)
 
+		var second_origin: int = target
+		var second_position: Vector2i = state.board.position_from_index(second_origin)
+		var second_target: int = BattleBoard.index_from_position_static(Vector2i(second_position.x, max(BattleBoard.PLAYER_ZONE_MIN_ROW, second_position.y - 1)))
+		var second_previous_etherium: int = state.player_etherium
+		var second_result: BattleResult = engine.execute(BattleCommand.move_unit(second_origin, second_target))
+		moved_again = second_result.success
+		_report(report, "same_unit_can_move_again", moved_again, second_result.describe())
+		_report(report, "second_move_costs_etherium", state.player_etherium == second_previous_etherium - BattleState.MOVE_ETHERIUM_COST)
+
 	_report(report, "execute_move_unit", moved)
+	_report(report, "execute_second_move_same_unit", moved_again)
 
 	var hero_moved: bool = false
 	var hero_origin: int = state.player_hero_slot
