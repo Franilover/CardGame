@@ -40,6 +40,7 @@ var enemy_hero_slot: int = BattleBoard.ENEMY_HERO_SLOT
 var board: BattleBoard = BattleBoard.new()
 var mixer: MixerState = MixerState.new()
 var process_catalog: Array[CardDefinition] = []
+var ium_catalog: Array[CardDefinition] = []
 
 var hand: Array[CardDefinition] = []
 var deck: Array[CardDefinition] = []
@@ -74,6 +75,7 @@ func reset() -> void:
 	board.place_hero(enemy_hero_slot, enemy_hero, BattleBoard.Owner.ENEMY)
 	_sync_health_mirrors()
 	process_catalog.clear()
+	ium_catalog.clear()
 	hand.clear()
 	deck.clear()
 	discard.clear()
@@ -84,12 +86,14 @@ func reset() -> void:
 func setup(
 	player_cards: Array[CardDefinition],
 	enemy_cards: Array[CardDefinition],
-	canonical_processes: Array[CardDefinition] = []
+	canonical_processes: Array[CardDefinition] = [],
+	canonical_iums: Array[CardDefinition] = []
 ) -> void:
 	reset()
 	deck = _runtime_copies(player_cards)
 	enemy_deck = _runtime_copies(enemy_cards)
 	process_catalog = _runtime_copies(canonical_processes)
+		ium_catalog = _runtime_copies(canonical_iums)
 	deck.shuffle()
 	enemy_deck.shuffle()
 	for index in range(START_HAND):
@@ -271,16 +275,29 @@ func place_ium_in_mixer(hand_index: int, mixer_slot: int) -> bool:
 	state_changed.emit()
 	return true
 
+func place_catalog_ium_in_mixer(catalog_index: int, mixer_slot: int) -> bool:
+	if finished or catalog_index < 0 or catalog_index >= ium_catalog.size():
+		return false
+	var source: CardDefinition = ium_catalog[catalog_index]
+	if source == null or source.card_type != CardDefinition.CardType.IUM:
+		return false
+	var card: CardDefinition = source.make_runtime_copy()
+	if not mixer.place(mixer_slot, card):
+		return false
+	_event("%s entró al mezclador." % card.display_name)
+	state_changed.emit()
+	return true
+
 func remove_ium_from_mixer(mixer_slot: int) -> bool:
-	if finished or hand.size() >= MAX_HAND:
+	if finished:
 		return false
 	var card: CardDefinition = mixer.remove(mixer_slot)
 	if card == null:
 		return false
-	hand.append(card)
-	_event("%s regresó al inventario." % card.display_name)
+	_event("%s salió del mezclador." % card.display_name)
 	state_changed.emit()
 	return true
+
 
 func resolve_mixer() -> BattleResult:
 	if finished:
