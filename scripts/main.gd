@@ -55,6 +55,7 @@ var end_turn_button: Button
 var hero_attack_panel: HBoxContainer
 var hero_attack_buttons: Array[Button] = []
 var hero_attack_directions: Array[Vector2i] = []
+var pixel_sprite_cache: Dictionary = {}
 var middle_container: Control
 var board_grid: GridContainer
 
@@ -67,15 +68,15 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED and is_inside_tree():
 		call_deferred("_fit_board_cells")
 
-func _style_box(background: Color, border: Color, radius: int = 8, width: int = 1) -> StyleBoxFlat:
+func _style_box(background: Color, border: Color, radius: int = 0, width: int = 2) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = background
 	style.border_color = border
 	style.set_border_width_all(width)
-	style.set_corner_radius_all(radius)
+	style.set_corner_radius_all(0)
 	return style
 
-func _button_style(background: Color, border: Color, radius: int = 7, width: int = 1) -> StyleBoxFlat:
+func _button_style(background: Color, border: Color, radius: int = 0, width: int = 2) -> StyleBoxFlat:
 	var style := _style_box(background, border, radius, width)
 	style.content_margin_left = 5.0
 	style.content_margin_right = 5.0
@@ -158,46 +159,21 @@ func _build_side_status() -> PanelContainer:
 	heroes_row.add_theme_constant_override("separation", 8)
 	content.add_child(heroes_row)
 
-	var enemy_info := VBoxContainer.new()
-	enemy_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	enemy_info.add_theme_constant_override("separation", 2)
-	heroes_row.add_child(enemy_info)
-	enemy_name_label = _make_label("ENEMIGO", 11, DANGER_COLOR)
-	enemy_info.add_child(enemy_name_label)
-	enemy_health_bar = ProgressBar.new()
-	enemy_health_bar.custom_minimum_size.y = 12
-	enemy_health_bar.max_value = 30
-	enemy_health_bar.value = 30
-	enemy_health_bar.show_percentage = false
-	enemy_health_bar.add_theme_stylebox_override("background", _style_box(Color("#07150F"), BORDER_COLOR, 4, 1))
-	enemy_health_bar.add_theme_stylebox_override("fill", _style_box(DANGER_COLOR, DANGER_COLOR, 4, 1))
-	enemy_info.add_child(enemy_health_bar)
-	enemy_health_label = _make_label("30 / 30", 9, TEXT_COLOR)
-	enemy_info.add_child(enemy_health_label)
+	enemy_name_label = _make_label("REY ENEMIGO", 11, DANGER_COLOR)
+	enemy_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heroes_row.add_child(enemy_name_label)
 
-	var player_info := VBoxContainer.new()
-	player_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	player_info.add_theme_constant_override("separation", 2)
-	heroes_row.add_child(player_info)
-	player_name_label = _make_label("JUGADOR", 11, CYAN_COLOR)
-	player_info.add_child(player_name_label)
-	player_health_bar = ProgressBar.new()
-	player_health_bar.custom_minimum_size.y = 12
-	player_health_bar.max_value = 30
-	player_health_bar.value = 30
-	player_health_bar.show_percentage = false
-	player_health_bar.add_theme_stylebox_override("background", _style_box(Color("#07150F"), BORDER_COLOR, 4, 1))
-	player_health_bar.add_theme_stylebox_override("fill", _style_box(CYAN_COLOR, CYAN_COLOR, 4, 1))
-	player_info.add_child(player_health_bar)
-	player_health_label = _make_label("30 / 30", 9, TEXT_COLOR)
-	player_info.add_child(player_health_label)
+	player_name_label = _make_label("TU REY", 11, CYAN_COLOR)
+	player_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	player_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	heroes_row.add_child(player_name_label)
 
 	var turn_row := HBoxContainer.new()
 	turn_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	turn_row.add_theme_constant_override("separation", 12)
 	content.add_child(turn_row)
-	turn_label = _make_label("T1", 10, TEXT_COLOR)
-	actions_label = _make_label("ACCIONES 2/2", 10, CYAN_COLOR)
+	turn_label = _make_label("T0", 10, TEXT_COLOR)
+	actions_label = _make_label("DESPLIEGUE GRATUITO", 10, CYAN_COLOR)
 	turn_row.add_child(turn_label)
 	turn_row.add_child(actions_label)
 	return panel
@@ -286,7 +262,7 @@ func _build_middle() -> Control:
 
 	for index in range(BattleBoard.CELL_COUNT):
 		var cell := Button.new()
-		var cell_size: float = 48.0 if RunProgress.mode == "exploration" else 52.0
+		var cell_size: float = 64.0
 		cell.custom_minimum_size = Vector2(cell_size, cell_size)
 		cell.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		cell.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -404,7 +380,7 @@ func _fit_board_cells() -> void:
 		return
 	var height_limit: float = (middle_container.size.y - 22.0) / float(BattleBoard.ROWS)
 	var width_limit: float = (size.x * 0.46) / float(BattleBoard.COLUMNS)
-	var cell_size: float = clampf(floor(minf(height_limit, width_limit)), 48.0, 100.0)
+	var cell_size: float = clampf(floor(minf(height_limit, width_limit)), 64.0, 100.0)
 	for cell in board_buttons:
 		cell.custom_minimum_size = Vector2(cell_size, cell_size)
 	board_grid.custom_minimum_size = Vector2(cell_size * BattleBoard.COLUMNS, cell_size * BattleBoard.ROWS)
@@ -818,11 +794,7 @@ func _refresh() -> void:
 	else:
 		turn_label.text = "%s · T%d" % [current_encounter_label, state.turn]
 		actions_label.text = "ACCIONES %d/%d" % [state.player_actions, state.player_max_actions]
-	player_health_label.text = "%d / %d" % [state.player_hero.health, BattleState.HERO_MAX_HEALTH]
-	enemy_health_label.text = "%d / %d" % [state.enemy_hero.health, BattleState.HERO_MAX_HEALTH]
-	player_health_bar.value = state.player_hero.health
-	enemy_health_bar.max_value = state.enemy_hero_max_health
-	enemy_health_bar.value = state.enemy_hero.health
+	# Los reyes no muestran barras de vida: el primer impacto los derrota.
 	etherium_bar.value = state.player_etherium
 	etherium_label.text = "%d / %d" % [state.player_etherium, state.player_max_etherium]
 
@@ -842,16 +814,16 @@ func _refresh() -> void:
 		var occupant: CardDefinition = state.board.get_card(index)
 		var owner: int = state.board.get_owner(index)
 		var selected: bool = index == selected_unit_slot
+		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		button.expand_icon = true
+		button.icon_max_width = 64
+		button.text = ""
 		if occupant != null:
-			if index == state.player_hero_slot:
-				button.text = "REY\n%s\n%d V" % [occupant.display_name, occupant.health]
-			elif index == state.enemy_hero_slot:
-				button.text = "REINA\n%s\n%d V" % [occupant.display_name, occupant.health]
-			else:
-				var mark: String = "E" if owner == BattleBoard.Owner.ENEMY else "J"
-				button.text = "%s\n%s\n%d ATQ · %d V" % [mark, occupant.display_name, occupant.attack, occupant.health]
+			button.icon = _pixel_sprite_for(occupant, index == state.player_hero_slot or index == state.enemy_hero_slot)
+			button.tooltip_text = "%s · ATQ %d" % [occupant.display_name, occupant.attack]
 		else:
-			button.text = ""
+			button.icon = null
+			button.tooltip_text = "Casilla vacía"
 		button.add_theme_stylebox_override("normal", _cell_style(index, selected))
 		button.add_theme_stylebox_override("hover", _cell_style(index, true))
 
@@ -943,29 +915,78 @@ func _refresh() -> void:
 		hero_attack_buttons[direction_index].disabled = state.finished or state.player_actions <= 0 or not state.player_hero.can_attack() or not valid_three_cell_attack
 
 func _cell_style(index: int, selected: bool) -> StyleBoxFlat:
-	# Tablero ajedrezado: alterna verde y azul apagados sin distinguir bandos.
 	var row: int = floori(float(index) / float(BattleBoard.COLUMNS))
 	var column: int = index % BattleBoard.COLUMNS
 	var background: Color = Color("#24483F") if (row + column) % 2 == 0 else Color("#293F58")
 	if selected:
 		background = SELECTED_COLOR
+	return _style_box(background, GOLD_COLOR if selected else Color("#0B1712"), 0, 2)
 
-	var style := StyleBoxFlat.new()
-	style.bg_color = background
-	style.border_color = BORDER_COLOR
-	style.set_border_width_all(0)
-	style.set_border_width(SIDE_RIGHT, 1)
-	style.set_border_width(SIDE_BOTTOM, 1)
-	if index < BattleBoard.COLUMNS:
-		style.set_border_width(SIDE_TOP, 1)
-	if index % BattleBoard.COLUMNS == 0:
-		style.set_border_width(SIDE_LEFT, 1)
-	style.set_corner_radius_all(0)
-	style.content_margin_left = 1.0
-	style.content_margin_right = 1.0
-	style.content_margin_top = 1.0
-	style.content_margin_bottom = 1.0
-	return style
+func _pixel_sprite_for(card: CardDefinition, is_hero: bool = false) -> Texture2D:
+	var cache_key: String = card.id + ("_hero" if is_hero else "_unit")
+	if pixel_sprite_cache.has(cache_key):
+		return pixel_sprite_cache[cache_key] as Texture2D
+
+	var image: Image = Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	image.fill(Color(0, 0, 0, 0))
+	var seed_value: int = abs(hash(card.id + card.display_name))
+	var palette: Array[Color] = [
+		Color("#78CEC1"), Color("#E3C34F"), Color("#D67A70"),
+		Color("#9A8BE8"), Color("#78A6D9"), Color("#A8C96A")
+	]
+	var body_color: Color = palette[seed_value % palette.size()]
+	var shadow_color: Color = body_color.darkened(0.45)
+	var outline: Color = Color("#111A18")
+	var skin_color: Color = Color("#E8C59B")
+	var eye_color: Color = Color("#F7F3D8")
+
+	# Sprite 64x64 en pixel art, dibujado con píxeles duros.
+	_paint_pixel_rect(image, 20, 8, 24, 8, outline)
+	_paint_pixel_rect(image, 16, 12, 32, 16, outline)
+	_paint_pixel_rect(image, 20, 12, 24, 12, skin_color if is_hero else body_color)
+	_paint_pixel_rect(image, 12, 28, 40, 20, outline)
+	_paint_pixel_rect(image, 16, 28, 32, 16, body_color)
+	_paint_pixel_rect(image, 20, 44, 8, 12, outline)
+	_paint_pixel_rect(image, 36, 44, 8, 12, outline)
+	_paint_pixel_rect(image, 20, 44, 4, 8, shadow_color)
+	_paint_pixel_rect(image, 40, 44, 4, 8, shadow_color)
+	_paint_pixel_rect(image, 8, 32, 8, 16, outline)
+	_paint_pixel_rect(image, 48, 32, 8, 16, outline)
+	_paint_pixel_rect(image, 8, 36, 8, 8, shadow_color)
+	_paint_pixel_rect(image, 48, 36, 8, 8, shadow_color)
+	_paint_pixel_rect(image, 20, 20, 8, 4, outline)
+	_paint_pixel_rect(image, 36, 20, 8, 4, outline)
+	_paint_pixel_rect(image, 24, 20, 4, 4, eye_color)
+	_paint_pixel_rect(image, 36, 20, 4, 4, eye_color)
+	if is_hero:
+		_paint_pixel_rect(image, 20, 4, 4, 8, GOLD_COLOR)
+		_paint_pixel_rect(image, 28, 0, 8, 12, GOLD_COLOR)
+		_paint_pixel_rect(image, 40, 4, 4, 8, GOLD_COLOR)
+	elif seed_value % 3 == 0:
+		_paint_pixel_rect(image, 12, 8, 8, 12, outline)
+		_paint_pixel_rect(image, 44, 8, 8, 12, outline)
+		_paint_pixel_rect(image, 12, 8, 4, 8, shadow_color)
+		_paint_pixel_rect(image, 48, 8, 4, 8, shadow_color)
+	elif seed_value % 3 == 1:
+		_paint_pixel_rect(image, 8, 20, 8, 8, outline)
+		_paint_pixel_rect(image, 48, 20, 8, 8, outline)
+		_paint_pixel_rect(image, 8, 20, 4, 4, body_color)
+		_paint_pixel_rect(image, 52, 20, 4, 4, body_color)
+	else:
+		_paint_pixel_rect(image, 24, 28, 16, 8, skin_color)
+		_paint_pixel_rect(image, 28, 32, 8, 4, outline)
+	_paint_pixel_rect(image, 24, 36, 16, 4, shadow_color)
+	if is_hero:
+		_paint_pixel_rect(image, 24, 32, 16, 4, GOLD_COLOR)
+
+	var texture: ImageTexture = ImageTexture.create_from_image(image)
+	pixel_sprite_cache[cache_key] = texture
+	return texture
+
+func _paint_pixel_rect(image: Image, x: int, y: int, width: int, height: int, color: Color) -> void:
+	for py in range(y, min(y + height, 64)):
+		for px in range(x, min(x + width, 64)):
+			image.set_pixel(px, py, color)
 
 func _return_to_menu() -> void:
 	get_tree().change_scene_to_file(MENU_SCENE_PATH)
