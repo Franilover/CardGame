@@ -270,7 +270,7 @@ func _build_middle() -> Control:
 	etherium_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	mixer_root.add_child(etherium_label)
 
-	mixer_result_label = _make_label("MEZCLADOR VACÍO", 10, MUTED_COLOR)
+	mixer_result_label = _make_label("", 10, MUTED_COLOR)
 	mixer_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	mixer_result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	mixer_root.add_child(mixer_result_label)
@@ -415,7 +415,7 @@ func _on_hand_pressed(index: int) -> void:
 		return
 	selected_card_index = index
 	selected_unit_slot = -1
-	status_label.text = "%s seleccionado." % state.hand[index].display_name
+	status_label.text = state.hand[index].display_name
 	_refresh()
 
 func _on_board_gui_input(event: InputEvent, index: int) -> void:
@@ -494,8 +494,7 @@ func _on_board_pressed(index: int) -> void:
 	if selected_card_index >= 0 and selected_card_index < state.hand.size():
 		var card: CardDefinition = state.hand[selected_card_index]
 		if card.card_type == CardDefinition.CardType.IUM:
-			status_label.text = "Los IUMs se colocan en el mezclador."
-			return
+					return
 		var enemy_target: bool = state.board.get_owner(index) == BattleBoard.Owner.ENEMY
 		var result: BattleResult = engine.execute(BattleCommand.play_card(selected_card_index, index, enemy_target))
 		if result.success:
@@ -504,7 +503,6 @@ func _on_board_pressed(index: int) -> void:
 
 	if selected_unit_slot >= 0:
 		if selected_unit_slot == state.player_hero_slot and state.board.get_owner(index) == BattleBoard.Owner.ENEMY:
-			status_label.text = "El Rey golpea 3 casillas a la vez. Elige una de las cuatro direcciones."
 			_refresh()
 			return
 		var result: BattleResult
@@ -601,7 +599,7 @@ func _refresh() -> void:
 		mixer_result_label.text = recipe.display_name
 		process_button.disabled = state.player_actions <= 0 or state.player_etherium <= 0 or state.hand.size() >= BattleState.MAX_HAND
 	else:
-		mixer_result_label.text = "%s\nSIN RECETA CANÓNICA" % MixerEngine.describe(state.mixer)
+		mixer_result_label.text = ""
 		process_button.disabled = true
 
 	for index in range(board_buttons.size()):
