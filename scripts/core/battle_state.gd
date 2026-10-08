@@ -20,7 +20,8 @@ const PLAYER_SLOTS: int = BOARD_CELLS
 const ENEMY_SLOTS: int = BOARD_CELLS
 const GRID_COLUMNS: int = BOARD_COLUMNS
 
-var turn: int = 1
+var turn: int = 0
+var setup_phase: bool = true
 var player_max_actions: int = ACTIONS_PER_TURN
 var player_actions: int = ACTIONS_PER_TURN
 var player_etherium: int = 3
@@ -56,9 +57,10 @@ var winner_is_player: bool = false
 var fatigue_damage: int = 1
 
 func reset() -> void:
-	turn = 1
+	turn = 0
+	setup_phase = true
 	player_max_actions = ACTIONS_PER_TURN
-	player_actions = player_max_actions
+	player_actions = 0
 	player_etherium = 3
 	player_max_etherium = 3
 	enemy_etherium = 3
@@ -149,7 +151,15 @@ func draw_card() -> CardDefinition:
 	return card
 
 func can_play(card: CardDefinition) -> bool:
-	return not finished and card != null and hand.has(card) and get_etherium_cost_for_card(card) <= player_etherium and player_actions > 0
+	if finished or card == null or not hand.has(card):
+		return false
+	if setup_phase:
+		return card.is_unit()
+	# Después del despliegue inicial, las criaturas solo podrán generarse mediante
+	# habilidades o procesos especiales, no jugando otra carta de criatura.
+	if card.is_unit():
+		return false
+	return get_etherium_cost_for_card(card) <= player_etherium and player_actions > 0
 
 const ADVANCED_DEPLOYMENT_ETHERIUM_COST: int = 1
 
@@ -160,6 +170,8 @@ func get_etherium_cost_for_card(card: CardDefinition) -> int:
 
 func get_play_etherium_cost(card: CardDefinition, slot: int = -1) -> int:
 	if card == null:
+		return 0
+	if setup_phase and card.is_unit():
 		return 0
 	var cost: int = get_etherium_cost_for_card(card)
 	if card.is_unit() and not board.is_player_back_row(slot):
@@ -181,8 +193,9 @@ func play_card(card: CardDefinition, slot: int = -1, target_enemy: bool = false)
 		if not _resolve_non_unit(card, slot, target_enemy):
 			return false
 
-	player_etherium -= etherium_cost
-	player_actions -= 1
+	if not setup_phase:
+		player_etherium -= etherium_cost
+		player_actions -= 1
 	hand.erase(card)
 	_check_finished()
 	state_changed.emit()
@@ -288,7 +301,7 @@ func attack_unit(player_slot: int, enemy_slot: int = -1) -> bool:
 	return true
 
 func place_ium_in_mixer(hand_index: int, mixer_slot: int) -> bool:
-	if finished or hand_index < 0 or hand_index >= hand.size():
+	if finished or setup_phase or hand_index < 0 or hand_index >= hand.size():
 		return false
 	var card: CardDefinition = hand[hand_index]
 	if card == null or card.card_type != CardDefinition.CardType.IUM:
@@ -301,7 +314,7 @@ func place_ium_in_mixer(hand_index: int, mixer_slot: int) -> bool:
 	return true
 
 func place_catalog_ium_in_mixer(catalog_index: int, mixer_slot: int) -> bool:
-	if finished or catalog_index < 0 or catalog_index >= ium_catalog.size():
+	if finished or setup_phase or catalog_index < 0 or catalog_index >= ium_catalog.size():
 		return false
 	var source: CardDefinition = ium_catalog[catalog_index]
 	if source == null or source.card_type != CardDefinition.CardType.IUM:
@@ -314,7 +327,7 @@ func place_catalog_ium_in_mixer(catalog_index: int, mixer_slot: int) -> bool:
 	return true
 
 func remove_ium_from_mixer(mixer_slot: int) -> bool:
-	if finished:
+	if finished or setup_phase:
 		return false
 	var card: CardDefinition = mixer.remove(mixer_slot)
 	if card == null:
@@ -327,6 +340,8 @@ func remove_ium_from_mixer(mixer_slot: int) -> bool:
 func resolve_mixer() -> BattleResult:
 	if finished:
 		return BattleResult.error("BATTLE_FINISHED", "La batalla ya terminó.")
+	if setup_phase:
+		return BattleResult.error("SETUP_PHASE", "El mezclador se habilita al comenzar el combate.")
 	if player_actions <= 0:
 		return BattleResult.error("NO_ACTIONS", "No quedan acciones.")
 	if player_etherium <= 0:
@@ -412,6 +427,14 @@ func _remove_one_matching(cards: Array[CardDefinition], card_id: String) -> void
 
 func end_turn() -> void:
 	if finished:
+		return
+	if setup_phase:
+		setup_phase = false
+		turn = 1
+		player_actions = player_max_actions
+		player_etherium = player_max_etherium
+		_event("Comenzó el combate. Turno 1.")
+		state_changed.emit()
 		return
 	_enemy_turn()
 	if finished:
