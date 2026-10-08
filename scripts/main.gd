@@ -9,7 +9,6 @@ var enemy_label: Label
 var player_label: Label
 var etherium_label: Label
 var turn_label: Label
-var phase_label: Label
 var end_turn_button: Button
 var title_label: Label
 
@@ -275,4 +274,4 @@ func _refresh() -> void:
 			var card: CardDefinition = state.player_board[i]
 			slot_buttons[i].text = "%s\n\nATQ %d   ·   VIDA %d" % [card.display_name, card.attack, card.health]
 		else:
-			slot_buttons[i].text = "POSICIÓN %d\n\nVACÍA" % (i + 1)
+			slot_buttons[i].text = ""
