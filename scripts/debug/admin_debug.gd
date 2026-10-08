@@ -96,12 +96,15 @@ func _build_overlay() -> void:
 	dimmer.mouse_filter = Control.MOUSE_FILTER_STOP
 	overlay.add_child(dimmer)
 
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(center)
+
 	panel = PanelContainer.new()
 	panel.custom_minimum_size = PANEL_SIZE
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.position = -PANEL_SIZE / 2.0
 	panel.add_theme_stylebox_override("panel", _style_box(Color("#081E16"), Color("#4B8E76"), 12, 2))
-	overlay.add_child(panel)
+	center.add_child(panel)
 
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 14)
