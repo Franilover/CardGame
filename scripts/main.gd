@@ -198,7 +198,7 @@ func _build_middle() -> Control:
 
 	var board_panel := _new_panel()
 	board_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	board_panel.size_flags_stretch_ratio = 2.2
+	board_panel.size_flags_stretch_ratio = 2.2 if RunProgress.mode == "exploration" else 2.8
 	middle.add_child(board_panel)
 
 	var board_margin := MarginContainer.new()
@@ -222,10 +222,10 @@ func _build_middle() -> Control:
 
 	for index in range(BattleBoard.CELL_COUNT):
 		var cell := Button.new()
-		cell.custom_minimum_size = Vector2(0, 32)
+		cell.custom_minimum_size = Vector2(0, 32 if RunProgress.mode == "exploration" else 46)
 		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		cell.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		cell.add_theme_font_size_override("font_size", 7)
+		cell.add_theme_font_size_override("font_size", 7 if RunProgress.mode == "exploration" else 8)
 		cell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		cell.gui_input.connect(_on_board_gui_input.bind(index))
 		grid.add_child(cell)
@@ -297,6 +297,7 @@ func _build_middle() -> Control:
 	ium_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	ium_scroll.custom_minimum_size.y = 62
 	ium_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ium_scroll.visible = RunProgress.mode == "bosses"
 	mixer_root.add_child(ium_scroll)
 
 	ium_bar_row = HBoxContainer.new()
