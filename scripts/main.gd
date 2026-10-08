@@ -363,7 +363,7 @@ func _build_bottom_bar() -> Control:
 	bar.custom_minimum_size.y = 42
 	bar.add_theme_constant_override("separation", 7)
 
-	var hint := _make_label("Carta → campo · IUM → mezclador · mover criatura → 1 Eterium · atacar → 1 acción. Espacio = terminar turno.", 10, MUTED_COLOR)
+	var hint := _make_label("Arrastra Rey o criatura para mover · 1 Eterium por movimiento · atacar consume 1 acción · IUM → mezclador. Espacio = terminar turno.", 10, MUTED_COLOR)
 	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	bar.add_child(hint)
