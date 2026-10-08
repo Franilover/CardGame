@@ -46,14 +46,12 @@ static func run() -> Dictionary:
 	var blocked_move_result: BattleResult = engine.execute(BattleCommand.move_unit(first_target, back_row_slot))
 	_report(report, "no_actions_blocks_third_action", not blocked_move_result.success and blocked_move_result.code == "NO_ACTIONS", blocked_move_result.describe())
 
+	var etherium_before_turn_end: int = state.player_max_etherium
 	var turn_end_result: BattleResult = engine.execute(BattleCommand.end_turn())
 	_report(report, "end_turn", turn_end_result.success, turn_end_result.describe())
 	_report(report, "actions_reset", state.player_actions == state.player_max_actions)
 	_report(report, "actions_are_two", state.player_max_actions == BattleState.ACTIONS_PER_TURN)
-
-	var etherium_before_turn_end: int = state.player_max_etherium
-	var growth_turn_result: BattleResult = engine.execute(BattleCommand.end_turn())
-	_report(report, "etherium_grows", state.player_max_etherium == min(BattleState.MAX_ETHERIUM, etherium_before_turn_end + BattleState.ETHERIUM_GROWTH_PER_TURN), growth_turn_result.describe())
+	_report(report, "etherium_grows", state.player_max_etherium == min(BattleState.MAX_ETHERIUM, etherium_before_turn_end + BattleState.ETHERIUM_GROWTH_PER_TURN))
 
 	var advanced_creature := _make_test_creature("Despliegue adelantado")
 	state.hand.append(advanced_creature)
@@ -72,10 +70,11 @@ static func run() -> Dictionary:
 	state.hand.append(attack_creature)
 	var attack_deploy_result: BattleResult = engine.execute(BattleCommand.play_card(state.hand.size() - 1, attack_slot, false))
 	_report(report, "attack_unit_deployed", attack_deploy_result.success, attack_deploy_result.describe())
+	state.player_actions = state.player_max_actions
 
 	var enemy_test := _make_test_creature("Enemigo de prueba")
 	enemy_test.counter_attack = false
-	var enemy_slot: int = BattleBoard.index_from_position_static(Vector2i(2, 2))
+	var enemy_slot: int = state.board.first_empty_in_zone(BattleBoard.Owner.ENEMY)
 	var enemy_placed: bool = state.board.place(enemy_slot, enemy_test, BattleBoard.Owner.ENEMY)
 	_report(report, "enemy_test_placed", enemy_placed)
 
