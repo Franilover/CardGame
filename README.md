@@ -53,15 +53,15 @@ Cada bando tiene un Rey/Reina permanente fuera del mazo con 30 V. Derrotar al h�
 
 ## Movimiento
 
-Mover una criatura cuesta 1 Eterium y no consume una acción de turno.
-Cada desplazamiento cuesta 1 Eterium y no consume una acción. Una misma criatura o héroe puede desplazarse repetidamente durante el turno mientras haya Eterium suficiente, respetando su atributo de movimiento por desplazamiento.
+Mover una criatura o héroe no consume Eterium ni acciones.
+Una misma criatura o héroe puede desplazarse repetidamente durante el turno, respetando su atributo de movimiento por desplazamiento.
 
 ## Recursos de combate
 
 Las acciones y el Eterium son recursos separados.
 
 - Acciones: comienzan en 2 y se restauran al inicio de cada turno. Su máximo permanece en 2 durante la partida salvo efectos de objetos, habilidades u otras reglas que lo modifiquen.
-- Eterium: comienza en 3 y aumenta en 1 su máximo cada turno, restaurándose al nuevo máximo. Se usa para pagar costes que dependen de Eterium, incluido el movimiento.
+- Eterium: comienza en 3 y aumenta en 1 su máximo cada turno, restaurándose al nuevo máximo. Se consume únicamente al crear IUMs y al usar cartas IUM que tengan coste de Eterium.
 - Ataques: cada bando dispone de 1 ataque por turno. El ataque consume 1 acción y no consume Eterium.
 
 ## Ataque del Rey
