@@ -66,7 +66,7 @@ static func from_canon(repository: Variant) -> Array[CardDefinition]:
 
 	return cards
 
-static func starter_deck_from_canon(repository: GarliaCanonRepository) -> Array[CardDefinition]:
+static func starter_deck_from_canon(repository: Variant) -> Array[CardDefinition]:
 	var all: Array[CardDefinition] = from_canon(repository)
 	if all.is_empty():
 		return starter_deck()
@@ -93,7 +93,7 @@ static func starter_deck_from_canon(repository: GarliaCanonRepository) -> Array[
 
 	return deck
 
-static func enemy_deck_from_canon(repository: GarliaCanonRepository) -> Array[CardDefinition]:
+static func enemy_deck_from_canon(repository: Variant) -> Array[CardDefinition]:
 	var all: Array[CardDefinition] = from_canon(repository)
 	var deck: Array[CardDefinition] = []
 	var creatures: Array[CardDefinition] = []
@@ -144,7 +144,7 @@ static func _creature_from_canon(row: Dictionary) -> CardDefinition:
 	card.source_data = row.duplicate(true)
 	return card
 
-static func _object_from_canon(row: Dictionary, repository: GarliaCanonRepository) -> CardDefinition:
+static func _object_from_canon(row: Dictionary, repository: Variant) -> CardDefinition:
 	var item_id: String = str(row.get("id", ""))
 	var game_data: Dictionary = {}
 
