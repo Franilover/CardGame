@@ -18,14 +18,14 @@ func _ready() -> void:
 func start_session() -> void:
 	entries.clear()
 	session_id = "%s-%04d" % [Time.get_date_string_from_system(), Time.get_ticks_msec() % 10000]
-	log("INFO", "DIAGNOSTICS", "SESSION_START", "Sesión iniciada.", {
+	write_entry("INFO", "DIAGNOSTICS", "SESSION_START", "Sesión iniciada.", {
 		"session_id": session_id
 	})
 
 func set_context(context: String) -> void:
 	current_context = context
 
-func log(level: String, system: String, event_name: String, message: String, data: Dictionary = {}) -> void:
+func write_entry(level: String, system: String, event_name: String, message: String, data: Dictionary = {}) -> void:
 	var entry: Dictionary = {
 		"timestamp": Time.get_time_string_from_system(),
 		"level": level,
@@ -43,13 +43,13 @@ func log(level: String, system: String, event_name: String, message: String, dat
 	entry_added.emit(entry)
 
 func info(system: String, event_name: String, message: String, data: Dictionary = {}) -> void:
-	log("INFO", system, event_name, message, data)
+	write_entry("INFO", system, event_name, message, data)
 
 func warning(system: String, event_name: String, message: String, data: Dictionary = {}) -> void:
-	log("WARN", system, event_name, message, data)
+	write_entry("WARN", system, event_name, message, data)
 
 func error(system: String, event_name: String, message: String, data: Dictionary = {}) -> void:
-	log("ERROR", system, event_name, message, data)
+	write_entry("ERROR", system, event_name, message, data)
 
 func get_recent(limit: int = 50) -> Array[Dictionary]:
 	var start: int = max(0, entries.size() - limit)
