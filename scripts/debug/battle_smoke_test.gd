@@ -57,6 +57,16 @@ static func run() -> Dictionary:
 		_report(report, "move_costs_etherium", state.player_etherium == previous_etherium - BattleState.MOVE_ETHERIUM_COST)
 
 	_report(report, "execute_move_unit", moved)
+
+	var hero_moved: bool = false
+	var hero_origin: int = state.player_hero_slot
+	var hero_target: int = BattleBoard.index_from_position_static(Vector2i(4, 6))
+	var hero_previous_etherium: int = state.player_etherium
+	var hero_move_result: BattleResult = engine.execute(BattleCommand.move_unit(hero_origin, hero_target))
+	hero_moved = hero_move_result.success
+	_report(report, "move_hero", hero_moved, hero_move_result.describe())
+	_report(report, "hero_move_costs_etherium", state.player_etherium == hero_previous_etherium - BattleState.MOVE_ETHERIUM_COST)
+	_report(report, "hero_left_throne", state.board.get_card(BattleBoard.PLAYER_HERO_SLOT) == null)
 	report["snapshot"] = engine.debug_snapshot()
 
 	var all_steps_passed: bool = true
