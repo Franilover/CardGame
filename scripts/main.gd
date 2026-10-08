@@ -80,9 +80,9 @@ func _build_ui() -> void:
 	header_row.add_theme_constant_override("separation", 10)
 	header.add_child(header_row)
 
-	var title := _make_label("ENEMIGO", 20, TEXT_COLOR)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header_row.add_child(title)
+	title_label = _make_label("ENEMIGO", 20, TEXT_COLOR)
+	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_row.add_child(title_label)
 
 	turn_label = _make_label("TURNO 1", 14, MUTED_COLOR)
 	player_label = _make_label("VIDA 30", 14, TEXT_COLOR)
