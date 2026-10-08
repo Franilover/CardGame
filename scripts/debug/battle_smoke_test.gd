@@ -20,6 +20,8 @@ static func run() -> Dictionary:
 		return report
 
 	_report(report, "board_9x8", state.board.occupants.size() == BattleBoard.CELL_COUNT)
+	_report(report, "player_hero_on_trone", state.board.get_card(BattleBoard.PLAYER_HERO_SLOT) == state.player_hero)
+	_report(report, "enemy_hero_on_trone", state.board.get_card(BattleBoard.ENEMY_HERO_SLOT) == state.enemy_hero)
 
 	var playable_index: int = -1
 	for index in range(state.hand.size()):
@@ -31,7 +33,7 @@ static func run() -> Dictionary:
 	_report(report, "find_playable_unit", playable_index >= 0)
 
 	if playable_index >= 0:
-		var spawn_slot: int = BattleBoard.index_from_position_static(Vector2i(4, 7))
+		var spawn_slot: int = BattleBoard.index_from_position_static(Vector2i(3, 7))
 		var result: BattleResult = engine.execute(BattleCommand.play_card(playable_index, spawn_slot, false))
 		_report(report, "execute_play_card", result.success, result.describe())
 
@@ -39,12 +41,20 @@ static func run() -> Dictionary:
 	_report(report, "execute_end_turn", end_result.success, end_result.describe())
 
 	var moved: bool = false
-	var player_unit_slot: int = state.board.first_index_for_owner(BattleBoard.Owner.PLAYER)
+	var player_unit_slot: int = -1
+	for candidate_slot in state.board.indices_for_owner(BattleBoard.Owner.PLAYER):
+		if candidate_slot != state.player_hero_slot:
+			player_unit_slot = candidate_slot
+			break
 	if player_unit_slot >= 0:
 		var origin: Vector2i = state.board.position_from_index(player_unit_slot)
-		var target: int = BattleBoard.index_from_position_static(Vector2i(origin.x, max(5, origin.y - 1)))
+		var target: int = BattleBoard.index_from_position_static(Vector2i(origin.x, max(BattleBoard.PLAYER_ZONE_MIN_ROW, origin.y - 1)))
+		var previous_actions: int = state.player_actions
+		var previous_etherium: int = state.player_etherium
 		var move_result: BattleResult = engine.execute(BattleCommand.move_unit(player_unit_slot, target))
 		moved = move_result.success
+		_report(report, "move_keeps_actions", state.player_actions == previous_actions)
+		_report(report, "move_costs_etherium", state.player_etherium == previous_etherium - BattleState.MOVE_ETHERIUM_COST)
 
 	_report(report, "execute_move_unit", moved)
 	report["snapshot"] = engine.debug_snapshot()
