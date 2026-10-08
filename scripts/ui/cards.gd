@@ -11,11 +11,11 @@ const MENU_SCENE_PATH := "res://scenes/main_menu.tscn"
 @onready var back_button: Button = $Margin/Columns/Sidebar/Back
 
 const CATEGORY_ORDER := [
-	{"id": "criaturas", "title": "CRIATURAS"},
-	{"id": "items", "title": "ITEMS"},
-	{"id": "procesos", "title": "PROCESOS"},
-	{"id": "iums", "title": "IUMS"},
-	{"id": "oris", "title": "ORIS"}
+	{"id": "criaturas", "title": "CRIATURAS", "type": "CRIATURA"},
+	{"id": "items", "title": "ITEMS", "type": "ITEM"},
+	{"id": "procesos", "title": "PROCESOS", "type": "PROCESO"},
+	{"id": "iums", "title": "IUMS", "type": "IUM"},
+	{"id": "oris", "title": "ORIS", "type": "ORIS"}
 ]
 
 func _ready() -> void:
@@ -26,47 +26,94 @@ func _ready() -> void:
 func _populate() -> void:
 	source_label.text = canon_repository.get_status_text()
 
-	var entries: Array = []
-	var canonical_cards: Array[CardDefinition] = CardCatalog.from_canon(canon_repository)
-
-	if not canonical_cards.is_empty():
-		for card in canonical_cards:
-			entries.append({
-				"name": card.display_name,
-				"type": card.type_name(),
-				"description": card.description,
-				"attack": card.attack,
-				"health": card.health,
-				"cost": card.cost,
-				"canonical": card.canonical_table,
-				"card_type": card.card_type
-			})
-	else:
-		source_label.text = "CATÁLOGO LOCAL"
-		for card in CardCatalog.starter_deck():
-			entries.append({
-				"name": card.display_name,
-				"type": card.type_name(),
-				"description": card.description,
-				"attack": card.attack,
-				"health": card.health,
-				"cost": card.cost,
-				"canonical": card.canonical_table
-			})
-
-	count_label.text = "%d" % entries.size()
+	var total := 0
 
 	for child in categories.get_children():
 		child.queue_free()
+
+	for category in CATEGORY_ORDER:
+		var category_id: String = str(category["id"])
+		var category_title: String = str(category["title"])
+		var category_type: String = str(category["type"])
+		var rows: Array = canon_repository.get_table(category_id)
+		var entries: Array = _make_entries_from_rows(rows, category_type)
+
+		if entries.is_empty():
+			continue
+
+		total += entries.size()
+		categories.add_child(_make_category_section(category_title, entries))
+
+	if total == 0:
+		_populate_local_fallback()
+
+	count_label.text = "%d" % total
+
+func _make_entries_from_rows(rows: Array, type_name: String) -> Array:
+	var entries: Array = []
+
+	for row in rows:
+		if not row is Dictionary:
+			continue
+
+		var dictionary: Dictionary = row
+		var name := str(dictionary.get("nombre", "")).strip_edges()
+		if name.is_empty():
+			name = type_name
+
+		var description := str(dictionary.get(
+			"descripcion",
+			dictionary.get(
+				"detalle",
+				dictionary.get(
+					"transformacion",
+					dictionary.get("formula", "")
+				)
+			)
+		))
+
+		entries.append({
+			"name": name,
+			"type": type_name,
+			"description": description,
+			"attack": 0,
+			"health": 0,
+			"cost": 0
+		})
+
+	return entries
+
+func _populate_local_fallback() -> void:
+	source_label.text = "CATÁLOGO LOCAL"
+
+	var local_entries: Array = []
+	for card in CardCatalog.starter_deck():
+		local_entries.append({
+			"name": card.display_name,
+			"type": card.type_name(),
+			"description": card.description,
+			"attack": card.attack,
+			"health": card.health,
+			"cost": card.cost
+		})
 
 	var grouped: Dictionary = {}
 	for category in CATEGORY_ORDER:
 		grouped[category["id"]] = []
 
-	for entry in entries:
-		var category_id := _category_id_for_entry(entry)
-		if not grouped.has(category_id):
-			grouped[category_id] = []
+	for entry in local_entries:
+		var type_name: String = str(entry.get("type", "")).to_lower()
+		var category_id := "criaturas"
+
+		if type_name.contains("objeto"):
+			category_id = "items"
+		elif type_name.contains("proceso"):
+			category_id = "procesos"
+		elif type_name.contains("ium"):
+			category_id = "iums"
+		elif type_name.contains("oris"):
+			category_id = "oris"
+
 		var category_entries: Array = grouped[category_id]
 		category_entries.append(entry)
 		grouped[category_id] = category_entries
@@ -76,39 +123,15 @@ func _populate() -> void:
 		var category_entries: Array = grouped[category_id]
 		if category_entries.is_empty():
 			continue
-		categories.add_child(_make_category_section(str(category["title"]), category_entries))
-
-func _category_id_for_entry(entry: Dictionary) -> String:
-	var card_type: int = int(entry.get("card_type", -1))
-	match card_type:
-		CardDefinition.CardType.CREATURE:
-			return "criaturas"
-		CardDefinition.CardType.OBJECT:
-			return "items"
-		CardDefinition.CardType.PROCESS:
-			return "procesos"
-		CardDefinition.CardType.IUM:
-			return "iums"
-		CardDefinition.CardType.ORIS:
-			return "oris"
-
-	var canonical: String = str(entry.get("canonical", ""))
-	if canonical == "criaturas":
-		return "criaturas"
-	if canonical == "items":
-		return "items"
-	if canonical == "procesos":
-		return "procesos"
-	if canonical == "iums":
-		return "iums"
-	if canonical == "oris":
-		return "oris"
-
-	return "criaturas"
+		categories.add_child(_make_category_section(
+			str(category["title"]),
+			category_entries
+		))
 
 func _make_category_section(title: String, entries: Array) -> VBoxContainer:
 	var section := VBoxContainer.new()
 	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	section.add_theme_constant_override("separation", 6)
 
 	var header := HBoxContainer.new()
@@ -137,6 +160,7 @@ func _make_category_section(title: String, entries: Array) -> VBoxContainer:
 	var card_grid := GridContainer.new()
 	card_grid.columns = 3
 	card_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card_grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	card_grid.add_theme_constant_override("h_separation", 6)
 	card_grid.add_theme_constant_override("v_separation", 6)
 	section.add_child(card_grid)
@@ -145,6 +169,7 @@ func _make_category_section(title: String, entries: Array) -> VBoxContainer:
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(0, 82)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		button.add_theme_font_size_override("font_size", 13)
 		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -158,8 +183,8 @@ func _show_detail(entry: Dictionary) -> void:
 	var stats: String = ""
 	if int(entry.get("attack", 0)) > 0 or int(entry.get("health", 0)) > 0:
 		stats = "\n\n%d ATQ  ·  %d VIDA  ·  %d E" % [
-			int(entry.get("attack", 0)), 
-			int(entry.get("health", 0)), 
+			int(entry.get("attack", 0)),
+			int(entry.get("health", 0)),
 			int(entry.get("cost", 0))
 		]
 
