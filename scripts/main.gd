@@ -48,6 +48,7 @@ var process_button: Button
 var end_turn_button: Button
 var hero_attack_panel: HBoxContainer
 var hero_attack_buttons: Array[Button] = []
+var hero_attack_directions: Array[Vector2i] = []
 
 func _ready() -> void:
 	_build_ui()
@@ -391,6 +392,7 @@ func _build_bottom_bar() -> Control:
 		attack_button.pressed.connect(_on_hero_attack_pressed.bind(direction_data["direction"]))
 		hero_attack_panel.add_child(attack_button)
 		hero_attack_buttons.append(attack_button)
+		hero_attack_directions.append(direction_data["direction"])
 
 	bar.add_child(hero_attack_panel)
 
@@ -688,8 +690,10 @@ func _refresh() -> void:
 
 	end_turn_button.disabled = state.finished
 	hero_attack_panel.visible = state.player_hero != null and selected_unit_slot == state.player_hero_slot and not state.finished
-	for button in hero_attack_buttons:
-		button.disabled = state.finished or state.player_actions <= 0 or not state.player_hero.can_attack()
+	for direction_index in range(hero_attack_buttons.size()):
+		var direction: Vector2i = hero_attack_directions[direction_index]
+		var valid_three_cell_attack: bool = state.board.front_attack_indices(state.player_hero_slot, direction).size() == 3
+		hero_attack_buttons[direction_index].disabled = state.finished or state.player_actions <= 0 or not state.player_hero.can_attack() or not valid_three_cell_attack
 
 func _cell_style(index: int, selected: bool) -> StyleBoxFlat:
 	var background := SURFACE_ALT_COLOR
