@@ -300,6 +300,3 @@ func _refresh() -> void:
 			slot_buttons[i].text = "%s\n\nATQ %d   ·   VIDA %d" % [card.display_name, card.attack, card.health]
 		else:
 			slot_buttons[i].text = "POSICIÓN %d\n\nVACÍA" % (i + 1)
-
-func _log(message: String) -> void:
-	log_label.append_text(message + "\n")
