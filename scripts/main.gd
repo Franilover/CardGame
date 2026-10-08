@@ -1,31 +1,8 @@
-extends Node
+extends Control
 
 @onready var canon_repository: Node = get_node("/root/GarliaCanonRepository")
 
-var state: BattleState
-var selected_card: CardDefinition
-var selected_unit_slot := -1
-var hand_buttons: Array[Button] = []
-var player_slot_buttons: Array[Button] = []
-var enemy_slot_buttons: Array[Button] = []
-var enemy_slot_labels: Array[Label] = []
-var title_label: Label
-var enemy_label: Label
-var player_label: Label
-var etherium_label: Label
-var turn_label: Label
-var actions_label: Label
-var deck_count_label: Label
-var hand_count_label: Label
-var selected_label: Label
-var result_label: Label
-var source_label: Label
-var end_turn_button: Button
-var restart_button: Button
-var menu_button: Button
-
 const MENU_SCENE_PATH := "res://scenes/main_menu.tscn"
-
 const BG_COLOR := Color("#071E16")
 const SURFACE_COLOR := Color("#0F3024")
 const SURFACE_ALT_COLOR := Color("#123B2D")
@@ -36,36 +13,61 @@ const CYAN_COLOR := Color("#78CEC1")
 const GOLD_COLOR := Color("#E3C34F")
 const DANGER_COLOR := Color("#D67A70")
 const SELECTED_COLOR := Color("#205B49")
+const NEUTRAL_COLOR := Color("#1C3329")
+
+var engine: BattleEngine
+var state: BattleState
+var selected_card_index: int = -1
+var selected_unit_slot: int = -1
+
+var board_buttons: Array[Button] = []
+var mixer_buttons: Array[Button] = []
+var hand_buttons: Array[Button] = []
+
+var enemy_name_label: Label
+var player_name_label: Label
+var enemy_health_label: Label
+var player_health_label: Label
+var enemy_health_bar: ProgressBar
+var player_health_bar: ProgressBar
+var turn_label: Label
+var actions_label: Label
+var etherium_label: Label
+var etherium_bar: ProgressBar
+var mixer_result_label: Label
+var status_label: Label
+var hand_count_label: Label
+var deck_count_label: Label
+var process_button: Button
+var end_turn_button: Button
 
 func _ready() -> void:
 	_build_ui()
 	_start_battle()
 
-func _style_box(color: Color, border_color: Color, radius: int = 10, border_width: int = 1) -> StyleBoxFlat:
+func _style_box(background: Color, border: Color, radius: int = 8, width: int = 1) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = color
-	style.border_color = border_color
-	style.set_border_width_all(border_width)
+	style.bg_color = background
+	style.border_color = border
+	style.set_border_width_all(width)
 	style.set_corner_radius_all(radius)
 	return style
 
-func _button_style(color: Color, border_color: Color, radius: int = 8, border_width: int = 1) -> StyleBoxFlat:
-	var style := _style_box(color, border_color, radius, border_width)
-	style.content_margin_left = 6.0
-	style.content_margin_right = 6.0
-	style.content_margin_top = 5.0
-	style.content_margin_bottom = 5.0
+func _button_style(background: Color, border: Color, radius: int = 7, width: int = 1) -> StyleBoxFlat:
+	var style := _style_box(background, border, radius, width)
+	style.content_margin_left = 5.0
+	style.content_margin_right = 5.0
+	style.content_margin_top = 4.0
+	style.content_margin_bottom = 4.0
 	return style
 
-func _make_panel(parent: Node, minimum_size: Vector2 = Vector2.ZERO) -> PanelContainer:
+func _new_panel(minimum_size: Vector2 = Vector2.ZERO) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = minimum_size
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_theme_stylebox_override("panel", _style_box(SURFACE_COLOR, BORDER_COLOR, 10, 1))
-	parent.add_child(panel)
+	panel.add_theme_stylebox_override("panel", _style_box(SURFACE_COLOR, BORDER_COLOR, 9, 1))
 	return panel
 
-func _make_label(text: String, font_size: int = 14, color: Color = TEXT_COLOR) -> Label:
+func _make_label(text: String, font_size: int = 13, color: Color = TEXT_COLOR) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_size_override("font_size", font_size)
@@ -76,401 +78,522 @@ func _build_ui() -> void:
 	var background := ColorRect.new()
 	background.color = BG_COLOR
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
 
-	var root := MarginContainer.new()
-	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.add_theme_constant_override("margin_left", 10)
-	root.add_theme_constant_override("margin_top", 10)
-	root.add_theme_constant_override("margin_right", 10)
-	root.add_theme_constant_override("margin_bottom", 10)
-	add_child(root)
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_bottom", 8)
+	add_child(margin)
 
-	var columns := HBoxContainer.new()
-	columns.add_theme_constant_override("separation", 8)
-	root.add_child(columns)
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 7)
+	margin.add_child(root)
 
-	# TABLERO
-	var board_column := VBoxContainer.new()
-	board_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	board_column.size_flags_stretch_ratio = 1.45
-	board_column.add_theme_constant_override("separation", 6)
-	columns.add_child(board_column)
+	root.add_child(_build_header())
+	root.add_child(_build_middle())
+	root.add_child(_build_hand_bar())
+	root.add_child(_build_bottom_bar())
 
-	var header := _make_panel(board_column, Vector2(0, 44))
-	var header_row := HBoxContainer.new()
-	header_row.add_theme_constant_override("separation", 8)
-	header.add_child(header_row)
+func _build_header() -> Control:
+	var header := HBoxContainer.new()
+	header.custom_minimum_size.y = 82
+	header.add_theme_constant_override("separation", 8)
 
-	title_label = _make_label("ENEMIGO", 18, TEXT_COLOR)
-	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header_row.add_child(title_label)
+	var enemy_panel := _build_character_panel(false)
+	var center_panel := _new_panel(Vector2(0, 82))
+	center_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
-	turn_label = _make_label("T1", 12, MUTED_COLOR)
-	actions_label = _make_label("A3", 12, CYAN_COLOR)
-	player_label = _make_label("30", 12, TEXT_COLOR)
-	enemy_label = _make_label("30", 12, DANGER_COLOR)
-	etherium_label = _make_label("E3/3", 12, GOLD_COLOR)
+	var center := VBoxContainer.new()
+	center.alignment = BoxContainer.ALIGNMENT_CENTER
+	center_panel.add_child(center)
 
-	for label in [turn_label, actions_label, player_label, enemy_label, etherium_label]:
-		header_row.add_child(label)
+	var title := _make_label("CAMPO DE BATALLA", 19, TEXT_COLOR)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	center.add_child(title)
 
-	var enemy_field := _make_panel(board_column)
-	enemy_field.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var subtitle := _make_label("CAMPO ÚNICO · 9 × 8 · 72 CASILLAS", 10, MUTED_COLOR)
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	center.add_child(subtitle)
 
-	var enemy_grid := GridContainer.new()
-	enemy_grid.columns = BattleState.GRID_COLUMNS
-	enemy_grid.add_theme_constant_override("h_separation", 5)
-	enemy_grid.add_theme_constant_override("v_separation", 5)
-	enemy_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	enemy_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	enemy_field.add_child(enemy_grid)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 14)
+	center.add_child(row)
 
-	for i in range(BattleState.ENEMY_SLOTS):
-		var slot := Button.new()
-		slot.custom_minimum_size = Vector2(0, 58)
-		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		slot.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		slot.add_theme_font_size_override("font_size", 10)
-		slot.add_theme_color_override("font_color", TEXT_COLOR)
-		slot.add_theme_color_override("font_hover_color", TEXT_COLOR)
-		slot.add_theme_stylebox_override("normal", _button_style(SURFACE_ALT_COLOR, BORDER_COLOR))
-		slot.add_theme_stylebox_override("hover", _button_style(Color("#174A38"), CYAN_COLOR, 8, 2))
-		slot.add_theme_stylebox_override("pressed", _button_style(Color("#3D3818"), GOLD_COLOR, 8, 2))
-		slot.pressed.connect(_on_enemy_slot_pressed.bind(i))
-		enemy_grid.add_child(slot)
-		enemy_slot_buttons.append(slot)
+	turn_label = _make_label("T1", 12, TEXT_COLOR)
+	actions_label = _make_label("ACCIONES 3", 12, CYAN_COLOR)
+	row.add_child(turn_label)
+	row.add_child(actions_label)
 
-	var vs := _make_label("VS", 12, GOLD_COLOR)
-	vs.custom_minimum_size = Vector2(0, 18)
-	vs.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	board_column.add_child(vs)
+	var player_panel := _build_character_panel(true)
+	header.add_child(enemy_panel)
+	header.add_child(center_panel)
+	header.add_child(player_panel)
 
-	var player_field := _make_panel(board_column)
-	player_field.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	return header
 
-	var player_grid := GridContainer.new()
-	player_grid.columns = BattleState.GRID_COLUMNS
-	player_grid.add_theme_constant_override("h_separation", 5)
-	player_grid.add_theme_constant_override("v_separation", 5)
-	player_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	player_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	player_field.add_child(player_grid)
+func _build_character_panel(player: bool) -> PanelContainer:
+	var panel := _new_panel(Vector2(260, 82))
+	panel.custom_minimum_size.x = 260
 
-	for i in range(BattleState.PLAYER_SLOTS):
-		var slot := Button.new()
-		slot.custom_minimum_size = Vector2(0, 58)
-		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		slot.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		slot.add_theme_font_size_override("font_size", 10)
-		slot.add_theme_color_override("font_color", TEXT_COLOR)
-		slot.add_theme_color_override("font_hover_color", TEXT_COLOR)
-		slot.add_theme_stylebox_override("normal", _button_style(SURFACE_ALT_COLOR, BORDER_COLOR))
-		slot.add_theme_stylebox_override("hover", _button_style(Color("#174A38"), CYAN_COLOR, 8, 2))
-		slot.add_theme_stylebox_override("pressed", _button_style(Color("#3D3818"), GOLD_COLOR, 8, 2))
-		slot.pressed.connect(_on_player_slot_pressed.bind(i))
-		player_grid.add_child(slot)
-		player_slot_buttons.append(slot)
+	var content := HBoxContainer.new()
+	content.add_theme_constant_override("separation", 8)
+	panel.add_child(content)
 
-	# CARTAS
-	var cards_column := VBoxContainer.new()
-	cards_column.custom_minimum_size.x = 245
-	cards_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cards_column.size_flags_stretch_ratio = 0.9
-	cards_column.add_theme_constant_override("separation", 6)
-	columns.add_child(cards_column)
+	var portrait := Button.new()
+	portrait.custom_minimum_size = Vector2(70, 62)
+	portrait.text = "J" if player else "E"
+	portrait.add_theme_font_size_override("font_size", 18)
+	portrait.add_theme_color_override("font_color", TEXT_COLOR)
+	portrait.add_theme_stylebox_override("normal", _button_style(SURFACE_ALT_COLOR, CYAN_COLOR if player else DANGER_COLOR, 8, 2))
+	portrait.add_theme_stylebox_override("hover", _button_style(SELECTED_COLOR, GOLD_COLOR, 8, 2))
+	if not player:
+		portrait.pressed.connect(_on_enemy_portrait_pressed)
+	content.add_child(portrait)
 
-	var deck_panel := _make_panel(cards_column, Vector2(0, 120))
-	var deck_content := VBoxContainer.new()
-	deck_content.alignment = BoxContainer.ALIGNMENT_CENTER
-	deck_panel.add_child(deck_content)
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_child(info)
 
-	var deck_card := PanelContainer.new()
-	deck_card.custom_minimum_size = Vector2(92, 78)
-	deck_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	deck_card.add_theme_stylebox_override("panel", _style_box(Color("#174A38"), CYAN_COLOR, 8, 2))
-	deck_content.add_child(deck_card)
+	var name_label := _make_label("JUGADOR" if player else "ENEMIGO", 14, CYAN_COLOR if player else DANGER_COLOR)
+	info.add_child(name_label)
 
-	var deck_mark := _make_label("MAZO", 14, TEXT_COLOR)
-	deck_mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	deck_mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	deck_card.add_child(deck_mark)
+	var health_bar := ProgressBar.new()
+	health_bar.custom_minimum_size.y = 16
+	health_bar.max_value = 30
+	health_bar.value = 30
+	health_bar.show_percentage = false
+	health_bar.add_theme_stylebox_override("background", _style_box(Color("#07150F"), BORDER_COLOR, 5, 1))
+	health_bar.add_theme_stylebox_override("fill", _style_box(CYAN_COLOR if player else DANGER_COLOR, CYAN_COLOR if player else DANGER_COLOR, 5, 1))
+	info.add_child(health_bar)
 
-	deck_count_label = _make_label("0", 12, MUTED_COLOR)
-	deck_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	deck_content.add_child(deck_count_label)
+	var health_label := _make_label("30 / 30", 11, TEXT_COLOR)
+	info.add_child(health_label)
 
-	var hand_panel := _make_panel(cards_column)
-	hand_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var hand_content := VBoxContainer.new()
-	hand_content.add_theme_constant_override("separation", 5)
-	hand_panel.add_child(hand_content)
+	if player:
+		player_name_label = name_label
+		player_health_bar = health_bar
+		player_health_label = health_label
+	else:
+		enemy_name_label = name_label
+		enemy_health_bar = health_bar
+		enemy_health_label = health_label
 
-	hand_count_label = _make_label("0 CARTAS", 12, MUTED_COLOR)
-	hand_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hand_content.add_child(hand_count_label)
+	return panel
 
-	var hand_scroll := ScrollContainer.new()
-	hand_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	hand_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	hand_content.add_child(hand_scroll)
+func _build_middle() -> Control:
+	var middle := HBoxContainer.new()
+	middle.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	middle.add_theme_constant_override("separation", 8)
 
-	var hand_list := VBoxContainer.new()
-	hand_list.add_theme_constant_override("separation", 5)
-	hand_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hand_scroll.add_child(hand_list)
+	var board_panel := _new_panel()
+	board_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	board_panel.size_flags_stretch_ratio = 2.8
+	middle.add_child(board_panel)
 
-	for i in range(8):
-		var button := Button.new()
-		button.custom_minimum_size = Vector2(0, 58)
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.add_theme_font_size_override("font_size", 10)
-		button.add_theme_color_override("font_color", TEXT_COLOR)
-		button.add_theme_color_override("font_hover_color", TEXT_COLOR)
-		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		button.add_theme_stylebox_override("normal", _button_style(SURFACE_ALT_COLOR, BORDER_COLOR))
-		button.add_theme_stylebox_override("hover", _button_style(Color("#174A38"), CYAN_COLOR, 8, 2))
-		button.add_theme_stylebox_override("pressed", _button_style(SELECTED_COLOR, GOLD_COLOR, 8, 2))
-		button.add_theme_stylebox_override("disabled", _button_style(Color("#0B251C"), Color("#193D30"), 8))
-		button.pressed.connect(_on_hand_pressed.bind(i))
-		hand_list.add_child(button)
-		hand_buttons.append(button)
+	var board_margin := MarginContainer.new()
+	board_margin.add_theme_constant_override("margin_left", 7)
+	board_margin.add_theme_constant_override("margin_right", 7)
+	board_margin.add_theme_constant_override("margin_top", 7)
+	board_margin.add_theme_constant_override("margin_bottom", 7)
+	board_panel.add_child(board_margin)
 
-	# INFORMACIÓN
-	var info_column := VBoxContainer.new()
-	info_column.custom_minimum_size.x = 210
-	info_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info_column.size_flags_stretch_ratio = 0.7
-	info_column.add_theme_constant_override("separation", 6)
-	columns.add_child(info_column)
+	var board_root := VBoxContainer.new()
+	board_root.add_theme_constant_override("separation", 4)
+	board_margin.add_child(board_root)
 
-	var info_panel := _make_panel(info_column)
-	info_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var title := _make_label("CAMPO DE BATALLA", 11, MUTED_COLOR)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	board_root.add_child(title)
 
-	var info_content := VBoxContainer.new()
-	info_content.add_theme_constant_override("separation", 8)
-	info_panel.add_child(info_content)
+	var grid := GridContainer.new()
+	grid.columns = BattleBoard.COLUMNS
+	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 3)
+	grid.add_theme_constant_override("v_separation", 3)
+	board_root.add_child(grid)
 
-	source_label = _make_label(canon_repository.get_status_text(), 10, CYAN_COLOR)
-	source_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	info_content.add_child(source_label)
+	for index in range(BattleBoard.CELL_COUNT):
+		var cell := Button.new()
+		cell.custom_minimum_size = Vector2(0, 46)
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cell.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		cell.add_theme_font_size_override("font_size", 8)
+		cell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		cell.pressed.connect(_on_board_pressed.bind(index))
+		grid.add_child(cell)
+		board_buttons.append(cell)
 
-	var player_title := _make_label("JUGADOR", 11, MUTED_COLOR)
-	player_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	info_content.add_child(player_title)
+	var mixer_panel := _new_panel(Vector2(315, 0))
+	mixer_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mixer_panel.size_flags_stretch_ratio = 1.0
+	middle.add_child(mixer_panel)
 
-	var life_value := _make_label("VIDA", 11, MUTED_COLOR)
-	life_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	info_content.add_child(life_value)
+	var mixer_margin := MarginContainer.new()
+	mixer_margin.add_theme_constant_override("margin_left", 9)
+	mixer_margin.add_theme_constant_override("margin_right", 9)
+	mixer_margin.add_theme_constant_override("margin_top", 9)
+	mixer_margin.add_theme_constant_override("margin_bottom", 9)
+	mixer_panel.add_child(mixer_margin)
 
-	var player_value := _make_label("30", 28, TEXT_COLOR)
-	player_value.name = "PlayerValue"
-	player_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	info_content.add_child(player_value)
+	var mixer_root := VBoxContainer.new()
+	mixer_root.add_theme_constant_override("separation", 7)
+	mixer_margin.add_child(mixer_root)
+
+	var mixer_title := _make_label("MEZCLADOR", 17, GOLD_COLOR)
+	mixer_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mixer_root.add_child(mixer_title)
+
+	var subtitle := _make_label("IUM → preparación de proceso", 10, MUTED_COLOR)
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mixer_root.add_child(subtitle)
+
+	var mixer_grid := GridContainer.new()
+	mixer_grid.columns = 3
+	mixer_grid.custom_minimum_size = Vector2(0, 165)
+	mixer_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mixer_grid.add_theme_constant_override("h_separation", 4)
+	mixer_grid.add_theme_constant_override("v_separation", 4)
+	mixer_root.add_child(mixer_grid)
+
+	for index in range(MixerState.SIZE):
+		var cell := Button.new()
+		cell.custom_minimum_size = Vector2(0, 51)
+		cell.add_theme_font_size_override("font_size", 10)
+		cell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		cell.text = "+"
+		cell.pressed.connect(_on_mixer_pressed.bind(index))
+		mixer_grid.add_child(cell)
+		mixer_buttons.append(cell)
 
 	var etherium_title := _make_label("ETERIUM", 11, GOLD_COLOR)
 	etherium_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	info_content.add_child(etherium_title)
+	mixer_root.add_child(etherium_title)
 
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	info_content.add_child(spacer)
+	etherium_bar = ProgressBar.new()
+	etherium_bar.custom_minimum_size.y = 20
+	etherium_bar.max_value = BattleState.MAX_ETHERIUM
+	etherium_bar.value = 3
+	etherium_bar.show_percentage = false
+	etherium_bar.add_theme_stylebox_override("background", _style_box(Color("#151308"), BORDER_COLOR, 6, 1))
+	etherium_bar.add_theme_stylebox_override("fill", _style_box(GOLD_COLOR, GOLD_COLOR, 6, 1))
+	mixer_root.add_child(etherium_bar)
 
-	selected_label = _make_label("", 11, CYAN_COLOR)
-	selected_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	selected_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	info_content.add_child(selected_label)
+	etherium_label = _make_label("3 / 3", 12, GOLD_COLOR)
+	etherium_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mixer_root.add_child(etherium_label)
 
-	result_label = _make_label("", 16, GOLD_COLOR)
-	result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	info_content.add_child(result_label)
+	mixer_result_label = _make_label("MEZCLADOR VACÍO", 10, MUTED_COLOR)
+	mixer_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mixer_result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mixer_root.add_child(mixer_result_label)
+
+	process_button = Button.new()
+	process_button.text = "PROCESAR"
+	process_button.custom_minimum_size.y = 34
+	process_button.add_theme_font_size_override("font_size", 11)
+	process_button.add_theme_stylebox_override("normal", _button_style(GOLD_COLOR, Color("#F0D76A"), 7, 1))
+	process_button.add_theme_color_override("font_color", Color("#182016"))
+	process_button.pressed.connect(_on_process_pressed)
+	mixer_root.add_child(process_button)
+
+	status_label = _make_label("", 10, CYAN_COLOR)
+	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mixer_root.add_child(status_label)
+
+	return middle
+
+func _build_hand_bar() -> Control:
+	var panel := _new_panel(Vector2(0, 115))
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 7)
+	margin.add_theme_constant_override("margin_right", 7)
+	margin.add_theme_constant_override("margin_top", 6)
+	margin.add_theme_constant_override("margin_bottom", 6)
+	panel.add_child(margin)
+
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 4)
+	margin.add_child(root)
+
+	var header := HBoxContainer.new()
+	root.add_child(header)
+
+	hand_count_label = _make_label("INVENTARIO · 0 CARTAS", 11, MUTED_COLOR)
+	hand_count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(hand_count_label)
+
+	deck_count_label = _make_label("MAZO 0", 11, MUTED_COLOR)
+	header.add_child(deck_count_label)
+
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(scroll)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 5)
+	scroll.add_child(row)
+
+	for index in range(BattleState.MAX_HAND):
+		var button := Button.new()
+		button.custom_minimum_size = Vector2(145, 73)
+		button.add_theme_font_size_override("font_size", 10)
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		button.pressed.connect(_on_hand_pressed.bind(index))
+		row.add_child(button)
+		hand_buttons.append(button)
+
+	return panel
+
+func _build_bottom_bar() -> Control:
+	var bar := HBoxContainer.new()
+	bar.custom_minimum_size.y = 42
+	bar.add_theme_constant_override("separation", 7)
+
+	var hint := _make_label("Carta → campo · IUM → mezclador · unidad → destino. Espacio = terminar turno.", 10, MUTED_COLOR)
+	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	bar.add_child(hint)
 
 	end_turn_button = Button.new()
-	end_turn_button.text = "TERMINAR"
-	end_turn_button.custom_minimum_size = Vector2(0, 44)
-	end_turn_button.add_theme_font_size_override("font_size", 13)
+	end_turn_button.text = "TERMINAR TURNO"
+	end_turn_button.custom_minimum_size = Vector2(150, 38)
+	end_turn_button.add_theme_font_size_override("font_size", 11)
+	end_turn_button.add_theme_stylebox_override("normal", _button_style(GOLD_COLOR, Color("#F0D76A"), 7, 1))
 	end_turn_button.add_theme_color_override("font_color", Color("#182016"))
-	end_turn_button.add_theme_color_override("font_hover_color", Color("#182016"))
-	end_turn_button.add_theme_stylebox_override("normal", _button_style(GOLD_COLOR, Color("#F0D76A"), 8, 1))
-	end_turn_button.add_theme_stylebox_override("hover", _button_style(Color("#F0D76A"), Color("#FFF0A0"), 8, 2))
-	end_turn_button.add_theme_stylebox_override("pressed", _button_style(Color("#B79B35"), GOLD_COLOR, 8, 2))
 	end_turn_button.pressed.connect(_on_end_turn_pressed)
-	info_content.add_child(end_turn_button)
+	bar.add_child(end_turn_button)
 
-	restart_button = Button.new()
-	restart_button.text = "NUEVA"
-	restart_button.custom_minimum_size = Vector2(0, 34)
-	restart_button.add_theme_font_size_override("font_size", 11)
-	restart_button.pressed.connect(_start_battle)
-	info_content.add_child(restart_button)
+	var back_button := Button.new()
+	back_button.text = "RETROCEDER"
+	back_button.custom_minimum_size = Vector2(120, 38)
+	back_button.add_theme_font_size_override("font_size", 11)
+	back_button.pressed.connect(_return_to_menu)
+	bar.add_child(back_button)
 
-	menu_button = Button.new()
-	menu_button.text = "MENÚ"
-	menu_button.custom_minimum_size = Vector2(0, 34)
-	menu_button.add_theme_font_size_override("font_size", 11)
-	menu_button.pressed.connect(_return_to_menu)
-	info_content.add_child(menu_button)
+	return bar
 
 func _start_battle() -> void:
-	selected_card = null
+	selected_card_index = -1
 	selected_unit_slot = -1
-	result_label.text = ""
-	end_turn_button.disabled = false
+	status_label.text = ""
 
-	var player_deck := CardCatalog.starter_deck()
-	var enemies := CardCatalog.enemy_deck()
+	var player_deck: Array[CardDefinition] = CardCatalog.starter_deck()
+	var enemy_deck: Array[CardDefinition] = CardCatalog.enemy_deck()
+	var process_catalog: Array[CardDefinition] = []
 
 	if canon_repository.has_canon_data():
+		var all_cards: Array[CardDefinition] = CardCatalog.from_canon(canon_repository)
 		player_deck = CardCatalog.starter_deck_from_canon(canon_repository)
-		enemies = CardCatalog.enemy_deck_from_canon(canon_repository)
+		enemy_deck = CardCatalog.enemy_deck_from_canon(canon_repository)
+		for card in all_cards:
+			if card.card_type == CardDefinition.CardType.PROCESS:
+				process_catalog.append(card)
 
-	state = BattleState.new()
-	state.setup(player_deck, enemies)
+	engine = BattleEngine.new()
+	engine.setup(player_deck, enemy_deck, process_catalog)
+	state = engine.get_state()
 
-	if not enemies.is_empty():
-		title_label.text = enemies[0].display_name
-	else:
-		title_label.text = "ENEMIGO"
+	engine.state_changed.connect(_refresh)
+	engine.event_emitted.connect(_on_engine_event)
+	engine.command_resolved.connect(_on_command_resolved)
+	engine.battle_finished.connect(_on_battle_finished)
 
-	if not state.state_changed.is_connected(_refresh):
-		state.state_changed.connect(_refresh)
-	if not state.event_occurred.is_connected(_on_battle_event):
-		state.event_occurred.connect(_on_battle_event)
-	if not state.battle_finished.is_connected(_on_battle_finished):
-		state.battle_finished.connect(_on_battle_finished)
-
+	player_name_label.text = _character_name_from_canon("JUGADOR")
+	enemy_name_label.text = "ENEMIGO"
 	_refresh()
+
+func _character_name_from_canon(fallback: String) -> String:
+	var rows: Array = canon_repository.get_table("personajes_game")
+	if not rows.is_empty() and rows[0] is Dictionary:
+		var raw: Variant = rows[0].get("nombre", null)
+		if raw != null:
+			var name: String = str(raw).strip_edges()
+			if not name.is_empty():
+				return name
+	return fallback
 
 func _on_hand_pressed(index: int) -> void:
-	if state == null or state.is_finished() or index >= state.hand.size():
+	if state == null or state.is_finished() or index < 0 or index >= state.hand.size():
 		return
-
-	selected_card = state.hand[index]
+	selected_card_index = index
 	selected_unit_slot = -1
+	status_label.text = "%s seleccionado." % state.hand[index].display_name
 	_refresh()
 
-func _on_player_slot_pressed(index: int) -> void:
+func _on_board_pressed(index: int) -> void:
 	if state == null or state.is_finished():
 		return
 
-	if selected_card != null:
-		if selected_card.is_unit():
-			if state.play_card(selected_card, index):
-				selected_card = null
-				selected_unit_slot = -1
-		else:
-			if state.play_card(selected_card, index, false):
-				selected_card = null
-				selected_unit_slot = -1
-		_refresh()
-		return
-
-	if index < state.player_board.size() and state.player_board[index] != null:
-		var unit: CardDefinition = state.player_board[index]
-		if unit.can_attack():
-			selected_unit_slot = index
-			result_label.text = unit.display_name
-		else:
-			selected_unit_slot = -1
-		_refresh()
-
-func _on_enemy_slot_pressed(index: int) -> void:
-	if state == null or state.is_finished():
+	if selected_card_index >= 0 and selected_card_index < state.hand.size():
+		var card: CardDefinition = state.hand[selected_card_index]
+		if card.card_type == CardDefinition.CardType.IUM:
+			status_label.text = "Los IUMs se colocan en el mezclador."
+			return
+		var enemy_target: bool = state.board.get_owner(index) == BattleBoard.Owner.ENEMY
+		var result: BattleResult = engine.execute(BattleCommand.play_card(selected_card_index, index, enemy_target))
+		if result.success:
+			selected_card_index = -1
 		return
 
 	if selected_unit_slot >= 0:
-		if state.attack_unit(selected_unit_slot, index):
+		var result: BattleResult
+		if state.board.get_owner(index) == BattleBoard.Owner.ENEMY:
+			result = engine.execute(BattleCommand.attack(selected_unit_slot, index))
+		else:
+			result = engine.execute(BattleCommand.move_unit(selected_unit_slot, index))
+		if result.success:
 			selected_unit_slot = -1
-			selected_card = null
-		_refresh()
 		return
 
-	if selected_card != null and not selected_card.is_unit():
-		if state.play_card(selected_card, index, true):
-			selected_card = null
+	if state.board.get_owner(index) == BattleBoard.Owner.PLAYER:
+		selected_unit_slot = index
+		status_label.text = "%s seleccionado." % state.board.get_card(index).display_name
 		_refresh()
+
+func _on_enemy_portrait_pressed() -> void:
+	if state == null or state.is_finished() or selected_unit_slot < 0:
+		return
+	var result: BattleResult = engine.execute(BattleCommand.attack(selected_unit_slot, -1))
+	if result.success:
+		selected_unit_slot = -1
+
+func _on_mixer_pressed(index: int) -> void:
+	if state == null or state.is_finished():
+		return
+
+	if selected_card_index >= 0 and selected_card_index < state.hand.size():
+		var card: CardDefinition = state.hand[selected_card_index]
+		if card != null and card.card_type == CardDefinition.CardType.IUM:
+			var result: BattleResult = engine.execute(BattleCommand.mixer_place(selected_card_index, index))
+			if result.success:
+				selected_card_index = -1
+			return
+
+	if not state.mixer.is_empty(index):
+		var result: BattleResult = engine.execute(BattleCommand.mixer_remove(index))
+		if result.success:
+			selected_card_index = -1
+
+func _on_process_pressed() -> void:
+	if state == null or state.is_finished():
+		return
+	engine.execute(BattleCommand.mixer_resolve())
 
 func _on_end_turn_pressed() -> void:
 	if state == null or state.is_finished():
 		return
-
-	selected_card = null
+	selected_card_index = -1
 	selected_unit_slot = -1
-	state.end_turn()
+	engine.execute(BattleCommand.end_turn())
+
+func _on_command_resolved(result: BattleResult) -> void:
+	status_label.text = result.message
+	if not result.success:
+		status_label.text = "ERROR · %s" % result.message
 	_refresh()
 
-func _on_battle_event(message: String) -> void:
-	result_label.text = message
-	await get_tree().create_timer(1.1).timeout
-	if state != null and not state.is_finished() and result_label.text == message:
-		result_label.text = ""
+func _on_engine_event(event: BattleEvent) -> void:
+	if event.type == BattleEvent.EventType.DIAGNOSTIC:
+		status_label.text = event.message
 
 func _on_battle_finished(player_won: bool) -> void:
-	result_label.text = "VICTORIA" if player_won else "DERROTA"
+	status_label.text = "VICTORIA" if player_won else "DERROTA"
 	end_turn_button.disabled = true
-
-func _return_to_menu() -> void:
-	get_tree().change_scene_to_file(MENU_SCENE_PATH)
-
-func _unhandled_key_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.physical_keycode == KEY_SPACE:
-			_on_end_turn_pressed()
-		elif event.physical_keycode == KEY_ESCAPE:
-			_return_to_menu()
+	process_button.disabled = true
+	_refresh()
 
 func _refresh() -> void:
 	if state == null:
 		return
 
 	turn_label.text = "T%d" % state.turn
-	actions_label.text = "A%d" % state.player_actions
-	player_label.text = "%d" % state.player_health
-	enemy_label.text = "%d" % state.enemy_health
-	etherium_label.text = "E%d/%d" % [state.player_etherium, state.player_max_etherium]
-	deck_count_label.text = "%d" % state.deck.size()
-	hand_count_label.text = "%d CARTAS" % state.hand.size()
-	source_label.text = canon_repository.get_status_text()
+	actions_label.text = "ACCIONES %d" % state.player_actions
+	player_health_label.text = "%d / 30" % state.player_health
+	enemy_health_label.text = "%d / 30" % state.enemy_health
+	player_health_bar.value = state.player_health
+	enemy_health_bar.value = state.enemy_health
+	etherium_bar.value = state.player_etherium
+	etherium_label.text = "%d / %d" % [state.player_etherium, state.player_max_etherium]
+	hand_count_label.text = "INVENTARIO · %d CARTAS" % state.hand.size()
+	deck_count_label.text = "MAZO %d" % state.deck.size()
 
-	for i in range(enemy_slot_buttons.size()):
-		var button := enemy_slot_buttons[i]
-		if i < state.enemy_board.size() and state.enemy_board[i] != null:
-			var card: CardDefinition = state.enemy_board[i]
-			button.text = "%s\n%d · %d" % [card.display_name, card.attack, card.health]
-			button.disabled = false
-		else:
-			button.text = ""
-			button.disabled = false
-
-	for i in range(hand_buttons.size()):
-		var button := hand_buttons[i]
-		if i < state.hand.size():
-			var card: CardDefinition = state.hand[i]
-			button.text = "%s\n%s · %d E" % [card.display_name, card.type_name(), card.cost]
-			button.disabled = state.finished or card.cost > state.player_etherium or state.player_actions <= 0
-		else:
-			button.text = ""
-			button.disabled = true
-
-	for i in range(player_slot_buttons.size()):
-		var button := player_slot_buttons[i]
-		if i < state.player_board.size() and state.player_board[i] != null:
-			var card: CardDefinition = state.player_board[i]
-			button.text = "%s\n%d · %d" % [card.display_name, card.attack, card.health]
-			button.disabled = false
-			button.add_theme_stylebox_override(
-				"normal",
-				_button_style(SELECTED_COLOR if i == selected_unit_slot else SURFACE_ALT_COLOR, CYAN_COLOR if i == selected_unit_slot else BORDER_COLOR)
-			)
-		else:
-			button.text = ""
-			button.disabled = false
-			button.add_theme_stylebox_override("normal", _button_style(SURFACE_ALT_COLOR, BORDER_COLOR))
-
-	if selected_card != null:
-		selected_label.text = selected_card.display_name
+	var recipe: CardDefinition = MixerEngine.find_process(state.mixer, state.process_catalog)
+	if state.mixer.count() == 0:
+		mixer_result_label.text = "MEZCLADOR VACÍO"
+		process_button.disabled = true
+	elif recipe != null:
+		mixer_result_label.text = "RESULTADO · %s" % recipe.display_name
+		process_button.disabled = state.player_actions <= 0 or state.player_etherium <= 0 or state.hand.size() >= BattleState.MAX_HAND
 	else:
-		selected_label.text = ""
+		mixer_result_label.text = "%s\nSIN RECETA CANÓNICA" % MixerEngine.describe(state.mixer)
+		process_button.disabled = true
 
-	if state.finished:
-		end_turn_button.disabled = true
+	for index in range(board_buttons.size()):
+		var button: Button = board_buttons[index]
+		var occupant: CardDefinition = state.board.get_card(index)
+		var owner: int = state.board.get_owner(index)
+		var selected: bool = index == selected_unit_slot
+		if occupant != null:
+			var mark: String = "E" if owner == BattleBoard.Owner.ENEMY else "J"
+			var status_text: String = "Agotada" if occupant.exhausted else "Libre"
+			button.text = "%s\n%s\n%d ATQ · %d V\n%s" % [mark, occupant.display_name, occupant.attack, occupant.health, status_text]
+		else:
+			button.text = ""
+		button.add_theme_stylebox_override("normal", _cell_style(index, selected))
+		button.add_theme_stylebox_override("hover", _cell_style(index, true))
+
+	for index in range(mixer_buttons.size()):
+		var mixer_button: Button = mixer_buttons[index]
+		var mixer_card: CardDefinition = state.mixer.get_ium(index)
+		mixer_button.text = mixer_card.display_name if mixer_card != null else "+"
+		mixer_button.add_theme_stylebox_override("normal", _button_style(SELECTED_COLOR if mixer_card != null else SURFACE_ALT_COLOR, GOLD_COLOR if mixer_card != null else BORDER_COLOR, 7, 1))
+
+	for index in range(hand_buttons.size()):
+		var hand_button: Button = hand_buttons[index]
+		if index < state.hand.size():
+			var card: CardDefinition = state.hand[index]
+			hand_button.text = "%s\n%s\n%d E" % [card.display_name, card.type_name(), card.cost]
+			hand_button.tooltip_text = card.description
+			hand_button.disabled = state.finished or card.cost > state.player_etherium or state.player_actions <= 0
+			hand_button.add_theme_stylebox_override("normal", _button_style(SELECTED_COLOR if index == selected_card_index else SURFACE_ALT_COLOR, GOLD_COLOR if index == selected_card_index else BORDER_COLOR, 7, 2 if index == selected_card_index else 1))
+		else:
+			hand_button.text = ""
+			hand_button.tooltip_text = ""
+			hand_button.disabled = true
+
+	end_turn_button.disabled = state.finished
+
+func _cell_style(index: int, selected: bool) -> StyleBoxFlat:
+	var background := SURFACE_ALT_COLOR
+	var border := BORDER_COLOR
+	if state != null:
+		if state.board.is_enemy_zone(index):
+			background = Color("#2C2024")
+		elif state.board.is_player_zone(index):
+			background = Color("#15352A")
+		else:
+			background = NEUTRAL_COLOR
+	if selected:
+		background = SELECTED_COLOR
+		border = GOLD_COLOR
+	return _button_style(background, border, 5, 2 if selected else 1)
+
+func _return_to_menu() -> void:
+	get_tree().change_scene_to_file(MENU_SCENE_PATH)
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.physical_keycode == KEY_ESCAPE:
+			_return_to_menu()
+		elif event.physical_keycode == KEY_SPACE:
+			_on_end_turn_pressed()

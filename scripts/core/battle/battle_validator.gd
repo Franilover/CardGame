@@ -1,9 +1,6 @@
 class_name BattleValidator
 extends RefCounted
 
-## Valida comandos de entrada.
-## No modifica el estado.
-
 static func validate(state: BattleState, command: BattleCommand) -> BattleResult:
 	if state == null:
 		return BattleResult.error("STATE_MISSING", "No existe BattleState.")
@@ -17,10 +14,18 @@ static func validate(state: BattleState, command: BattleCommand) -> BattleResult
 			return _validate_play_card(state, command)
 		BattleCommand.CommandType.ATTACK:
 			return _validate_attack(state, command)
+		BattleCommand.CommandType.MOVE_UNIT:
+			return _validate_move(state, command)
+		BattleCommand.CommandType.MIXER_PLACE:
+			return _validate_mixer_place(state, command)
+		BattleCommand.CommandType.MIXER_REMOVE:
+			return _validate_mixer_remove(state, command)
+		BattleCommand.CommandType.MIXER_RESOLVE:
+			return _validate_mixer_resolve(state)
 		BattleCommand.CommandType.END_TURN:
-			return _validate_end_turn(state)
+			return BattleResult.ok()
 		BattleCommand.CommandType.SURRENDER:
-			return BattleResult.error("UNSUPPORTED_COMMAND", "Rendirse aún no forma parte del motor v0.1.")
+			return BattleResult.error("UNSUPPORTED_COMMAND", "Rendirse aún no está implementado.")
 
 	return BattleResult.error("UNKNOWN_COMMAND", "Tipo de comando desconocido.")
 
@@ -29,32 +34,95 @@ static func _validate_play_card(state: BattleState, command: BattleCommand) -> B
 		return BattleResult.error("HAND_INDEX_INVALID", "La carta seleccionada no existe en la mano.")
 
 	var card: CardDefinition = state.hand[command.hand_index]
-	if not state.can_play(card):
+	if card == null or not state.can_play(card):
 		return BattleResult.error("CARD_NOT_PLAYABLE", "La carta no puede jugarse ahora.")
 
 	if card.is_unit():
-		if command.target_enemy:
-			return BattleResult.error("UNIT_TARGET_INVALID", "Una criatura del jugador solo puede entrar a su tablero.")
-		if command.target_slot < 0 or command.target_slot >= BattleState.PLAYER_SLOTS:
-			return BattleResult.error("SLOT_INVALID", "La casilla objetivo no es válida.")
-		if state.player_board[command.target_slot] != null:
-			return BattleResult.error("SLOT_OCCUPIED", "La casilla objetivo ya está ocupada.")
+		if not state.board.can_place(command.target_slot, BattleBoard.Owner.PLAYER):
+			return BattleResult.error("UNIT_SLOT_INVALID", "La casilla no pertenece a la zona inicial del jugador.")
+		return BattleResult.ok()
+
+	match card.effect_kind:
+		"buff":
+			if command.target_enemy or state.board.get_owner(command.target_slot) != BattleBoard.Owner.PLAYER or state.board.get_card(command.target_slot) == null:
+				return BattleResult.error("BUFF_TARGET_INVALID", "No hay una unidad aliada en esa casilla.")
+		"damage":
+			if not command.target_enemy or state.board.get_owner(command.target_slot) != BattleBoard.Owner.ENEMY or state.board.get_card(command.target_slot) == null:
+				return BattleResult.error("DAMAGE_TARGET_INVALID", "No hay un enemigo en esa casilla.")
+		"damage_all", "draw":
+			pass
+		_:
+			return BattleResult.error("EFFECT_UNSUPPORTED", "La carta aún no tiene un resolver compatible.")
 
 	return BattleResult.ok()
 
 static func _validate_attack(state: BattleState, command: BattleCommand) -> BattleResult:
-	if command.attacker_slot < 0 or command.attacker_slot >= BattleState.PLAYER_SLOTS:
-		return BattleResult.error("ATTACKER_SLOT_INVALID", "La casilla del atacante no es válida.")
-	if command.target_slot < -1 or command.target_slot >= BattleState.ENEMY_SLOTS:
-		return BattleResult.error("TARGET_SLOT_INVALID", "La casilla objetivo no es válida.")
-
-	var attacker: CardDefinition = state.player_board[command.attacker_slot]
-	if attacker == null:
-		return BattleResult.error("ATTACKER_MISSING", "No existe criatura en la casilla del atacante.")
+	if command.attacker_slot < 0 or command.attacker_slot >= BattleBoard.CELL_COUNT:
+		return BattleResult.error("ATTACKER_SLOT_INVALID", "El atacante no es válido.")
+	var attacker: CardDefinition = state.board.get_card(command.attacker_slot)
+	if state.board.get_owner(command.attacker_slot) != BattleBoard.Owner.PLAYER or attacker == null:
+		return BattleResult.error("ATTACKER_MISSING", "No existe una unidad aliada.")
 	if not attacker.can_attack():
-		return BattleResult.error("ATTACK_NOT_ALLOWED", "La criatura no puede atacar ahora.")
+		return BattleResult.error("ATTACK_NOT_ALLOWED", "La unidad no puede atacar.")
+
+	if command.target_slot < -1 or command.target_slot >= BattleBoard.CELL_COUNT:
+		return BattleResult.error("TARGET_SLOT_INVALID", "El objetivo no es válido.")
+
+	if command.target_slot >= 0:
+		var defender: CardDefinition = state.board.get_card(command.target_slot)
+		if state.board.get_owner(command.target_slot) != BattleBoard.Owner.ENEMY or defender == null:
+			return BattleResult.error("TARGET_NOT_ENEMY", "El objetivo no es enemigo.")
+		if state.board.distance(command.attacker_slot, command.target_slot) > max(1, attacker.attack_range):
+			return BattleResult.error("TARGET_OUT_OF_RANGE", "El objetivo está fuera de alcance.")
+	else:
+		if state.board.position_from_index(command.attacker_slot).y > BattleBoard.ENEMY_ZONE_MAX_ROW:
+			return BattleResult.error("FACE_OUT_OF_RANGE", "La unidad aún no alcanzó la zona enemiga.")
 
 	return BattleResult.ok()
 
-static func _validate_end_turn(_state: BattleState) -> BattleResult:
+static func _validate_move(state: BattleState, command: BattleCommand) -> BattleResult:
+	if command.attacker_slot < 0 or command.attacker_slot >= BattleBoard.CELL_COUNT:
+		return BattleResult.error("ORIGIN_INVALID", "El origen no es válido.")
+	if command.target_slot < 0 or command.target_slot >= BattleBoard.CELL_COUNT:
+		return BattleResult.error("DESTINATION_INVALID", "El destino no es válido.")
+
+	var unit: CardDefinition = state.board.get_card(command.attacker_slot)
+	if state.board.get_owner(command.attacker_slot) != BattleBoard.Owner.PLAYER or unit == null:
+		return BattleResult.error("UNIT_MISSING", "No existe una unidad aliada.")
+	if unit.exhausted or unit.has_acted:
+		return BattleResult.error("UNIT_ALREADY_ACTED", "La unidad ya actuó.")
+	if not state.board.can_move(command.attacker_slot, command.target_slot, BattleBoard.Owner.PLAYER, unit.movement):
+		return BattleResult.error("MOVE_INVALID", "Destino bloqueado, ocupado o fuera de movimiento.")
+	return BattleResult.ok()
+
+static func _validate_mixer_place(state: BattleState, command: BattleCommand) -> BattleResult:
+	if command.hand_index < 0 or command.hand_index >= state.hand.size():
+		return BattleResult.error("HAND_INDEX_INVALID", "La carta no existe.")
+	if command.mixer_slot < 0 or command.mixer_slot >= MixerState.SIZE:
+		return BattleResult.error("MIXER_SLOT_INVALID", "La casilla del mezclador no es válida.")
+	var card: CardDefinition = state.hand[command.hand_index]
+	if card == null or card.card_type != CardDefinition.CardType.IUM:
+		return BattleResult.error("MIXER_REQUIRES_IUM", "Solo se pueden colocar IUMs.")
+	if not state.mixer.is_empty(command.mixer_slot):
+		return BattleResult.error("MIXER_SLOT_OCCUPIED", "La casilla ya está ocupada.")
+	return BattleResult.ok()
+
+static func _validate_mixer_remove(state: BattleState, command: BattleCommand) -> BattleResult:
+	if command.mixer_slot < 0 or command.mixer_slot >= MixerState.SIZE:
+		return BattleResult.error("MIXER_SLOT_INVALID", "La casilla no es válida.")
+	if state.mixer.is_empty(command.mixer_slot):
+		return BattleResult.error("MIXER_SLOT_EMPTY", "La casilla está vacía.")
+	if state.hand.size() >= BattleState.MAX_HAND:
+		return BattleResult.error("HAND_FULL", "La mano está llena.")
+	return BattleResult.ok()
+
+static func _validate_mixer_resolve(state: BattleState) -> BattleResult:
+	if state.player_actions <= 0:
+		return BattleResult.error("NO_ACTIONS", "No quedan acciones.")
+	if state.player_etherium <= 0:
+		return BattleResult.error("NO_ETHERIUM", "No tienes Eterium suficiente.")
+	if state.mixer.count() < 2:
+		return BattleResult.error("MIXER_NEEDS_INPUTS", "Se necesitan al menos dos IUMs.")
+	if state.hand.size() >= BattleState.MAX_HAND:
+		return BattleResult.error("HAND_FULL", "La mano está llena.")
 	return BattleResult.ok()
