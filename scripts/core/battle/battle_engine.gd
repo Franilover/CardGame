@@ -14,11 +14,12 @@ var _active_command_id: String = ""
 func setup(
 	player_cards: Array[CardDefinition],
 	enemy_cards: Array[CardDefinition],
-	process_catalog: Array[CardDefinition] = []
+	process_catalog: Array[CardDefinition] = [],
+	ium_catalog: Array[CardDefinition] = []
 ) -> void:
 	_reset_connections()
 	state = BattleState.new()
-	state.setup(player_cards, enemy_cards, process_catalog)
+	state.setup(player_cards, enemy_cards, process_catalog, ium_catalog)
 	state.event_occurred.connect(_on_state_event)
 	state.state_changed.connect(_on_state_changed)
 	state.battle_finished.connect(_on_state_battle_finished)
@@ -55,6 +56,8 @@ func execute(command: BattleCommand) -> BattleResult:
 			resolved = _execute_move(command)
 		BattleCommand.CommandType.MIXER_PLACE:
 			resolved = _execute_mixer_place(command)
+		BattleCommand.CommandType.MIXER_PLACE_CATALOG_IUM:
+			resolved = _execute_mixer_catalog_place(command)
 		BattleCommand.CommandType.MIXER_REMOVE:
 			resolved = _execute_mixer_remove(command)
 		BattleCommand.CommandType.MIXER_RESOLVE:
@@ -157,10 +160,16 @@ func _execute_mixer_place(command: BattleCommand) -> BattleResult:
 		return BattleResult.error("ENGINE_REJECTED", "No se pudo colocar %s." % name)
 	return BattleResult.ok("%s colocado en el mezclador." % name)
 
+func _execute_mixer_catalog_place(command: BattleCommand) -> BattleResult:
+	var card: CardDefinition = state.ium_catalog[command.catalog_index]
+	if not state.place_catalog_ium_in_mixer(command.catalog_index, command.mixer_slot):
+		return BattleResult.error("ENGINE_REJECTED", "No se pudo colocar %s." % card.display_name)
+	return BattleResult.ok("%s colocado en el mezclador." % card.display_name)
+
 func _execute_mixer_remove(command: BattleCommand) -> BattleResult:
 	if not state.remove_ium_from_mixer(command.mixer_slot):
 		return BattleResult.error("ENGINE_REJECTED", "No se pudo devolver el IUM.")
-	return BattleResult.ok("IUM devuelto al inventario.")
+	return BattleResult.ok("IUM retirado del mezclador.")
 
 func _execute_end_turn() -> BattleResult:
 	var previous_turn: int = state.turn
