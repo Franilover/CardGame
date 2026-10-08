@@ -93,7 +93,7 @@ func setup(
 	deck = _runtime_copies(player_cards)
 	enemy_deck = _runtime_copies(enemy_cards)
 	process_catalog = _runtime_copies(canonical_processes)
-		ium_catalog = _runtime_copies(canonical_iums)
+	ium_catalog = _runtime_copies(canonical_iums)
 	deck.shuffle()
 	enemy_deck.shuffle()
 	for index in range(START_HAND):
