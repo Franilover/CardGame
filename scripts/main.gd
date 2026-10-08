@@ -679,7 +679,8 @@ func _refresh() -> void:
 		var hand_button: Button = hand_buttons[index]
 		if index < state.hand.size():
 			var card: CardDefinition = state.hand[index]
-			var etherium_cost: int = state.get_etherium_cost_for_card(card)\n\t\t\thand_button.text = "%s\n%s\n%d E" % [card.display_name, card.type_name(), etherium_cost] if etherium_cost > 0 else "%s\n%s\nSIN COSTE E" % [card.display_name, card.type_name()]
+			var etherium_cost: int = state.get_etherium_cost_for_card(card)
+			hand_button.text = "%s\n%s\n%d E" % [card.display_name, card.type_name(), etherium_cost] if etherium_cost > 0 else "%s\n%s\nSIN COSTE E" % [card.display_name, card.type_name()]
 			hand_button.tooltip_text = card.description
 			hand_button.disabled = state.finished or state.get_etherium_cost_for_card(card) > state.player_etherium or state.player_actions <= 0
 			hand_button.add_theme_stylebox_override("normal", _button_style(SELECTED_COLOR if index == selected_card_index else SURFACE_ALT_COLOR, GOLD_COLOR if index == selected_card_index else BORDER_COLOR, 7, 2 if index == selected_card_index else 1))
