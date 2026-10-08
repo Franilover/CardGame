@@ -84,14 +84,22 @@ func build_enemy_deck(base_deck: Array[CardDefinition]) -> Array[CardDefinition]
 	return result
 
 func finish_battle(state: BattleState, player_won: bool, catalog_cards: Array[CardDefinition]) -> String:
+	var gained_names: Array[String] = []
+	var lost_names: Array[String] = []
 	for lost_card in state.lost_cards:
 		if lost_card != null:
 			_remove_one_id(lost_card.id)
+			lost_names.append(lost_card.display_name)
 	for gained_card in state.unlocked_cards:
 		if gained_card != null:
 			deck_ids.append(gained_card.id)
+			gained_names.append(gained_card.display_name)
 
 	var reward_message := ""
+	if not gained_names.is_empty():
+		reward_message += " · Obtenidas: " + ", ".join(gained_names)
+	if not lost_names.is_empty():
+		reward_message += " · Perdidas: " + ", ".join(lost_names)
 	if player_won:
 		if is_boss_encounter():
 			var boss_reward := _find_reward_card(catalog_cards, CardDefinition.CardType.CREATURE, 0)
