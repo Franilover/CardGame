@@ -86,6 +86,19 @@ static func run() -> Dictionary:
 	var hero_attack_result: BattleResult = engine.execute(BattleCommand.hero_attack(hero_target, Vector2i.UP))
 	_report(report, "hero_attack_command", hero_attack_result.success, hero_attack_result.describe())
 	_report(report, "hero_attack_costs_action", state.player_actions == previous_actions_before_hero_attack - 1)
+	_report(report, "one_attack_remaining", state.player_attacks_remaining == state.player_max_attacks_per_turn - 1)
+
+	var second_attack_result: BattleResult = engine.execute(BattleCommand.hero_attack(state.player_hero_slot, Vector2i.UP))
+	_report(report, "second_attack_rejected_same_turn", not second_attack_result.success and second_attack_result.code == "NO_ATTACKS_REMAINING", second_attack_result.describe())
+
+	var actions_before_turn: int = state.player_actions
+	var etherium_before_turn: int = state.player_max_etherium
+	var end_again_result: BattleResult = engine.execute(BattleCommand.end_turn())
+	_report(report, "next_turn_starts", end_again_result.success)
+	_report(report, "actions_reset_to_two", state.player_actions == state.player_max_actions)
+	_report(report, "actions_remain_fixed", state.player_max_actions == BattleState.ACTIONS_PER_TURN)
+	_report(report, "attack_resets_next_turn", state.player_attacks_remaining == state.player_max_attacks_per_turn)
+	_report(report, "etherium_grows_next_turn", state.player_max_etherium == min(BattleState.MAX_ETHERIUM, etherium_before_turn + BattleState.ETHERIUM_GROWTH_PER_TURN))
 	report["snapshot"] = engine.debug_snapshot()
 
 	var all_steps_passed: bool = true
