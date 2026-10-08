@@ -31,6 +31,7 @@ var ium_bar_row: HBoxContainer
 var ium_buttons: Array[Button] = []
 var available_iums: Array[CardDefinition] = []
 var catalog_cards: Array[CardDefinition] = []
+var current_encounter_label: String = ""
 var selected_ium_index: int = -1
 
 var drag_source_slot: int = -1
@@ -417,6 +418,7 @@ func _build_bottom_bar() -> Control:
 	return bar
 
 func _start_battle() -> void:
+	current_encounter_label = RunProgress.encounter_label()
 	selected_card_index = -1
 	selected_unit_slot = -1
 	selected_ium_index = -1
@@ -704,7 +706,7 @@ func _refresh() -> void:
 	if state == null:
 		return
 
-	turn_label.text = "%s · T%d" % [RunProgress.encounter_label(), state.turn]
+	turn_label.text = "%s · T%d" % [current_encounter_label, state.turn]
 	actions_label.text = "ACCIONES %d/%d" % [state.player_actions, state.player_max_actions]
 	player_health_label.text = "%d / %d" % [state.player_hero.health, BattleState.HERO_MAX_HEALTH]
 	enemy_health_label.text = "%d / %d" % [state.enemy_hero.health, BattleState.HERO_MAX_HEALTH]
