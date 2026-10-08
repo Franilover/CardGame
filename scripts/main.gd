@@ -366,7 +366,7 @@ func _build_bottom_bar() -> Control:
 	bar.custom_minimum_size.y = 42
 	bar.add_theme_constant_override("separation", 7)
 
-	var hint := _make_label("Arrastra Rey o criatura para mover · movimiento gratuito · puedes repetir durante el turno.", 10, MUTED_COLOR)
+	var hint := _make_label("Arrastra Rey o criatura para mover · movimiento gratuito · una vez por turno por unidad.", 10, MUTED_COLOR)
 	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	bar.add_child(hint)
@@ -492,7 +492,7 @@ func _on_board_gui_input(event: InputEvent, index: int) -> void:
 			if event.global_position.distance_to(drag_press_position) >= 8.0:
 				drag_active = true
 				selected_unit_slot = drag_source_slot
-				status_label.text = "Arrastrando %s · movimiento gratuito." % state.board.get_card(drag_source_slot).display_name
+				status_label.text = "Arrastrando %s · movimiento gratuito · una vez por turno." % state.board.get_card(drag_source_slot).display_name
 				_refresh()
 				get_viewport().set_input_as_handled()
 
@@ -566,7 +566,7 @@ func _on_board_pressed(index: int) -> void:
 	if _is_draggable_player_unit(index):
 		selected_unit_slot = index
 		var selected_card: CardDefinition = state.board.get_card(index)
-		status_label.text = "%s seleccionado. El movimiento es gratuito." % selected_card.display_name
+		status_label.text = "%s seleccionado. Movimiento gratuito · una vez por turno." % selected_card.display_name
 		_refresh()
 
 func _on_hero_attack_pressed(direction: Vector2i) -> void:
