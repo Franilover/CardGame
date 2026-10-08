@@ -54,8 +54,9 @@ func _populate() -> void:
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(0, 82)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.add_theme_font_size_override("font_size", 11)
-		button.text = "%s  ·  %s" % [entry["name"], entry["type"]]
+		button.add_theme_font_size_override("font_size", 13)
+		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.text = str(entry.get("name", "CARTA"))
 		button.pressed.connect(_show_detail.bind(entry))
 		grid.add_child(button)
 
