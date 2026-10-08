@@ -14,6 +14,8 @@ const GOLD_COLOR := Color("#E3C34F")
 const DANGER_COLOR := Color("#D67A70")
 const SELECTED_COLOR := Color("#205B49")
 const NEUTRAL_COLOR := Color("#1C3329")
+const HERO_COLOR := Color("#C99F4A")
+const HERO_BG_COLOR := Color("#3A301C")
 
 var engine: BattleEngine
 var state: BattleState
@@ -151,8 +153,6 @@ func _build_character_panel(player: bool) -> PanelContainer:
 	portrait.add_theme_color_override("font_color", TEXT_COLOR)
 	portrait.add_theme_stylebox_override("normal", _button_style(SURFACE_ALT_COLOR, CYAN_COLOR if player else DANGER_COLOR, 8, 2))
 	portrait.add_theme_stylebox_override("hover", _button_style(SELECTED_COLOR, GOLD_COLOR, 8, 2))
-	if not player:
-		portrait.pressed.connect(_on_enemy_portrait_pressed)
 	content.add_child(portrait)
 
 	var info := VBoxContainer.new()
@@ -359,7 +359,7 @@ func _build_bottom_bar() -> Control:
 	bar.custom_minimum_size.y = 42
 	bar.add_theme_constant_override("separation", 7)
 
-	var hint := _make_label("Carta → campo · IUM → mezclador · unidad → destino. Espacio = terminar turno.", 10, MUTED_COLOR)
+	var hint := _make_label("Carta → campo · IUM → mezclador · mover criatura → 1 Eterium · atacar → 1 acción. Espacio = terminar turno.", 10, MUTED_COLOR)
 	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	bar.add_child(hint)
@@ -408,8 +408,8 @@ func _start_battle() -> void:
 	engine.command_resolved.connect(_on_command_resolved)
 	engine.battle_finished.connect(_on_battle_finished)
 
-	player_name_label.text = _character_name_from_canon("JUGADOR")
-	enemy_name_label.text = "ENEMIGO"
+	player_name_label.text = state.player_hero.display_name
+	enemy_name_label.text = state.enemy_hero.display_name
 	_refresh()
 
 func _character_name_from_canon(fallback: String) -> String:
@@ -449,23 +449,24 @@ func _on_board_pressed(index: int) -> void:
 		var result: BattleResult
 		if state.board.get_owner(index) == BattleBoard.Owner.ENEMY:
 			result = engine.execute(BattleCommand.attack(selected_unit_slot, index))
-		else:
+		elif state.board.is_empty(index):
 			result = engine.execute(BattleCommand.move_unit(selected_unit_slot, index))
+		else:
+			status_label.text = "El destino está ocupado."
+			return
 		if result.success:
 			selected_unit_slot = -1
 		return
 
 	if state.board.get_owner(index) == BattleBoard.Owner.PLAYER:
-		selected_unit_slot = index
-		status_label.text = "%s seleccionado." % state.board.get_card(index).display_name
-		_refresh()
-
-func _on_enemy_portrait_pressed() -> void:
-	if state == null or state.is_finished() or selected_unit_slot < 0:
-		return
-	var result: BattleResult = engine.execute(BattleCommand.attack(selected_unit_slot, -1))
-	if result.success:
-		selected_unit_slot = -1
+		if index == state.player_hero_slot:
+			status_label.text = "Este es tu Rey. Protégelo: derrotarlo significa perder la ronda."
+			return
+		var selected_card: CardDefinition = state.board.get_card(index)
+		if selected_card != null and selected_card.is_unit():
+			selected_unit_slot = index
+			status_label.text = "%s seleccionado. Mover cuesta %d Eterium." % [selected_card.display_name, BattleState.MOVE_ETHERIUM_COST]
+			_refresh()
 
 func _on_mixer_pressed(index: int) -> void:
 	if state == null or state.is_finished():
@@ -518,10 +519,10 @@ func _refresh() -> void:
 
 	turn_label.text = "T%d" % state.turn
 	actions_label.text = "ACCIONES %d" % state.player_actions
-	player_health_label.text = "%d / 30" % state.player_health
-	enemy_health_label.text = "%d / 30" % state.enemy_health
-	player_health_bar.value = state.player_health
-	enemy_health_bar.value = state.enemy_health
+	player_health_label.text = "%d / %d" % [state.player_hero.health, BattleState.HERO_MAX_HEALTH]
+	enemy_health_label.text = "%d / %d" % [state.enemy_hero.health, BattleState.HERO_MAX_HEALTH]
+	player_health_bar.value = state.player_hero.health
+	enemy_health_bar.value = state.enemy_hero.health
 	etherium_bar.value = state.player_etherium
 	etherium_label.text = "%d / %d" % [state.player_etherium, state.player_max_etherium]
 	hand_count_label.text = "INVENTARIO · %d CARTAS" % state.hand.size()
@@ -544,9 +545,14 @@ func _refresh() -> void:
 		var owner: int = state.board.get_owner(index)
 		var selected: bool = index == selected_unit_slot
 		if occupant != null:
-			var mark: String = "E" if owner == BattleBoard.Owner.ENEMY else "J"
-			var status_text: String = "Agotada" if occupant.exhausted else "Libre"
-			button.text = "%s\n%s\n%d ATQ · %d V\n%s" % [mark, occupant.display_name, occupant.attack, occupant.health, status_text]
+			if index == state.player_hero_slot:
+				button.text = "REY\n%s\n%d / %d V" % [occupant.display_name, occupant.health, BattleState.HERO_MAX_HEALTH]
+			elif index == state.enemy_hero_slot:
+				button.text = "REINA\n%s\n%d / %d V" % [occupant.display_name, occupant.health, BattleState.HERO_MAX_HEALTH]
+			else:
+				var mark: String = "E" if owner == BattleBoard.Owner.ENEMY else "J"
+				var status_text: String = "Agotada" if occupant.exhausted else ("Movida" if occupant.has_moved else "Libre")
+				button.text = "%s\n%s\n%d ATQ · %d V\n%s" % [mark, occupant.display_name, occupant.attack, occupant.health, status_text]
 		else:
 			button.text = ""
 		button.add_theme_stylebox_override("normal", _cell_style(index, selected))
@@ -576,8 +582,13 @@ func _refresh() -> void:
 func _cell_style(index: int, selected: bool) -> StyleBoxFlat:
 	var background := SURFACE_ALT_COLOR
 	var border := BORDER_COLOR
+	var width := 1
 	if state != null:
-		if state.board.is_enemy_zone(index):
+		if state.board.is_hero_slot(index):
+			background = HERO_BG_COLOR
+			border = HERO_COLOR
+			width = 2
+		elif state.board.is_enemy_zone(index):
 			background = Color("#2C2024")
 		elif state.board.is_player_zone(index):
 			background = Color("#15352A")
@@ -586,7 +597,8 @@ func _cell_style(index: int, selected: bool) -> StyleBoxFlat:
 	if selected:
 		background = SELECTED_COLOR
 		border = GOLD_COLOR
-	return _button_style(background, border, 5, 2 if selected else 1)
+		width = 2
+	return _button_style(background, border, 5, width)
 
 func _return_to_menu() -> void:
 	get_tree().change_scene_to_file(MENU_SCENE_PATH)
