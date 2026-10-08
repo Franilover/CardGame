@@ -22,6 +22,8 @@ static func run() -> Dictionary:
 	_report(report, "board_9x8", state.board.occupants.size() == BattleBoard.CELL_COUNT)
 	_report(report, "player_hero_on_trone", state.board.get_card(BattleBoard.PLAYER_HERO_SLOT) == state.player_hero)
 	_report(report, "enemy_hero_on_trone", state.board.get_card(BattleBoard.ENEMY_HERO_SLOT) == state.enemy_hero)
+	_report(report, "hero_attack_has_three_front_cells", state.board.front_attack_indices(state.player_hero_slot, Vector2i.UP).size() == 3)
+	_report(report, "hero_attack_has_four_direction_model", Vector2i.UP != Vector2i.DOWN and Vector2i.LEFT != Vector2i.RIGHT)
 
 	var playable_index: int = -1
 	for index in range(state.hand.size()):
