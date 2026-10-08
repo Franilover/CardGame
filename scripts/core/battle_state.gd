@@ -351,11 +351,6 @@ func _cleanup_boards() -> void:
 		if index != enemy_hero_slot and enemy_unit != null and not enemy_unit.alive():
 			enemy_discard.append(board.remove(index))
 
-func _reset_units_for_owner(owner: int) -> void:
-	for index in board.indices_for_owner(owner):
-		var unit: CardDefinition = board.get_card(index)
-		if unit != null:
-
 func end_turn() -> void:
 	if finished:
 		return
@@ -363,7 +358,6 @@ func end_turn() -> void:
 	if finished:
 		return
 	turn += 1
-	_reset_units_for_owner(BattleBoard.Owner.PLAYER)
 	player_max_etherium = min(MAX_ETHERIUM, player_max_etherium + ETHERIUM_GROWTH_PER_TURN)
 	player_etherium = player_max_etherium
 	player_actions = player_max_actions
@@ -372,7 +366,6 @@ func end_turn() -> void:
 	state_changed.emit()
 
 func _enemy_turn() -> void:
-	_reset_units_for_owner(BattleBoard.Owner.ENEMY)
 	enemy_max_etherium = min(MAX_ETHERIUM, enemy_max_etherium + ETHERIUM_GROWTH_PER_TURN)
 	enemy_etherium = enemy_max_etherium
 	enemy_actions = enemy_max_actions
