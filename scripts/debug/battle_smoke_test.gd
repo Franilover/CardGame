@@ -51,8 +51,9 @@ static func run() -> Dictionary:
 	_report(report, "actions_reset", state.player_actions == state.player_max_actions)
 	_report(report, "actions_are_two", state.player_max_actions == BattleState.ACTIONS_PER_TURN)
 
-	var etherium_before_growth: int = state.player_max_etherium
-	_report(report, "etherium_grows", state.player_max_etherium == min(BattleState.MAX_ETHERIUM, etherium_before_growth))
+	var etherium_before_turn_end: int = state.player_max_etherium
+	var growth_turn_result: BattleResult = engine.execute(BattleCommand.end_turn())
+	_report(report, "etherium_grows", state.player_max_etherium == min(BattleState.MAX_ETHERIUM, etherium_before_turn_end + BattleState.ETHERIUM_GROWTH_PER_TURN), growth_turn_result.describe())
 
 	var advanced_creature := _make_test_creature("Despliegue adelantado")
 	state.hand.append(advanced_creature)
