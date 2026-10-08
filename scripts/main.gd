@@ -796,7 +796,6 @@ func _refresh() -> void:
 		var selected: bool = index == selected_unit_slot
 		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		button.expand_icon = true
-		button.icon_max_width = 64
 		button.text = ""
 		if occupant != null:
 			button.icon = _pixel_sprite_for(occupant, index == state.player_hero_slot or index == state.enemy_hero_slot)
