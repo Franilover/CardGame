@@ -32,6 +32,14 @@ static func enemy_deck() -> Array[CardDefinition]:
 
 	return cards
 
+static func starter_ium_catalog() -> Array[CardDefinition]:
+	var cards: Array[CardDefinition] = [
+		_ium("fluxus", "Fluxus", 1, "Manifestación de movimiento.", 3),
+		_ium("velox", "Velox", 2, "Acelera una manifestación.", 4),
+		_ium("fulgor", "Fulgor", 2, "Libera energía concentrada.", 5)
+	]
+	return cards
+
 static func from_canon(repository: Variant) -> Array[CardDefinition]:
 	var cards: Array[CardDefinition] = []
 
