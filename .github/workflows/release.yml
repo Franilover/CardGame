@@ -5,28 +5,85 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Nombre del release (ej: v0.1)"
+        required: false
+        default: "dev-build"
 
 permissions:
   contents: write
 
+env:
+  GODOT_VERSION: "4.7"
+  GODOT_RELEASE: "stable"
+
 jobs:
   build:
+    name: Export Godot 4.7 -> GitHub Release
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: chickensoft-games/setup-godot@v2
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          version: 4.7.0
-          use-dotnet: false
-          include-templates: true
-      - run: mkdir -p EXPORT
-      - run: godot --headless --path . --editor --quit
-      - run: godot --headless --path . --export-release "Windows Desktop" EXPORT/GarliaCardGame.exe
-      - run: godot --headless --path . --export-release "Linux" EXPORT/GarliaCardGame.x86_64
-      - uses: softprops/action-gh-release@v2
+          lfs: true
+
+      - name: Instalar Godot 4.7-stable
+        run: |
+          FILENAME="Godot_v${GODOT_VERSION}-${GODOT_RELEASE}_linux.x86_64"
+          URL="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_RELEASE}/${FILENAME}.zip"
+          wget -q "$URL"
+          unzip -q "${FILENAME}.zip"
+          mv "${FILENAME}" /usr/local/bin/godot
+          chmod +x /usr/local/bin/godot
+          godot --version
+
+      - name: Instalar export templates 4.7
+        run: |
+          TPZ="Godot_v${GODOT_VERSION}-${GODOT_RELEASE}_export_templates.tpz"
+          URL="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_RELEASE}/${TPZ}"
+          wget -q "$URL"
+          TEMPLATE_DIR="${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_RELEASE}"
+          mkdir -p "$TEMPLATE_DIR"
+          unzip -q "${TPZ}" -d /tmp/templates
+          mv /tmp/templates/templates/* "$TEMPLATE_DIR/"
+
+      - name: Validar proyecto
+        run: godot --headless --path . --editor --quit
+
+      - name: Preparar carpeta EXPORT
+        run: mkdir -p EXPORT
+
+      - name: Export Windows Desktop
+        run: godot --headless --path . --export-release "Windows Desktop" EXPORT/GarliaCardGame.exe
+
+      - name: Export Linux
+        run: |
+          godot --headless --path . --export-release "Linux" EXPORT/GarliaCardGame.x86_64
+          chmod +x EXPORT/GarliaCardGame.x86_64
+
+      - name: Verificar exports
+        run: ls -lh EXPORT/
+
+      - name: Publicar GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name || inputs.tag_name || 'dev-build' }}
+          name: "Garlia CardGame ${{ github.ref_name || inputs.tag_name || 'dev-build' }}"
+          body: |
+            ## Garlia CardGame — ${{ github.ref_name || inputs.tag_name || 'dev-build' }}
+
+            Build automático de Godot 4.7.
+
+            | Plataforma | Archivo |
+            |------------|---------|
+            | Windows | GarliaCardGame.exe |
+            | Linux | GarliaCardGame.x86_64 |
           files: |
             EXPORT/GarliaCardGame.exe
             EXPORT/GarliaCardGame.x86_64
+          make_latest: true
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
