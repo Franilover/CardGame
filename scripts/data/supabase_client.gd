@@ -37,7 +37,7 @@ func get_rows(path: String, query: String = "") -> Array:
 	add_child(request)
 
 	var url := GarliaSupabaseConfig.PROJECT_URL + "/rest/v1/" + path + query
-	var headers: PackedStringArray([
+	var headers: PackedStringArray = PackedStringArray([
 		"apikey: " + publishable_key,
 		"Accept: application/json"
 	])
