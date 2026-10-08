@@ -218,8 +218,8 @@ func _build_middle() -> Control:
 	grid.columns = BattleBoard.COLUMNS
 	grid.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	grid.add_theme_constant_override("h_separation", 3)
-	grid.add_theme_constant_override("v_separation", 3)
+	grid.add_theme_constant_override("h_separation", 0)
+	grid.add_theme_constant_override("v_separation", 0)
 	board_root.add_child(grid)
 
 	for index in range(BattleBoard.CELL_COUNT):
@@ -228,8 +228,10 @@ func _build_middle() -> Control:
 		cell.custom_minimum_size = Vector2(cell_size, cell_size)
 		cell.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		cell.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		cell.clip_contents = true
+		cell.autowrap_mode = TextServer.AUTOWRAP_OFF
+		cell.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		cell.add_theme_font_size_override("font_size", 7 if RunProgress.mode == "exploration" else 8)
-		cell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		cell.gui_input.connect(_on_board_gui_input.bind(index))
 		grid.add_child(cell)
 		board_buttons.append(cell)
@@ -842,13 +844,9 @@ func _refresh() -> void:
 
 func _cell_style(index: int, selected: bool) -> StyleBoxFlat:
 	var background := SURFACE_ALT_COLOR
-	var border := BORDER_COLOR
-	var width := 1
 	if state != null:
 		if state.board.is_hero_slot(index):
 			background = HERO_BG_COLOR
-			border = HERO_COLOR
-			width = 2
 		elif state.board.is_enemy_zone(index):
 			background = Color("#2C2024")
 		elif state.board.is_player_zone(index):
@@ -857,9 +855,23 @@ func _cell_style(index: int, selected: bool) -> StyleBoxFlat:
 			background = NEUTRAL_COLOR
 	if selected:
 		background = SELECTED_COLOR
-		border = GOLD_COLOR
-		width = 2
-	return _button_style(background, border, 5, width)
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = background
+	style.border_color = BORDER_COLOR
+	style.set_border_width_all(0)
+	style.set_border_width(SIDE_RIGHT, 1)
+	style.set_border_width(SIDE_BOTTOM, 1)
+	if index < BattleBoard.COLUMNS:
+		style.set_border_width(SIDE_TOP, 1)
+	if index % BattleBoard.COLUMNS == 0:
+		style.set_border_width(SIDE_LEFT, 1)
+	style.set_corner_radius_all(0)
+	style.content_margin_left = 1.0
+	style.content_margin_right = 1.0
+	style.content_margin_top = 1.0
+	style.content_margin_bottom = 1.0
+	return style
 
 func _return_to_menu() -> void:
 	get_tree().change_scene_to_file(MENU_SCENE_PATH)
