@@ -27,57 +27,48 @@ func initialize() -> bool:
 		loaded = true
 		return false
 
-	var creatures_task: Variant = supabase_client.get_table_rows(
-		"criaturas",
-		"id,nombre,descripcion,imagen_url,stats_dnd,biologia_calculada,ia_config",
-		60
-	)
-	var items_task: Variant = supabase_client.get_table_rows(
-		"items",
-		"id,nombre,imagen_url,descripcion,origen,propiedades_fisicas,publicado",
-		80
-	)
-	var items_game_task: Variant = supabase_client.get_table_rows(
-		"items_game",
-		"id,item_id,tipo,max_stack,propiedades",
-		80
-	)
-	var iums_task: Variant = supabase_client.get_table_rows(
-		"iums",
-		"id,orden,nombre,detalle,extra",
-		40
-	)
-	var oris_task: Variant = supabase_client.get_table_rows(
-		"oris",
-		"id,orden,nombre,familia,formula,dominio,descripcion",
-		20
-	)
-	var processes_task: Variant = supabase_client.get_table_rows(
-		"procesos",
-		"id,nombre,tipo,descripcion,regla_clave,entrada,transformacion,salida,estado_fundamento",
-		40
-	)
-	var characters_task: Variant = supabase_client.get_table_rows(
-		"personajes_game",
-		"id,nombre,criatura_id,activo,personaje_id,reino_game_id",
-		40
-	)
-	var kingdoms_task: Variant = supabase_client.get_table_rows(
-		"reinos_game",
-		"id,reino_id,clave,activo,orden,propiedades",
-		30
-	)
-
 	var successful := 0
 	var results: Array = [
-		await creatures_task,
-		await items_task,
-		await items_game_task,
-		await iums_task,
-		await oris_task,
-		await processes_task,
-		await characters_task,
-		await kingdoms_task
+		await supabase_client.get_table_rows(
+			"criaturas",
+			"id,nombre,descripcion,imagen_url,stats_dnd,biologia_calculada,ia_config",
+			60
+		),
+		await supabase_client.get_table_rows(
+			"items",
+			"id,nombre,imagen_url,descripcion,origen,propiedades_fisicas,publicado",
+			80
+		),
+		await supabase_client.get_table_rows(
+			"items_game",
+			"id,item_id,tipo,max_stack,propiedades",
+			80
+		),
+		await supabase_client.get_table_rows(
+			"iums",
+			"id,orden,nombre,detalle,extra",
+			40
+		),
+		await supabase_client.get_table_rows(
+			"oris",
+			"id,orden,nombre,familia,formula,dominio,descripcion",
+			20
+		),
+		await supabase_client.get_table_rows(
+			"procesos",
+			"id,nombre,tipo,descripcion,regla_clave,entrada,transformacion,salida,estado_fundamento",
+			40
+		),
+		await supabase_client.get_table_rows(
+			"personajes_game",
+			"id,nombre,criatura_id,activo,personaje_id,reino_game_id",
+			40
+		),
+		await supabase_client.get_table_rows(
+			"reinos_game",
+			"id,reino_id,clave,activo,orden,propiedades",
+			30
+		)
 	]
 
 	var keys: Array[String] = [
