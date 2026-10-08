@@ -363,7 +363,7 @@ func _build_bottom_bar() -> Control:
 	bar.custom_minimum_size.y = 42
 	bar.add_theme_constant_override("separation", 7)
 
-	var hint := _make_label("Arrastra Rey o criatura para mover · 1 Eterium por movimiento · atacar consume 1 acción · IUM → mezclador. Espacio = terminar turno.", 10, MUTED_COLOR)
+	var hint := _make_label("Arrastra Rey o criatura para mover · 1 Eterium por cada desplazamiento · puedes repetir mientras tengas Eterium · atacar consume 1 acción.", 10, MUTED_COLOR)
 	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	bar.add_child(hint)
@@ -464,7 +464,7 @@ func _on_board_gui_input(event: InputEvent, index: int) -> void:
 			if event.global_position.distance_to(drag_press_position) >= 8.0:
 				drag_active = true
 				selected_unit_slot = drag_source_slot
-				status_label.text = "Arrastrando %s · mover cuesta %d Eterium." % [state.board.get_card(drag_source_slot).display_name, BattleState.MOVE_ETHERIUM_COST]
+				status_label.text = "Arrastrando %s · cada desplazamiento cuesta %d Eterium." % [state.board.get_card(drag_source_slot).display_name, BattleState.MOVE_ETHERIUM_COST]
 				_refresh()
 				get_viewport().set_input_as_handled()
 
@@ -529,7 +529,7 @@ func _on_board_pressed(index: int) -> void:
 	if _is_draggable_player_unit(index):
 		selected_unit_slot = index
 		var selected_card: CardDefinition = state.board.get_card(index)
-		status_label.text = "%s seleccionado. Arrastra para moverlo por %d Eterium." % [selected_card.display_name, BattleState.MOVE_ETHERIUM_COST]
+		status_label.text = "%s seleccionado. Cada desplazamiento cuesta %d Eterium." % [selected_card.display_name, BattleState.MOVE_ETHERIUM_COST]
 		_refresh()
 
 func _on_mixer_pressed(index: int) -> void:
@@ -615,7 +615,7 @@ func _refresh() -> void:
 				button.text = "REINA\n%s\n%d / %d V\nMOVER" % [occupant.display_name, occupant.health, BattleState.HERO_MAX_HEALTH]
 			else:
 				var mark: String = "E" if owner == BattleBoard.Owner.ENEMY else "J"
-				var status_text: String = "Agotada" if occupant.exhausted else ("Movida" if occupant.has_moved else "Libre")
+				var status_text: String = "Agotada" if occupant.exhausted else "Disponible"
 				button.text = "%s\n%s\n%d ATQ · %d V\n%s" % [mark, occupant.display_name, occupant.attack, occupant.health, status_text]
 		else:
 			button.text = ""
