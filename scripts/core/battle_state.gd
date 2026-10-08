@@ -31,6 +31,7 @@ var enemy_max_actions: int = ACTIONS_PER_TURN
 var enemy_actions: int = ACTIONS_PER_TURN
 var player_health: int = HERO_MAX_HEALTH
 var enemy_health: int = HERO_MAX_HEALTH
+var enemy_hero_max_health: int = HERO_MAX_HEALTH
 
 var player_hero: CardDefinition
 var enemy_hero: CardDefinition
@@ -66,6 +67,7 @@ func reset() -> void:
 	enemy_actions = enemy_max_actions
 	player_health = HERO_MAX_HEALTH
 	enemy_health = HERO_MAX_HEALTH
+	enemy_hero_max_health = HERO_MAX_HEALTH
 	finished = false
 	winner_is_player = false
 	fatigue_damage = 1
