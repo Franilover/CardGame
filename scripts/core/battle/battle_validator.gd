@@ -20,6 +20,8 @@ static func validate(state: BattleState, command: BattleCommand) -> BattleResult
 			return _validate_move(state, command)
 		BattleCommand.CommandType.MIXER_PLACE:
 			return _validate_mixer_place(state, command)
+		BattleCommand.CommandType.MIXER_PLACE_CATALOG_IUM:
+			return _validate_mixer_catalog_place(state, command)
 		BattleCommand.CommandType.MIXER_REMOVE:
 			return _validate_mixer_remove(state, command)
 		BattleCommand.CommandType.MIXER_RESOLVE:
@@ -123,13 +125,23 @@ static func _validate_mixer_place(state: BattleState, command: BattleCommand) ->
 		return BattleResult.error("MIXER_SLOT_OCCUPIED", "La casilla ya está ocupada.")
 	return BattleResult.ok()
 
+static func _validate_mixer_catalog_place(state: BattleState, command: BattleCommand) -> BattleResult:
+	if command.catalog_index < 0 or command.catalog_index >= state.ium_catalog.size():
+		return BattleResult.error("IUM_CATALOG_INDEX_INVALID", "El IUM seleccionado no existe.")
+	if command.mixer_slot < 0 or command.mixer_slot >= MixerState.SIZE:
+		return BattleResult.error("MIXER_SLOT_INVALID", "La casilla del mezclador no es válida.")
+	var card: CardDefinition = state.ium_catalog[command.catalog_index]
+	if card == null or card.card_type != CardDefinition.CardType.IUM:
+		return BattleResult.error("MIXER_REQUIRES_IUM", "Solo se pueden colocar IUMs.")
+	if not state.mixer.is_empty(command.mixer_slot):
+		return BattleResult.error("MIXER_SLOT_OCCUPIED", "La casilla ya está ocupada.")
+	return BattleResult.ok()
+
 static func _validate_mixer_remove(state: BattleState, command: BattleCommand) -> BattleResult:
 	if command.mixer_slot < 0 or command.mixer_slot >= MixerState.SIZE:
 		return BattleResult.error("MIXER_SLOT_INVALID", "La casilla no es válida.")
 	if state.mixer.is_empty(command.mixer_slot):
 		return BattleResult.error("MIXER_SLOT_EMPTY", "La casilla está vacía.")
-	if state.hand.size() >= BattleState.MAX_HAND:
-		return BattleResult.error("HAND_FULL", "La mano está llena.")
 	return BattleResult.ok()
 
 static func _validate_mixer_resolve(state: BattleState) -> BattleResult:
