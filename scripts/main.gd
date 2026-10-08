@@ -26,6 +26,10 @@ var board_buttons: Array[Button] = []
 var mixer_buttons: Array[Button] = []
 var hand_buttons: Array[Button] = []
 
+var drag_source_slot: int = -1
+var drag_press_position: Vector2 = Vector2.ZERO
+var drag_active: bool = false
+
 var enemy_name_label: Label
 var player_name_label: Label
 var enemy_health_label: Label
@@ -226,7 +230,7 @@ func _build_middle() -> Control:
 		cell.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		cell.add_theme_font_size_override("font_size", 8)
 		cell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		cell.pressed.connect(_on_board_pressed.bind(index))
+		cell.gui_input.connect(_on_board_gui_input.bind(index))
 		grid.add_child(cell)
 		board_buttons.append(cell)
 
@@ -430,6 +434,70 @@ func _on_hand_pressed(index: int) -> void:
 	status_label.text = "%s seleccionado." % state.hand[index].display_name
 	_refresh()
 
+func _on_board_gui_input(event: InputEvent, index: int) -> void:
+	if state == null or state.is_finished():
+		return
+
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			drag_source_slot = index if _is_draggable_player_unit(index) else -1
+			drag_press_position = event.global_position
+			drag_active = false
+			return
+
+		if drag_source_slot >= 0:
+			var was_dragging: bool = drag_active
+			var source: int = drag_source_slot
+			drag_source_slot = -1
+			drag_active = false
+			if was_dragging:
+				_resolve_board_drag(source, index)
+				get_viewport().set_input_as_handled()
+				return
+
+		_on_board_pressed(index)
+		get_viewport().set_input_as_handled()
+		return
+
+	if event is InputEventMouseMotion:
+		if drag_source_slot >= 0 and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+			if event.global_position.distance_to(drag_press_position) >= 8.0:
+				drag_active = true
+				selected_unit_slot = drag_source_slot
+				status_label.text = "Arrastrando %s · mover cuesta %d Eterium." % [state.board.get_card(drag_source_slot).display_name, BattleState.MOVE_ETHERIUM_COST]
+				_refresh()
+				get_viewport().set_input_as_handled()
+
+func _is_draggable_player_unit(index: int) -> bool:
+	if index < 0 or state == null:
+		return false
+	if state.board.get_owner(index) != BattleBoard.Owner.PLAYER:
+		return false
+	var unit: CardDefinition = state.board.get_card(index)
+	return unit != null and unit.is_unit()
+
+func _resolve_board_drag(source_slot: int, target_slot: int) -> void:
+	if source_slot < 0 or target_slot < 0 or source_slot == target_slot:
+		selected_unit_slot = source_slot if source_slot >= 0 else -1
+		_refresh()
+		return
+
+	var result: BattleResult
+	if state.board.get_owner(target_slot) == BattleBoard.Owner.ENEMY:
+		result = engine.execute(BattleCommand.attack(source_slot, target_slot))
+	elif state.board.is_empty(target_slot):
+		result = engine.execute(BattleCommand.move_unit(source_slot, target_slot))
+	else:
+		status_label.text = "El destino está ocupado."
+		_refresh()
+		return
+
+	if result.success:
+		selected_unit_slot = -1
+	else:
+		status_label.text = "ERROR · %s" % result.message
+		_refresh()
+
 func _on_board_pressed(index: int) -> void:
 	if state == null or state.is_finished():
 		return
@@ -458,15 +526,11 @@ func _on_board_pressed(index: int) -> void:
 			selected_unit_slot = -1
 		return
 
-	if state.board.get_owner(index) == BattleBoard.Owner.PLAYER:
-		if index == state.player_hero_slot:
-			status_label.text = "Este es tu Rey. Protégelo: derrotarlo significa perder la ronda."
-			return
+	if _is_draggable_player_unit(index):
+		selected_unit_slot = index
 		var selected_card: CardDefinition = state.board.get_card(index)
-		if selected_card != null and selected_card.is_unit():
-			selected_unit_slot = index
-			status_label.text = "%s seleccionado. Mover cuesta %d Eterium." % [selected_card.display_name, BattleState.MOVE_ETHERIUM_COST]
-			_refresh()
+		status_label.text = "%s seleccionado. Arrastra para moverlo por %d Eterium." % [selected_card.display_name, BattleState.MOVE_ETHERIUM_COST]
+		_refresh()
 
 func _on_mixer_pressed(index: int) -> void:
 	if state == null or state.is_finished():
@@ -546,9 +610,9 @@ func _refresh() -> void:
 		var selected: bool = index == selected_unit_slot
 		if occupant != null:
 			if index == state.player_hero_slot:
-				button.text = "REY\n%s\n%d / %d V" % [occupant.display_name, occupant.health, BattleState.HERO_MAX_HEALTH]
+				button.text = "REY\n%s\n%d / %d V\nMOVER" % [occupant.display_name, occupant.health, BattleState.HERO_MAX_HEALTH]
 			elif index == state.enemy_hero_slot:
-				button.text = "REINA\n%s\n%d / %d V" % [occupant.display_name, occupant.health, BattleState.HERO_MAX_HEALTH]
+				button.text = "REINA\n%s\n%d / %d V\nMOVER" % [occupant.display_name, occupant.health, BattleState.HERO_MAX_HEALTH]
 			else:
 				var mark: String = "E" if owner == BattleBoard.Owner.ENEMY else "J"
 				var status_text: String = "Agotada" if occupant.exhausted else ("Movida" if occupant.has_moved else "Libre")
