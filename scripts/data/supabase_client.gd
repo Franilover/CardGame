@@ -39,7 +39,6 @@ func get_rows(path: String, query: String = "") -> Array:
 	var url := GarliaSupabaseConfig.PROJECT_URL + "/rest/v1/" + path + query
 	var headers := PackedStringArray([
 		"apikey: " + publishable_key,
-		"Authorization: Bearer " + publishable_key,
 		"Accept: application/json"
 	])
 
