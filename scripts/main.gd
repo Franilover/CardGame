@@ -104,14 +104,14 @@ func _start_battle() -> void:
 	state = BattleState.new()
 	state.reset()
 	state.deck = CardCatalog.starter_deck()
-	for card in CardCatalog.enemy_deck():
-		while state.enemy_board.size() < BattleState.ENEMY_SLOTS:
-			state.enemy_board.append(null)
-			break
-	state.enemy_board[0] = CardCatalog.enemy_deck()[0]
-	state.enemy_board[1] = CardCatalog.enemy_deck()[1]
+
+	var enemies := CardCatalog.enemy_deck()
+	for i in range(min(enemies.size(), BattleState.ENEMY_SLOTS)):
+		state.enemy_board.append(enemies[i])
+
 	for i in range(5):
 		state.draw_card()
+
 	state.state_changed.connect(_refresh)
 	_refresh()
 
@@ -126,6 +126,7 @@ func _on_slot_pressed(index: int) -> void:
 	if selected_card == null:
 		status_label.text = "Selecciona una carta de la mano."
 		return
+
 	if selected_card.is_unit():
 		if state.play_card(selected_card, index):
 			_log("Jugaste %s en la posición %d." % [selected_card.display_name, index + 1])
@@ -136,25 +137,30 @@ func _on_slot_pressed(index: int) -> void:
 		if state.play_card(selected_card):
 			_log("Ejecutaste %s." % selected_card.display_name)
 			selected_card = null
+
 	_refresh()
 
 func _on_end_turn_pressed() -> void:
 	if state.is_finished():
 		return
+
 	_log("Turno %d terminado." % state.turn)
 	state.end_turn()
+
 	if state.is_finished():
 		status_label.text = "VICTORIA" if state.player_won() else "DERROTA"
 		end_turn_button.disabled = true
+
 	_refresh()
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_end_turn"):
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_SPACE:
 		_on_end_turn_pressed()
 
 func _refresh() -> void:
 	if state == null:
 		return
+
 	turn_label.text = "Turno: %d" % state.turn
 	player_label.text = "  Vida: %d  " % state.player_health
 	enemy_label.text = "  Enemigo: %d  " % state.enemy_health
@@ -164,9 +170,7 @@ func _refresh() -> void:
 		var button := hand_buttons[i]
 		if i < state.hand.size():
 			var card: CardDefinition = state.hand[i]
-			button.text = "%s
-[%s] Costo %d
-%s" % [card.display_name, card.type_name(), card.cost, card.description]
+			button.text = "%s\n[%s] Costo %d\n%s" % [card.display_name, card.type_name(), card.cost, card.description]
 			button.disabled = card.cost > state.player_etherium
 		else:
 			button.text = ""
@@ -175,11 +179,9 @@ func _refresh() -> void:
 	for i in range(slot_buttons.size()):
 		if i < state.player_board.size() and state.player_board[i] != null:
 			var card: CardDefinition = state.player_board[i]
-			slot_buttons[i].text = "%s
-ATQ %d / VIDA %d" % [card.display_name, card.attack, card.health]
+			slot_buttons[i].text = "%s\nATQ %d / VIDA %d" % [card.display_name, card.attack, card.health]
 		else:
 			slot_buttons[i].text = "[ Vacío ]"
 
 func _log(message: String) -> void:
-	log_label.append_text(message + "
-")
+	log_label.append_text(message + "\n")
