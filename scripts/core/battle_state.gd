@@ -376,13 +376,12 @@ func end_turn() -> void:
 
 func _enemy_turn() -> void:
 	_reset_units_for_owner(BattleBoard.Owner.ENEMY)
-	enemy_max_etherium = min(MAX_ETHERIUM, enemy_max_etherium + 1)
+	enemy_max_etherium = min(MAX_ETHERIUM, enemy_max_etherium + ETHERIUM_GROWTH_PER_TURN)
 	enemy_etherium = enemy_max_etherium
 	enemy_actions = enemy_max_actions
 	enemy_attacks_remaining = enemy_max_attacks_per_turn
 
-	var actions: int = enemy_actions
-	while actions > 0:
+	while enemy_actions > 0:
 		var best_card: CardDefinition = null
 		var best_index: int = -1
 
@@ -407,14 +406,14 @@ func _enemy_turn() -> void:
 				if board.place(slot, enemy_card, BattleBoard.Owner.ENEMY):
 					enemy_card.exhausted = true
 					enemy_etherium -= enemy_card.cost
-					actions -= 1
+					enemy_actions -= 1
 					played = true
 					_event("El enemigo jugó %s." % enemy_card.display_name)
 		else:
 			var enemy_card: CardDefinition = enemy_deck.pop_at(best_index)
 			if _resolve_enemy_non_unit(enemy_card):
 				enemy_etherium -= enemy_card.cost
-				actions -= 1
+				enemy_actions -= 1
 				played = true
 				enemy_discard.append(enemy_card)
 
