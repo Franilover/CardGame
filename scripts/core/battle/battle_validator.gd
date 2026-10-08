@@ -14,6 +14,8 @@ static func validate(state: BattleState, command: BattleCommand) -> BattleResult
 			return _validate_play_card(state, command)
 		BattleCommand.CommandType.ATTACK:
 			return _validate_attack(state, command)
+		BattleCommand.CommandType.HERO_ATTACK:
+			return _validate_hero_attack(state, command)
 		BattleCommand.CommandType.MOVE_UNIT:
 			return _validate_move(state, command)
 		BattleCommand.CommandType.MIXER_PLACE:
@@ -74,6 +76,20 @@ static func _validate_attack(state: BattleState, command: BattleCommand) -> Batt
 	if state.board.distance(command.attacker_slot, command.target_slot) > max(1, attacker.attack_range):
 		return BattleResult.error("TARGET_OUT_OF_RANGE", "El objetivo está fuera de alcance.")
 
+	return BattleResult.ok()
+
+static func _validate_hero_attack(state: BattleState, command: BattleCommand) -> BattleResult:
+	if command.attacker_slot != state.player_hero_slot:
+		return BattleResult.error("HERO_ATTACKER_INVALID", "Solo el Rey puede usar este ataque.")
+	if state.player_actions <= 0:
+		return BattleResult.error("NO_ACTIONS", "No quedan acciones.")
+	var hero: CardDefinition = state.player_hero
+	if hero == null or not hero.can_attack():
+		return BattleResult.error("HERO_ATTACK_NOT_ALLOWED", "El Rey no puede atacar ahora.")
+	if abs(command.direction.x) + abs(command.direction.y) != 1:
+		return BattleResult.error("HERO_DIRECTION_INVALID", "El ataque necesita una de las cuatro direcciones.")
+	if state.board.front_attack_indices(command.attacker_slot, command.direction).is_empty():
+		return BattleResult.error("HERO_ATTACK_OUT_OF_BOARD", "Ese lado queda fuera del tablero.")
 	return BattleResult.ok()
 
 static func _validate_move(state: BattleState, command: BattleCommand) -> BattleResult:
