@@ -12,6 +12,8 @@ const ROWS: int = 8
 const CELL_COUNT: int = COLUMNS * ROWS
 const ENEMY_ZONE_MAX_ROW: int = 2
 const PLAYER_ZONE_MIN_ROW: int = 5
+const ENEMY_HERO_SLOT: int = 4
+const PLAYER_HERO_SLOT: int = 67
 
 var occupants: Array[CardDefinition] = []
 var owners: Array[int] = []
@@ -62,6 +64,16 @@ func is_neutral_zone(index: int) -> bool:
 	var position := position_from_index(index)
 	return position.y == 3 or position.y == 4
 
+func is_hero_slot(index: int) -> bool:
+	return index == ENEMY_HERO_SLOT or index == PLAYER_HERO_SLOT
+
+func hero_slot(owner: int) -> int:
+	if owner == Owner.PLAYER:
+		return PLAYER_HERO_SLOT
+	if owner == Owner.ENEMY:
+		return ENEMY_HERO_SLOT
+	return -1
+
 func is_empty(index: int) -> bool:
 	return is_valid_index(index) and occupants[index] == null
 
@@ -76,7 +88,7 @@ func get_owner(index: int) -> int:
 	return owners[index]
 
 func can_place(index: int, owner: int) -> bool:
-	if not is_valid_index(index) or blocked[index] or occupants[index] != null:
+	if not is_valid_index(index) or blocked[index] or occupants[index] != null or is_hero_slot(index):
 		return false
 	if owner == Owner.PLAYER:
 		return is_player_zone(index)
@@ -84,8 +96,20 @@ func can_place(index: int, owner: int) -> bool:
 		return is_enemy_zone(index)
 	return false
 
+func can_place_hero(index: int, owner: int) -> bool:
+	if not is_valid_index(index) or blocked[index] or occupants[index] != null:
+		return false
+	return index == hero_slot(owner)
+
 func place(index: int, card: CardDefinition, owner: int) -> bool:
 	if card == null or not can_place(index, owner):
+		return false
+	occupants[index] = card
+	owners[index] = owner
+	return true
+
+func place_hero(index: int, card: CardDefinition, owner: int) -> bool:
+	if card == null or not can_place_hero(index, owner):
 		return false
 	occupants[index] = card
 	owners[index] = owner
@@ -104,7 +128,9 @@ func can_move(index_from: int, index_to: int, owner: int, movement: int) -> bool
 		return false
 	if index_from == index_to or blocked[index_to] or occupants[index_to] != null:
 		return false
-	if owners[index_from] != owner:
+	if is_hero_slot(index_to):
+		return false
+	if owners[index_from] != owner or is_hero_slot(index_from):
 		return false
 	return movement > 0 and distance(index_from, index_to) <= movement
 
