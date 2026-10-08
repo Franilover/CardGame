@@ -672,7 +672,10 @@ func _on_process_pressed() -> void:
 	engine.execute(BattleCommand.mixer_resolve())
 
 func _on_end_turn_pressed() -> void:
-	if state == null or state.is_finished():
+	if state == null:
+		return
+	if state.is_finished():
+		get_tree().reload_current_scene()
 		return
 	selected_card_index = -1
 	selected_unit_slot = -1
@@ -689,8 +692,10 @@ func _on_engine_event(event: BattleEvent) -> void:
 		status_label.text = event.message
 
 func _on_battle_finished(player_won: bool) -> void:
-	status_label.text = "VICTORIA" if player_won else "DERROTA"
-	end_turn_button.disabled = true
+	var reward_message: String = RunProgress.finish_battle(state, player_won, catalog_cards)
+	status_label.text = ("VICTORIA" if player_won else "DERROTA") + reward_message
+	end_turn_button.text = "CONTINUAR" if player_won else "REINTENTAR"
+	end_turn_button.disabled = false
 	process_button.disabled = true
 	_refresh()
 
@@ -698,11 +703,12 @@ func _refresh() -> void:
 	if state == null:
 		return
 
-	turn_label.text = "T%d" % state.turn
+	turn_label.text = "%s · T%d" % [RunProgress.encounter_label(), state.turn]
 	actions_label.text = "ACCIONES %d/%d" % [state.player_actions, state.player_max_actions]
 	player_health_label.text = "%d / %d" % [state.player_hero.health, BattleState.HERO_MAX_HEALTH]
 	enemy_health_label.text = "%d / %d" % [state.enemy_hero.health, BattleState.HERO_MAX_HEALTH]
 	player_health_bar.value = state.player_hero.health
+	enemy_health_bar.max_value = state.enemy_hero_max_health
 	enemy_health_bar.value = state.enemy_hero.health
 	etherium_bar.value = state.player_etherium
 	etherium_label.text = "%d / %d" % [state.player_etherium, state.player_max_etherium]
