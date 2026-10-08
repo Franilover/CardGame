@@ -369,6 +369,10 @@ func resolve_mixer() -> BattleResult:
 func _damage_unit(unit: CardDefinition, amount: int) -> void:
 	if unit == null:
 		return
+	if unit == player_hero or unit == enemy_hero:
+		unit.health = 0
+		_sync_health_mirrors()
+		return
 	var remaining: int = max(0, amount)
 	if unit.armor > 0:
 		var absorbed: int = min(unit.armor, remaining)
