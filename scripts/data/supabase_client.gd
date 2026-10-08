@@ -17,9 +17,11 @@ func _read_publishable_key() -> String:
 	if FileAccess.file_exists(GarliaSupabaseConfig.KEY_FILE):
 		var file := FileAccess.open(GarliaSupabaseConfig.KEY_FILE, FileAccess.READ)
 		if file != null:
-			return file.get_as_text().strip_edges()
+			var local_key := file.get_as_text().strip_edges()
+			if not local_key.is_empty():
+				return local_key
 
-	return ""
+	return GarliaSupabaseConfig.PUBLISHABLE_KEY
 
 func is_configured() -> bool:
 	return initialized and not publishable_key.is_empty()
