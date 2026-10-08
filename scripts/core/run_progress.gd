@@ -13,6 +13,8 @@ func _ready() -> void:
 func start_mode(mode_name: String) -> void:
 	mode = "bosses" if mode_name == "bosses" else "exploration"
 	encounter_index = EXPLORATION_COUNT if mode == "bosses" else 0
+	if mode == "exploration":
+		deck_ids.clear()
 	_save_progress()
 
 func is_boss_encounter() -> bool:
@@ -64,7 +66,7 @@ func build_player_deck(catalog_cards: Array[CardDefinition], fallback_cards: Arr
 		var card: CardDefinition = catalog.get(card_id) as CardDefinition
 		if card != null and (card.card_type == CardDefinition.CardType.CREATURE or card.card_type == CardDefinition.CardType.OBJECT or card.card_type == CardDefinition.CardType.CHARACTER):
 			result.append(card.make_runtime_copy())
-	if result.is_empty():
+	if result.is_empty() and mode == "bosses":
 		ensure_deck(fallback_cards)
 		for card_id in deck_ids:
 			var fallback: CardDefinition = catalog.get(card_id) as CardDefinition
@@ -108,14 +110,14 @@ func finish_battle(state: BattleState, player_won: bool, catalog_cards: Array[Ca
 			var boss_reward := _find_reward_card(catalog_cards, CardDefinition.CardType.CREATURE, 0)
 			if boss_reward != null:
 				deck_ids.append(boss_reward.id)
-				reward_message = " · Recompensa: " + boss_reward.display_name
+				reward_message += " · Recompensa: " + boss_reward.display_name
 			mode = "exploration"
 			encounter_index = 0
 		else:
 			var object_reward := _find_reward_card(catalog_cards, CardDefinition.CardType.OBJECT, encounter_index)
 			if object_reward != null:
 				deck_ids.append(object_reward.id)
-				reward_message = " · Objeto añadido: " + object_reward.display_name
+				reward_message += " · Objeto añadido: " + object_reward.display_name
 			encounter_index += 1
 	else:
 		mode = "exploration"
