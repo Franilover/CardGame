@@ -223,12 +223,11 @@ func _on_hand_pressed(index: int) -> void:
 
 func _on_slot_pressed(index: int) -> void:
 	if selected_card == null:
-			return
+		return
 
 	if selected_card.is_unit():
 		if state.play_card(selected_card, index):
 			selected_card = null
-		else:
 	else:
 		if state.play_card(selected_card):
 			selected_card = null
