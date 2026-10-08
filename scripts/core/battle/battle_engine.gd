@@ -95,8 +95,6 @@ func debug_snapshot() -> Dictionary:
 		"enemy_health": state.enemy_health,
 		"player_actions": state.player_actions,
 		"player_max_actions": state.player_max_actions,
-		"player_attacks_remaining": state.player_attacks_remaining,
-		"player_max_attacks_per_turn": state.player_max_attacks_per_turn,
 		"player_etherium": state.player_etherium,
 		"player_max_etherium": state.player_max_etherium,
 		"hand_size": state.hand.size(),
