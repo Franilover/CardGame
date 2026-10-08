@@ -65,18 +65,14 @@ static func _validate_attack(state: BattleState, command: BattleCommand) -> Batt
 	if not attacker.can_attack():
 		return BattleResult.error("ATTACK_NOT_ALLOWED", "La unidad no puede atacar.")
 
-	if command.target_slot < -1 or command.target_slot >= BattleBoard.CELL_COUNT:
-		return BattleResult.error("TARGET_SLOT_INVALID", "El objetivo no es válido.")
+	if command.target_slot < 0 or command.target_slot >= BattleBoard.CELL_COUNT:
+		return BattleResult.error("TARGET_SLOT_INVALID", "El objetivo debe ser una casilla enemiga.")
 
-	if command.target_slot >= 0:
-		var defender: CardDefinition = state.board.get_card(command.target_slot)
-		if state.board.get_owner(command.target_slot) != BattleBoard.Owner.ENEMY or defender == null:
-			return BattleResult.error("TARGET_NOT_ENEMY", "El objetivo no es enemigo.")
-		if state.board.distance(command.attacker_slot, command.target_slot) > max(1, attacker.attack_range):
-			return BattleResult.error("TARGET_OUT_OF_RANGE", "El objetivo está fuera de alcance.")
-	else:
-		if state.board.position_from_index(command.attacker_slot).y > BattleBoard.ENEMY_ZONE_MAX_ROW:
-			return BattleResult.error("FACE_OUT_OF_RANGE", "La unidad aún no alcanzó la zona enemiga.")
+	var defender: CardDefinition = state.board.get_card(command.target_slot)
+	if state.board.get_owner(command.target_slot) != BattleBoard.Owner.ENEMY or defender == null:
+		return BattleResult.error("TARGET_NOT_ENEMY", "El objetivo no es enemigo.")
+	if state.board.distance(command.attacker_slot, command.target_slot) > max(1, attacker.attack_range):
+		return BattleResult.error("TARGET_OUT_OF_RANGE", "El objetivo está fuera de alcance.")
 
 	return BattleResult.ok()
 
