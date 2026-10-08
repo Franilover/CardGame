@@ -10,6 +10,7 @@ enum CommandType {
 	HERO_ATTACK,
 	MOVE_UNIT,
 	MIXER_PLACE,
+	MIXER_PLACE_CATALOG_IUM,
 	MIXER_REMOVE,
 	MIXER_RESOLVE,
 	END_TURN,
@@ -19,6 +20,7 @@ enum CommandType {
 var request_id: String = ""
 var type: int = CommandType.END_TURN
 var hand_index: int = -1
+var catalog_index: int = -1
 var attacker_slot: int = -1
 var target_slot: int = -1
 var mixer_slot: int = -1
@@ -62,6 +64,13 @@ static func mixer_place(index: int, slot: int) -> BattleCommand:
 	command.mixer_slot = slot
 	return command
 
+static func mixer_catalog_place(index: int, slot: int) -> BattleCommand:
+	var command := BattleCommand.new()
+	command.type = CommandType.MIXER_PLACE_CATALOG_IUM
+	command.catalog_index = index
+	command.mixer_slot = slot
+	return command
+
 static func mixer_remove(slot: int) -> BattleCommand:
 	var command := BattleCommand.new()
 	command.type = CommandType.MIXER_REMOVE
@@ -95,6 +104,8 @@ func type_name() -> String:
 			return "MOVE_UNIT"
 		CommandType.MIXER_PLACE:
 			return "MIXER_PLACE"
+		CommandType.MIXER_PLACE_CATALOG_IUM:
+			return "MIXER_PLACE_CATALOG_IUM"
 		CommandType.MIXER_REMOVE:
 			return "MIXER_REMOVE"
 		CommandType.MIXER_RESOLVE:
