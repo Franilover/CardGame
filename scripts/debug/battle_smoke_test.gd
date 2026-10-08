@@ -67,6 +67,7 @@ static func run() -> Dictionary:
 	_report(report, "move_hero", hero_moved, hero_move_result.describe())
 	_report(report, "hero_move_costs_etherium", state.player_etherium == hero_previous_etherium - BattleState.MOVE_ETHERIUM_COST)
 	_report(report, "hero_left_throne", state.board.get_card(BattleBoard.PLAYER_HERO_SLOT) == null)
+	_report(report, "hero_can_return_to_throne", state.board.can_move(hero_target, BattleBoard.PLAYER_HERO_SLOT, BattleBoard.Owner.PLAYER, state.player_hero.movement))
 	report["snapshot"] = engine.debug_snapshot()
 
 	var all_steps_passed: bool = true
