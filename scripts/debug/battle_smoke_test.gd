@@ -2,7 +2,8 @@ class_name BattleSmokeTest
 extends RefCounted
 
 ## Smoke test de FASE 00.
-## Verifica que Command -> Engine -> State mantenga un camino funcional.
+## Verifica que Command -> Engine -> State mantenga un camino funcional
+## y que las copias runtime conserven la identidad de las cartas.
 
 static func run() -> Dictionary:
 	var report: Dictionary = {
@@ -23,6 +24,8 @@ static func run() -> Dictionary:
 		report["errors"].append("BattleState no fue creado.")
 		return report
 
+	_report(report, "runtime_card_data", _has_valid_card_data(state.hand))
+
 	var playable_index: int = -1
 
 	for index in range(state.hand.size()):
@@ -35,6 +38,17 @@ static func run() -> Dictionary:
 
 	if playable_index >= 0:
 		var hand_card: CardDefinition = state.hand[playable_index]
+		_report(
+			report,
+			"selected_card_identity",
+			not hand_card.display_name.is_empty(),
+			"ID=%s NAME=%s TYPE=%s" % [
+				hand_card.id,
+				hand_card.display_name,
+				hand_card.type_name()
+			]
+		)
+
 		var command: BattleCommand
 
 		if hand_card.is_unit():
@@ -44,6 +58,7 @@ static func run() -> Dictionary:
 
 		var result: BattleResult = engine.execute(command)
 		_report(report, "execute_play_card", result.success, result.describe())
+
 	else:
 		report["errors"].append("La mano inicial no contiene una carta jugable para el smoke test.")
 
@@ -61,6 +76,20 @@ static func run() -> Dictionary:
 
 	report["passed"] = report["errors"].is_empty() and all_steps_passed
 	return report
+
+static func _has_valid_card_data(cards: Array[CardDefinition]) -> bool:
+	if cards.is_empty():
+		return false
+
+	for card in cards:
+		if card == null:
+			return false
+		if card.id.is_empty():
+			return false
+		if card.display_name.is_empty():
+			return false
+
+	return true
 
 static func _report(report: Dictionary, step_name: String, passed: bool, detail: String = "") -> void:
 	report["steps"].append({
