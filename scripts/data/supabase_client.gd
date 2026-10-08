@@ -1,4 +1,3 @@
-class_name GarliaSupabaseClient
 extends Node
 
 var last_error := ""
