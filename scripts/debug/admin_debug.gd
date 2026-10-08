@@ -285,7 +285,7 @@ func _refresh_status() -> void:
 		var rows_variant: Variant = canon.call("get_table", table_name)
 		if rows_variant is Array:
 			counts.append("%s %d" % [definition["name"], rows_variant.size()])
-	counts_label.text = "Canon: %s   |   " + "  ".join(counts)
+	counts_label.text = "Canon: %s   |   %s" % [status, "  ".join(counts)]
 
 func _refresh_logs() -> void:
 	if logs_text != null:
