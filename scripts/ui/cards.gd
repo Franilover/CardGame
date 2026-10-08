@@ -1,5 +1,7 @@
 extends Control
 
+@onready var canon_repository: Node = get_node("/root/GarliaCanonRepository")
+
 const MENU_SCENE_PATH := "res://scenes/main_menu.tscn"
 
 @onready var grid: GridContainer = $Margin/Columns/Library/Scroll/Grid
@@ -14,7 +16,7 @@ func _ready() -> void:
 	back_button.grab_focus()
 
 func _populate() -> void:
-	source_label.text = GarliaCanonRepository.get_status_text()
+	source_label.text = canon_repository.get_status_text()
 
 	var entries: Array = []
 	var canonical_cards: Array[CardDefinition] = CardCatalog.from_canon(GarliaCanonRepository)
