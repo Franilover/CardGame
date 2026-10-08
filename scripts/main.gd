@@ -76,7 +76,7 @@ func _build_ui() -> void:
 	layout.add_theme_constant_override("separation", 12)
 	root.add_child(layout)
 
-	var header := _make_panel(layout, Vector2(0, 72))
+	var header := _make_panel(layout, Vector2(0, 58))
 	var header_row := HBoxContainer.new()
 	header_row.add_theme_constant_override("separation", 18)
 	header.add_child(header_row)
@@ -94,7 +94,7 @@ func _build_ui() -> void:
 	for label in [turn_label, phase_label, player_label, enemy_label, etherium_label]:
 		header_row.add_child(label)
 
-	var enemy_panel := _make_panel(layout, Vector2(0, 148))
+	var enemy_panel := _make_panel(layout, Vector2(0, 112))
 	var enemy_content := VBoxContainer.new()
 	enemy_content.add_theme_constant_override("separation", 8)
 	enemy_panel.add_child(enemy_content)
@@ -108,7 +108,7 @@ func _build_ui() -> void:
 	enemy_content.add_child(enemy_row)
 
 	for i in range(BattleState.ENEMY_SLOTS):
-		var slot := _make_panel(enemy_row, Vector2(240, 94))
+		var slot := _make_panel(enemy_row, Vector2(220, 76))
 		var label := _make_label("[ VACÍO ]", 16, MUTED_COLOR)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -117,7 +117,7 @@ func _build_ui() -> void:
 
 	var center_row := HBoxContainer.new()
 	center_row.add_theme_constant_override("separation", 12)
-	center_row.custom_minimum_size.y = 42
+	center_row.custom_minimum_size.y = 30
 	layout.add_child(center_row)
 
 	var left_rule := ColorRect.new()
@@ -137,7 +137,7 @@ func _build_ui() -> void:
 	right_rule.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	center_row.add_child(right_rule)
 
-	var player_panel := _make_panel(layout, Vector2(0, 160))
+	var player_panel := _make_panel(layout, Vector2(0, 118))
 	var player_content := VBoxContainer.new()
 	player_content.add_theme_constant_override("separation", 8)
 	player_panel.add_child(player_content)
@@ -152,7 +152,7 @@ func _build_ui() -> void:
 
 	for i in range(BattleState.PLAYER_SLOTS):
 		var slot := Button.new()
-		slot.custom_minimum_size = Vector2(240, 104)
+		slot.custom_minimum_size = Vector2(220, 84)
 		slot.add_theme_font_size_override("font_size", 16)
 		slot.add_theme_color_override("font_color", TEXT_COLOR)
 		slot.add_theme_color_override("font_hover_color", TEXT_COLOR)
@@ -177,7 +177,7 @@ func _build_ui() -> void:
 	status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hand_header.add_child(status_label)
 
-	var hand_panel := _make_panel(layout, Vector2(0, 168))
+	var hand_panel := _make_panel(layout, Vector2(0, 136))
 	var hand := HBoxContainer.new()
 	hand.alignment = BoxContainer.ALIGNMENT_CENTER
 	hand.add_theme_constant_override("separation", 10)
@@ -185,7 +185,7 @@ func _build_ui() -> void:
 
 	for i in range(8):
 		var button := Button.new()
-		button.custom_minimum_size = Vector2(142, 132)
+		button.custom_minimum_size = Vector2(138, 112)
 		button.add_theme_font_size_override("font_size", 13)
 		button.add_theme_color_override("font_color", TEXT_COLOR)
 		button.add_theme_color_override("font_hover_color", TEXT_COLOR)
@@ -202,7 +202,7 @@ func _build_ui() -> void:
 	layout.add_child(footer)
 
 	log_label = RichTextLabel.new()
-	log_label.custom_minimum_size = Vector2(0, 62)
+	log_label.custom_minimum_size = Vector2(0, 52)
 	log_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	log_label.fit_content = true
 	log_label.bbcode_enabled = true
@@ -211,7 +211,7 @@ func _build_ui() -> void:
 
 	end_turn_button = Button.new()
 	end_turn_button.text = "TERMINAR TURNO"
-	end_turn_button.custom_minimum_size = Vector2(220, 62)
+	end_turn_button.custom_minimum_size = Vector2(210, 52)
 	end_turn_button.add_theme_font_size_override("font_size", 17)
 	end_turn_button.add_theme_color_override("font_color", Color("#182016"))
 	end_turn_button.add_theme_color_override("font_hover_color", Color("#182016"))
