@@ -27,6 +27,10 @@ var mixer_buttons: Array[Button] = []
 var hand_buttons: Array[Button] = []
 var hand_units_row: HBoxContainer
 var hand_objects_row: HBoxContainer
+var ium_bar_row: HBoxContainer
+var ium_buttons: Array[Button] = []
+var available_iums: Array[CardDefinition] = []
+var selected_ium_index: int = -1
 
 var drag_source_slot: int = -1
 var drag_press_position: Vector2 = Vector2.ZERO
@@ -286,6 +290,17 @@ func _build_middle() -> Control:
 	process_button.pressed.connect(_on_process_pressed)
 	mixer_root.add_child(process_button)
 
+	var ium_scroll := ScrollContainer.new()
+	ium_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	ium_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	ium_scroll.custom_minimum_size.y = 62
+	ium_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mixer_root.add_child(ium_scroll)
+
+	ium_bar_row = HBoxContainer.new()
+	ium_bar_row.add_theme_constant_override("separation", 5)
+	ium_scroll.add_child(ium_bar_row)
+
 	status_label = _make_label("", 10, CYAN_COLOR)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -313,10 +328,6 @@ func _build_hand_bar() -> Control:
 	units_section.add_theme_constant_override("separation", 3)
 	groups.add_child(units_section)
 
-	var units_title := _make_label("PERSONAJES Y CRIATURAS", 9, CYAN_COLOR)
-	units_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	units_section.add_child(units_title)
-
 	var units_scroll := ScrollContainer.new()
 	units_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	units_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -338,10 +349,6 @@ func _build_hand_bar() -> Control:
 	objects_section.add_theme_constant_override("separation", 3)
 	groups.add_child(objects_section)
 
-	var objects_title := _make_label("OBJETOS", 9, GOLD_COLOR)
-	objects_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	objects_section.add_child(objects_title)
-
 	var objects_scroll := ScrollContainer.new()
 	objects_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	objects_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -362,6 +369,7 @@ func _build_hand_bar() -> Control:
 		hand_buttons.append(button)
 
 	return panel
+
 func _build_bottom_bar() -> Control:
 	var bar := HBoxContainer.new()
 	bar.custom_minimum_size.y = 42
@@ -410,22 +418,31 @@ func _build_bottom_bar() -> Control:
 func _start_battle() -> void:
 	selected_card_index = -1
 	selected_unit_slot = -1
+	selected_ium_index = -1
 	status_label.text = ""
 
 	var player_deck: Array[CardDefinition] = CardCatalog.starter_deck()
 	var enemy_deck: Array[CardDefinition] = CardCatalog.enemy_deck()
 	var process_catalog: Array[CardDefinition] = []
+	available_iums.clear()
 
+	var all_cards: Array[CardDefinition] = []
 	if canon_repository.has_canon_data():
-		var all_cards: Array[CardDefinition] = CardCatalog.from_canon(canon_repository)
+		all_cards = CardCatalog.from_canon(canon_repository)
 		player_deck = CardCatalog.starter_deck_from_canon(canon_repository)
 		enemy_deck = CardCatalog.enemy_deck_from_canon(canon_repository)
-		for card in all_cards:
-			if card.card_type == CardDefinition.CardType.PROCESS:
-				process_catalog.append(card)
+
+	for card in all_cards:
+		if card.card_type == CardDefinition.CardType.IUM:
+			available_iums.append(card)
+		elif card.card_type == CardDefinition.CardType.PROCESS:
+			process_catalog.append(card)
+
+	if available_iums.is_empty():
+		available_iums = CardCatalog.starter_ium_catalog()
 
 	engine = BattleEngine.new()
-	engine.setup(player_deck, enemy_deck, process_catalog)
+	engine.setup(player_deck, enemy_deck, process_catalog, available_iums)
 	state = engine.get_state()
 
 	engine.state_changed.connect(_refresh)
@@ -435,6 +452,7 @@ func _start_battle() -> void:
 
 	player_name_label.text = state.player_hero.display_name
 	enemy_name_label.text = state.enemy_hero.display_name
+	_populate_ium_bar()
 	_refresh()
 
 func _character_name_from_canon(fallback: String) -> String:
@@ -570,8 +588,51 @@ func _on_hero_attack_pressed(direction: Vector2i) -> void:
 		status_label.text = "ERROR · %s" % result.message
 	_refresh()
 
+func _populate_ium_bar() -> void:
+	for child in ium_bar_row.get_children():
+		ium_bar_row.remove_child(child)
+		child.queue_free()
+	ium_buttons.clear()
+
+	for index in range(available_iums.size()):
+		var card: CardDefinition = available_iums[index]
+		var button := Button.new()
+		button.custom_minimum_size = Vector2(104, 48)
+		button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		button.add_theme_font_size_override("font_size", 10)
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		button.text = card.display_name
+		button.tooltip_text = card.description
+		button.pressed.connect(_on_ium_catalog_pressed.bind(index))
+		button.add_theme_stylebox_override("normal", _button_style(SURFACE_ALT_COLOR, BORDER_COLOR, 7, 1))
+		button.add_theme_stylebox_override("hover", _button_style(SELECTED_COLOR, GOLD_COLOR, 7, 1))
+		ium_bar_row.add_child(button)
+		ium_buttons.append(button)
+
+func _on_ium_catalog_pressed(index: int) -> void:
+	if state == null or state.is_finished():
+		return
+	if index < 0 or index >= available_iums.size():
+		return
+	selected_ium_index = index
+	status_label.text = "%s seleccionado. Elige una casilla vacía del mezclador." % available_iums[index].display_name
+	_refresh()
+
 func _on_mixer_pressed(index: int) -> void:
 	if state == null or state.is_finished():
+		return
+
+	if selected_ium_index >= 0:
+		if not state.mixer.is_empty(index):
+			status_label.text = "Selecciona una casilla vacía del mezclador."
+			_refresh()
+			return
+		var place_result: BattleResult = engine.execute(
+			BattleCommand.mixer_catalog_place(selected_ium_index, index)
+		)
+		if place_result.success:
+			selected_ium_index = -1
+			_refresh()
 		return
 
 	if selected_card_index >= 0 and selected_card_index < state.hand.size():
@@ -583,9 +644,8 @@ func _on_mixer_pressed(index: int) -> void:
 			return
 
 	if not state.mixer.is_empty(index):
-		var result: BattleResult = engine.execute(BattleCommand.mixer_remove(index))
-		if result.success:
-			selected_card_index = -1
+		engine.execute(BattleCommand.mixer_remove(index))
+		selected_ium_index = -1
 
 func _on_process_pressed() -> void:
 	if state == null or state.is_finished():
@@ -696,19 +756,7 @@ func _refresh() -> void:
 		target_row.add_child(hand_button)
 		hand_button.visible = true
 
-		var etherium_cost: int = state.get_etherium_cost_for_card(card)
-		if etherium_cost > 0:
-			hand_button.text = "%s\n%s\n%d E" % [
-				card.display_name,
-				card.type_name(),
-				etherium_cost
-			]
-		else:
-			hand_button.text = "%s\n%s" % [
-				card.display_name,
-				card.type_name()
-			]
-
+		hand_button.text = card.display_name
 		hand_button.tooltip_text = card.description
 		hand_button.disabled = (
 			state.finished
@@ -722,6 +770,19 @@ func _refresh() -> void:
 				GOLD_COLOR if index == selected_card_index else BORDER_COLOR,
 				7,
 				2 if index == selected_card_index else 1
+			)
+		)
+
+	for index in range(ium_buttons.size()):
+		var ium_button: Button = ium_buttons[index]
+		ium_button.disabled = state.finished
+		ium_button.add_theme_stylebox_override(
+			"normal",
+			_button_style(
+				SELECTED_COLOR if index == selected_ium_index else SURFACE_ALT_COLOR,
+				GOLD_COLOR if index == selected_ium_index else BORDER_COLOR,
+				7,
+				2 if index == selected_ium_index else 1
 			)
 		)
 
