@@ -134,7 +134,7 @@ func _build_header() -> Control:
 	center.add_child(row)
 
 	turn_label = _make_label("T1", 12, TEXT_COLOR)
-	actions_label = _make_label("ACCIONES 3", 12, CYAN_COLOR)
+	actions_label = _make_label("ACCIONES 2 · ATAQUE 1", 12, CYAN_COLOR)
 	row.add_child(turn_label)
 	row.add_child(actions_label)
 
