@@ -1,0 +1,90 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource path="res://scripts/ui/cards.gd" type="Script" id="1"]
+
+[node name="Cards" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0275, 0.0941, 0.0706, 1)
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="Columns" type="HBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Library" type="VBoxContainer" parent="Margin/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Header" type="PanelContainer" parent="Margin/Columns/Library"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+
+[node name="Count" type="Label" parent="Margin/Columns/Library/Header"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "0"
+
+[node name="Scroll" type="ScrollContainer" parent="Margin/Columns/Library"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Grid" type="GridContainer" parent="Margin/Columns/Library/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 3
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+
+[node name="Sidebar" type="VBoxContainer" parent="Margin/Columns"]
+custom_minimum_size = Vector2(260, 0)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Source" type="Label" parent="Margin/Columns/Sidebar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4706, 0.8118, 0.7569, 1)
+text = "CATÁLOGO LOCAL"
+horizontal_alignment = 1
+
+[node name="DetailPanel" type="PanelContainer" parent="Margin/Columns/Sidebar"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Detail" type="Label" parent="Margin/Columns/Sidebar/DetailPanel"]
+layout_mode = 2
+text = "Selecciona una carta."
+autowrap_mode = 2
+vertical_alignment = 1
+
+[node name="Back" type="Button" parent="Margin/Columns/Sidebar"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "VOLVER"
