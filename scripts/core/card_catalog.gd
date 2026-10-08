@@ -110,7 +110,7 @@ static func enemy_deck_from_canon(repository: CanonRepository) -> Array[CardDefi
 
 	for i in range(20):
 		if not effects.is_empty() and i % 5 == 4:
-			deck.append(effects[(i / 5) as int % effects.size()].make_runtime_copy())
+			deck.append(effects[(int(i / 5)) % effects.size()].make_runtime_copy())
 		else:
 			deck.append(creatures[i % creatures.size()].make_runtime_copy())
 
