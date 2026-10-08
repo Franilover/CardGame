@@ -198,10 +198,11 @@ func move_unit(player_slot: int, target_slot: int) -> bool:
 	var unit: CardDefinition = board.get_card(player_slot)
 	if board.get_owner(player_slot) != BattleBoard.Owner.PLAYER or unit == null:
 		return false
-	if not unit.is_unit() or unit.exhausted:
+	if not unit.is_unit() or unit.exhausted or unit.has_moved:
 		return false
 	if not board.move(player_slot, target_slot, BattleBoard.Owner.PLAYER, unit.movement):
 		return false
+	unit.has_moved = true
 	_event("%s se movió sin consumir Eterium." % unit.display_name)
 	state_changed.emit()
 	return true
@@ -360,6 +361,7 @@ func _reset_units_for_owner(owner: int) -> void:
 			unit.exhausted = false
 			unit.has_attacked = false
 			unit.has_acted = false
+			unit.has_moved = false
 
 func end_turn() -> void:
 	if finished:
@@ -458,7 +460,7 @@ func _enemy_move_units() -> void:
 
 		for index in board.indices_for_owner(BattleBoard.Owner.ENEMY):
 			var unit: CardDefinition = board.get_card(index)
-			if unit == null or unit.exhausted or not unit.is_unit() or unit.movement <= 0:
+			if unit == null or unit.exhausted or unit.has_moved or not unit.is_unit() or unit.movement <= 0:
 				continue
 			var current_distance: int = board.distance(index, player_hero_slot)
 			for destination in range(BattleBoard.CELL_COUNT):
@@ -477,6 +479,7 @@ func _enemy_move_units() -> void:
 		var moved_unit: CardDefinition = board.get_card(best_source)
 		if moved_unit == null or not board.move(best_source, best_target, BattleBoard.Owner.ENEMY, moved_unit.movement):
 			break
+		moved_unit.has_moved = true
 		_event("%s avanzó sin consumir Eterium." % moved_unit.display_name)
 
 func _resolve_enemy_non_unit(card: CardDefinition) -> bool:
