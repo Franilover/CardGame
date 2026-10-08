@@ -28,7 +28,7 @@ static func run() -> Dictionary:
 	var playable_index: int = -1
 	for index in range(state.hand.size()):
 		var card: CardDefinition = state.hand[index]
-		if card != null and card.is_unit() and card.cost <= state.player_etherium:
+		if card != null and card.is_unit() :
 			playable_index = index
 			break
 
@@ -57,7 +57,7 @@ static func run() -> Dictionary:
 		var move_result: BattleResult = engine.execute(BattleCommand.move_unit(player_unit_slot, target))
 		moved = move_result.success
 		_report(report, "move_keeps_actions", state.player_actions == previous_actions)
-		_report(report, "move_costs_etherium", state.player_etherium == previous_etherium - BattleState.MOVE_ETHERIUM_COST)
+		_report(report, "move_does_not_cost_etherium", state.player_etherium == previous_etherium)
 
 		var second_origin: int = target
 		var second_position: Vector2i = state.board.position_from_index(second_origin)
@@ -66,7 +66,7 @@ static func run() -> Dictionary:
 		var second_result: BattleResult = engine.execute(BattleCommand.move_unit(second_origin, second_target))
 		moved_again = second_result.success
 		_report(report, "same_unit_can_move_again", moved_again, second_result.describe())
-		_report(report, "second_move_costs_etherium", state.player_etherium == second_previous_etherium - BattleState.MOVE_ETHERIUM_COST)
+		_report(report, "second_move_does_not_cost_etherium", state.player_etherium == second_previous_etherium)
 
 	_report(report, "execute_move_unit", moved)
 	_report(report, "execute_second_move_same_unit", moved_again)
@@ -78,7 +78,7 @@ static func run() -> Dictionary:
 	var hero_move_result: BattleResult = engine.execute(BattleCommand.move_unit(hero_origin, hero_target))
 	hero_moved = hero_move_result.success
 	_report(report, "move_hero", hero_moved, hero_move_result.describe())
-	_report(report, "hero_move_costs_etherium", state.player_etherium == hero_previous_etherium - BattleState.MOVE_ETHERIUM_COST)
+	_report(report, "hero_move_does_not_cost_etherium", state.player_etherium == hero_previous_etherium)
 	_report(report, "hero_left_throne", state.board.get_card(BattleBoard.PLAYER_HERO_SLOT) == null)
 	_report(report, "hero_can_return_to_throne", state.board.can_move(hero_target, BattleBoard.PLAYER_HERO_SLOT, BattleBoard.Owner.PLAYER, state.player_hero.movement))
 
