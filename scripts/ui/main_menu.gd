@@ -7,6 +7,7 @@ const CARDS_SCENE_PATH := "res://scenes/cards.tscn"
 
 @onready var status_label: Label = $Center/Panel/Margin/Content/Status
 @onready var play_button: Button = $Center/Panel/Margin/Content/Menu/Jugar
+@onready var boss_button: Button = $Center/Panel/Margin/Content/Menu/Jefes
 @onready var online_button: Button = $Center/Panel/Margin/Content/Menu/Online
 @onready var cards_button: Button = $Center/Panel/Margin/Content/Menu/Cartas
 @onready var settings_button: Button = $Center/Panel/Margin/Content/Menu/Configuracion
@@ -14,6 +15,7 @@ const CARDS_SCENE_PATH := "res://scenes/cards.tscn"
 
 func _ready() -> void:
 	play_button.pressed.connect(_on_play_pressed)
+	boss_button.pressed.connect(_on_bosses_pressed)
 	online_button.pressed.connect(_on_online_pressed)
 	cards_button.pressed.connect(_on_cards_pressed)
 	settings_button.pressed.connect(_on_settings_pressed)
@@ -22,7 +24,14 @@ func _ready() -> void:
 	status_label.text = canon_repository.get_status_text()
 
 func _on_play_pressed() -> void:
-	status_label.text = "Preparando partida..."
+	RunProgress.start_mode("exploration")
+	status_label.text = "Preparando exploración..."
+	set_process_input(false)
+	get_tree().change_scene_to_file(BATTLE_SCENE_PATH)
+
+func _on_bosses_pressed() -> void:
+	RunProgress.start_mode("bosses")
+	status_label.text = "Preparando jefe..."
 	set_process_input(false)
 	get_tree().change_scene_to_file(BATTLE_SCENE_PATH)
 
