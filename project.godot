@@ -20,10 +20,3 @@ textures/default_filters/use_nearest_mipmap_filter=false
 [gui]
 
 theme/default_font_multichannel_signed_distance_field=true
-
-[input]
-
-ui_end_turn={
-"deadzone": 0.5,
-"events": [Object(InputEventKey,"physical_keycode":32,"unicode":32)]
-}
