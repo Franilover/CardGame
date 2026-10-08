@@ -38,7 +38,8 @@ func _populate() -> void:
 				"attack": card.attack,
 				"health": card.health,
 				"cost": card.cost,
-				"canonical": card.canonical_table
+				"canonical": card.canonical_table,
+				"card_type": card.card_type
 			})
 	else:
 		source_label.text = "CATÁLOGO LOCAL"
@@ -78,6 +79,19 @@ func _populate() -> void:
 		categories.add_child(_make_category_section(str(category["title"]), category_entries))
 
 func _category_id_for_entry(entry: Dictionary) -> String:
+	var card_type: int = int(entry.get("card_type", -1))
+	match card_type:
+		CardDefinition.CardType.CREATURE:
+			return "criaturas"
+		CardDefinition.CardType.OBJECT:
+			return "items"
+		CardDefinition.CardType.PROCESS:
+			return "procesos"
+		CardDefinition.CardType.IUM:
+			return "iums"
+		CardDefinition.CardType.ORIS:
+			return "oris"
+
 	var canonical: String = str(entry.get("canonical", ""))
 	if canonical == "criaturas":
 		return "criaturas"
@@ -88,18 +102,6 @@ func _category_id_for_entry(entry: Dictionary) -> String:
 	if canonical == "iums":
 		return "iums"
 	if canonical == "oris":
-		return "oris"
-
-	var type_name: String = str(entry.get("type", "")).to_lower()
-	if type_name.contains("criatura"):
-		return "criaturas"
-	if type_name.contains("objeto") or type_name.contains("item"):
-		return "items"
-	if type_name.contains("proceso"):
-		return "procesos"
-	if type_name.contains("ium"):
-		return "iums"
-	if type_name.contains("oris"):
 		return "oris"
 
 	return "criaturas"
