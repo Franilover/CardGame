@@ -243,13 +243,20 @@ func _enemy_turn() -> void:
 		var best_index := -1
 
 		for i in range(enemy_deck.size()):
-			var card: CardDefinition = enemy_deck[i]
-			if card.cost <= enemy_etherium and card.is_unit():
-				if best_card == null or card.cost < best_card.cost:
-					best_card = card
+			var candidate: CardDefinition = enemy_deck[i]
+			if candidate.cost > enemy_etherium:
+				continue
+
+			if candidate.is_unit():
+				if _first_empty_enemy_slot() >= 0 and (best_card == null or candidate.cost < best_card.cost):
+					best_card = candidate
 					best_index = i
+			elif best_card == null:
+				best_card = candidate
+				best_index = i
 
 		if best_card != null:
+			if best_card.is_unit():
 				var slot := _first_empty_enemy_slot()
 				if slot >= 0:
 					best_card = enemy_deck.pop_at(best_index)
@@ -258,6 +265,13 @@ func _enemy_turn() -> void:
 					actions -= 1
 					played = true
 					_event("El enemigo jugó %s." % best_card.display_name)
+			else:
+				best_card = enemy_deck.pop_at(best_index)
+				if _resolve_enemy_non_unit(best_card):
+					enemy_etherium -= best_card.cost
+					actions -= 1
+					played = true
+					enemy_discard.append(best_card)
 
 		if not played:
 			break
