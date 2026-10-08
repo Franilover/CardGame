@@ -26,7 +26,7 @@ static func starter_deck() -> Array[CardDefinition]:
 
 static func enemy_deck() -> Array[CardDefinition]:
 	var cards: Array[CardDefinition] = []
-	var base := [
+	var base: Array[CardDefinition] = [
 		_creature("enemy_aoris", "Aoris Hostil", 1, 3, 5, "Unidad enemiga.", "criatura", "enemy_aoris"),
 		_creature("enemy_ligniano", "Ligniano Hostil", 2, 5, 7, "Unidad enemiga resistente.", "criatura", "enemy_ligniano"),
 		_creature("enemy_guardian", "Guardián Hostil", 3, 6, 9, "Unidad pesada.", "criatura", "enemy_guardian"),
@@ -39,7 +39,7 @@ static func enemy_deck() -> Array[CardDefinition]:
 
 	return cards
 
-static func from_canon(repository: CanonRepository) -> Array[CardDefinition]:
+static func from_canon(repository: GarliaCanonRepository) -> Array[CardDefinition]:
 	var cards: Array[CardDefinition] = []
 
 	for row in repository.get_table("criaturas"):
@@ -48,7 +48,7 @@ static func from_canon(repository: CanonRepository) -> Array[CardDefinition]:
 
 	for row in repository.get_table("items"):
 		if row is Dictionary:
-			var card = _object_from_canon(row, repository)
+			var card: CardDefinition = _object_from_canon(row, repository)
 			if card != null:
 				cards.append(card)
 
@@ -66,8 +66,8 @@ static func from_canon(repository: CanonRepository) -> Array[CardDefinition]:
 
 	return cards
 
-static func starter_deck_from_canon(repository: CanonRepository) -> Array[CardDefinition]:
-	var all := from_canon(repository)
+static func starter_deck_from_canon(repository: GarliaCanonRepository) -> Array[CardDefinition]:
+	var all: Array[CardDefinition] = from_canon(repository)
 	if all.is_empty():
 		return starter_deck()
 
@@ -93,7 +93,7 @@ static func starter_deck_from_canon(repository: CanonRepository) -> Array[CardDe
 
 	return deck
 
-static func enemy_deck_from_canon(repository: CanonRepository) -> Array[CardDefinition]:
+static func enemy_deck_from_canon(repository: GarliaCanonRepository) -> Array[CardDefinition]:
 	var all := from_canon(repository)
 	var deck: Array[CardDefinition] = []
 	var creatures: Array[CardDefinition] = []
@@ -121,15 +121,15 @@ static func _creature_from_canon(row: Dictionary) -> CardDefinition:
 	var ai: Dictionary = row.get("ia_config", {}) if row.get("ia_config") is Dictionary else {}
 	var attack_data: Dictionary = ai.get("ataque", {}) if ai.get("ataque") is Dictionary else {}
 
-	var attack := int(attack_data.get("danio", 2))
-	var health := int(stats.get("hp_max", 6))
+	var attack: int = int(attack_data.get("danio", 2))
+	var health: int = int(stats.get("hp_max", 6))
 	if health <= 0:
 		var bio: Dictionary = row.get("biologia_calculada", {}) if row.get("biologia_calculada") is Dictionary else {}
-		var stability := float(bio.get("estabilidad", 0.5))
+		var stability: float = float(bio.get("estabilidad", 0.5))
 		health = 5 + int(clamp(stability * 5.0, 0.0, 5.0))
 
-	var cost := 1 + int(clamp(float(health - 5) / 3.0, 0.0, 4.0))
-	var card := _creature(
+	var cost: int = 1 + int(clamp(float(health - 5) / 3.0, 0.0, 4.0))
+	var card: CardDefinition = _creature(
 		str(row.get("id", "")),
 		str(row.get("nombre", "Criatura")),
 		cost,
@@ -144,8 +144,8 @@ static func _creature_from_canon(row: Dictionary) -> CardDefinition:
 	card.source_data = row.duplicate(true)
 	return card
 
-static func _object_from_canon(row: Dictionary, repository: CanonRepository) -> CardDefinition:
-	var item_id := str(row.get("id", ""))
+static func _object_from_canon(row: Dictionary, repository: GarliaCanonRepository) -> CardDefinition:
+	var item_id: String = str(row.get("id", ""))
 	var game_data: Dictionary = {}
 
 	for game_row in repository.get_table("items_game"):
@@ -157,11 +157,11 @@ static func _object_from_canon(row: Dictionary, repository: CanonRepository) -> 
 		return null
 
 	var props: Dictionary = game_data.get("propiedades", {}) if game_data.get("propiedades") is Dictionary else {}
-	var effect_value := int(props.get("danio", 2))
+	var effect_value: int = int(props.get("danio", 2))
 	if effect_value <= 0:
 		effect_value = 2
 
-	var card := _object(
+	var card: CardDefinition = _object(
 		item_id,
 		str(row.get("nombre", "Objeto")),
 		1 + int(clamp(effect_value / 4.0, 0.0, 2.0)),
@@ -176,10 +176,10 @@ static func _object_from_canon(row: Dictionary, repository: CanonRepository) -> 
 	return card
 
 static func _ium_from_canon(row: Dictionary) -> CardDefinition:
-	var name := str(row.get("nombre", "IUM"))
-	var lower := name.to_lower()
-	var value := 3
-	var cost := 1
+	var name: String = str(row.get("nombre", "IUM"))
+	var lower: String = name.to_lower()
+	var value: int = 3
+	var cost: int = 1
 
 	if lower.contains("velox"):
 		value = 4
@@ -191,7 +191,7 @@ static func _ium_from_canon(row: Dictionary) -> CardDefinition:
 		value = 6
 		cost = 3
 
-	var card := _ium(
+	var card: CardDefinition = _ium(
 		str(row.get("id", "")),
 		name,
 		cost,
@@ -203,7 +203,7 @@ static func _ium_from_canon(row: Dictionary) -> CardDefinition:
 	return card
 
 static func _process_from_canon(row: Dictionary) -> CardDefinition:
-	var card := _process(
+	var card: CardDefinition = _process(
 		str(row.get("id", "")),
 		str(row.get("nombre", "Proceso")),
 		2,
@@ -219,7 +219,7 @@ static func _oris_from_canon(row: Dictionary) -> CardDefinition:
 	var value := 8
 	if name.to_lower().contains("gravioris"):
 		value = 7
-	var card := _oris(
+	var card: CardDefinition = _oris(
 		str(row.get("id", "")),
 		name,
 		4,
