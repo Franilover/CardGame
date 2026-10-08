@@ -777,6 +777,7 @@ func _on_end_turn_pressed() -> void:
 		return
 	selected_card_index = -1
 	selected_unit_slot = -1
+	selected_ium_index = -1
 	engine.execute(BattleCommand.end_turn())
 
 func _on_command_resolved(result: BattleResult) -> void:
@@ -784,7 +785,7 @@ func _on_command_resolved(result: BattleResult) -> void:
 	if not result.success:
 		status_label.text = "ERROR · %s" % result.message
 	_refresh()
-	if result.success and state != null and not state.finished and state.player_actions <= 0:
+	if result.success and state != null and not state.finished and not state.setup_phase and state.player_actions <= 0:
 		call_deferred("_auto_end_turn_if_needed")
 
 func _auto_end_turn_if_needed() -> void:
@@ -811,8 +812,12 @@ func _refresh() -> void:
 	if state == null:
 		return
 
-	turn_label.text = "%s · T%d" % [current_encounter_label, state.turn]
-	actions_label.text = "ACCIONES %d/%d" % [state.player_actions, state.player_max_actions]
+	if state.setup_phase:
+		turn_label.text = "%s · T0" % current_encounter_label
+		actions_label.text = "DESPLIEGUE GRATUITO"
+	else:
+		turn_label.text = "%s · T%d" % [current_encounter_label, state.turn]
+		actions_label.text = "ACCIONES %d/%d" % [state.player_actions, state.player_max_actions]
 	player_health_label.text = "%d / %d" % [state.player_hero.health, BattleState.HERO_MAX_HEALTH]
 	enemy_health_label.text = "%d / %d" % [state.enemy_hero.health, BattleState.HERO_MAX_HEALTH]
 	player_health_bar.value = state.player_hero.health
@@ -854,6 +859,7 @@ func _refresh() -> void:
 		var mixer_button: Button = mixer_buttons[index]
 		var mixer_card: CardDefinition = state.mixer.get_ium(index)
 		mixer_button.text = mixer_card.display_name if mixer_card != null else "+"
+		mixer_button.disabled = state.setup_phase or state.finished
 		mixer_button.add_theme_stylebox_override("normal", _button_style(SELECTED_COLOR if mixer_card != null else SURFACE_ALT_COLOR, GOLD_COLOR if mixer_card != null else BORDER_COLOR, 7, 1))
 
 	for hand_button in hand_buttons:
@@ -892,11 +898,15 @@ func _refresh() -> void:
 		hand_button.text = card.display_name
 		var etherium_cost: int = state.get_etherium_cost_for_card(card)
 		hand_button.tooltip_text = card.description
-		hand_button.disabled = (
-			state.finished
-			or etherium_cost > state.player_etherium
-			or state.player_actions <= 0
-		)
+		if state.setup_phase:
+			hand_button.disabled = state.finished or not card.is_unit()
+		else:
+			hand_button.disabled = (
+				state.finished
+				or card.is_unit()
+				or etherium_cost > state.player_etherium
+				or state.player_actions <= 0
+			)
 		hand_button.add_theme_stylebox_override(
 			"normal",
 			_button_style(
@@ -909,7 +919,7 @@ func _refresh() -> void:
 
 	for index in range(ium_buttons.size()):
 		var ium_button: Button = ium_buttons[index]
-		ium_button.disabled = state.finished
+		ium_button.disabled = state.finished or state.setup_phase
 		ium_button.add_theme_stylebox_override(
 			"normal",
 			_button_style(
@@ -920,8 +930,12 @@ func _refresh() -> void:
 			)
 		)
 
-	end_turn_button.visible = state.finished
-	end_turn_button.disabled = not state.finished
+	end_turn_button.visible = state.setup_phase or state.finished
+	end_turn_button.disabled = not state.setup_phase and not state.finished
+	if state.setup_phase:
+		end_turn_button.text = "INICIAR COMBATE"
+	else:
+		end_turn_button.text = "CONTINUAR" if state.finished and state.winner_is_player else ("REINTENTAR" if state.finished else "FIN DEL TURNO")
 	hero_attack_panel.visible = state.player_hero != null and selected_unit_slot == state.player_hero_slot and not state.finished
 	for direction_index in range(hero_attack_buttons.size()):
 		var direction: Vector2i = hero_attack_directions[direction_index]
