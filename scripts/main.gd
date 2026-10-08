@@ -430,6 +430,7 @@ func _start_battle() -> void:
 
 	if canon_repository.has_canon_data():
 		catalog_cards = CardCatalog.from_canon(canon_repository)
+		catalog_cards.append_array(CardCatalog.starter_deck())
 		player_deck = CardCatalog.starter_deck_from_canon(canon_repository)
 		enemy_deck = CardCatalog.enemy_deck_from_canon(canon_repository)
 	else:
