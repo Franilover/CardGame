@@ -7,6 +7,7 @@ extends RefCounted
 enum CommandType {
 	PLAY_CARD,
 	ATTACK,
+	HERO_ATTACK,
 	MOVE_UNIT,
 	MIXER_PLACE,
 	MIXER_REMOVE,
@@ -22,6 +23,7 @@ var attacker_slot: int = -1
 var target_slot: int = -1
 var mixer_slot: int = -1
 var target_enemy: bool = false
+var direction: Vector2i = Vector2i.ZERO
 var metadata: Dictionary = {}
 
 static func play_card(index: int, slot: int = -1, enemy_target: bool = false) -> BattleCommand:
@@ -37,6 +39,13 @@ static func attack(attacker: int, target: int = -1) -> BattleCommand:
 	command.type = CommandType.ATTACK
 	command.attacker_slot = attacker
 	command.target_slot = target
+	return command
+
+static func hero_attack(attacker: int, attack_direction: Vector2i) -> BattleCommand:
+	var command := BattleCommand.new()
+	command.type = CommandType.HERO_ATTACK
+	command.attacker_slot = attacker
+	command.direction = attack_direction
 	return command
 
 static func move_unit(attacker: int, target: int) -> BattleCommand:
@@ -80,6 +89,8 @@ func type_name() -> String:
 			return "PLAY_CARD"
 		CommandType.ATTACK:
 			return "ATTACK"
+		CommandType.HERO_ATTACK:
+			return "HERO_ATTACK"
 		CommandType.MOVE_UNIT:
 			return "MOVE_UNIT"
 		CommandType.MIXER_PLACE:
