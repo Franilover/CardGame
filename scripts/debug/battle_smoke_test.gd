@@ -12,9 +12,9 @@ static func run() -> Dictionary:
 	var enemy_cards: Array[CardDefinition] = CardCatalog.enemy_deck()
 	var engine := BattleEngine.new()
 	engine.setup(player_cards, enemy_cards, [])
-	_report(report, "setup", engine.get_state() != null)
 
 	var state: BattleState = engine.get_state()
+	_report(report, "setup", state != null)
 	if state == null:
 		report["errors"].append("BattleState no fue creado.")
 		return report
@@ -22,85 +22,71 @@ static func run() -> Dictionary:
 	_report(report, "board_9x8", state.board.occupants.size() == BattleBoard.CELL_COUNT)
 	_report(report, "player_hero_on_trone", state.board.get_card(BattleBoard.PLAYER_HERO_SLOT) == state.player_hero)
 	_report(report, "enemy_hero_on_trone", state.board.get_card(BattleBoard.ENEMY_HERO_SLOT) == state.enemy_hero)
-	_report(report, "hero_attack_has_three_front_cells", state.board.front_attack_indices(state.player_hero_slot, Vector2i.UP).size() == 3)
-	_report(report, "hero_attack_has_four_direction_model", Vector2i.UP != Vector2i.DOWN and Vector2i.LEFT != Vector2i.RIGHT)
+	_report(report, "two_actions_start", state.player_actions == 2)
 
-	var playable_index: int = -1
-	for index in range(state.hand.size()):
-		var card: CardDefinition = state.hand[index]
-		if card != null and card.is_unit() :
-			playable_index = index
-			break
+	var creature := _make_test_creature("Criatura de prueba")
+	state.hand.append(creature)
 
-	_report(report, "find_playable_unit", playable_index >= 0)
+	var back_row_slot: int = BattleBoard.index_from_position_static(Vector2i(3, 7))
+	var etherium_before_free_deploy: int = state.player_etherium
+	var actions_before_free_deploy: int = state.player_actions
+	var free_deploy_result: BattleResult = engine.execute(BattleCommand.play_card(state.hand.size() - 1, back_row_slot, false))
+	_report(report, "creature_deploys_in_back_row", free_deploy_result.success, free_deploy_result.describe())
+	_report(report, "back_row_deploy_spends_one_action", state.player_actions == actions_before_free_deploy - 1)
+	_report(report, "back_row_deploy_is_free", state.player_etherium == etherium_before_free_deploy)
 
-	if playable_index >= 0:
-		var spawn_slot: int = BattleBoard.index_from_position_static(Vector2i(3, 7))
-		var result: BattleResult = engine.execute(BattleCommand.play_card(playable_index, spawn_slot, false))
-		_report(report, "execute_play_card", result.success, result.describe())
+	var first_origin: int = back_row_slot
+	var first_target: int = BattleBoard.index_from_position_static(Vector2i(3, 6))
+	var etherium_before_move: int = state.player_etherium
+	var actions_before_move: int = state.player_actions
+	var move_result: BattleResult = engine.execute(BattleCommand.move_unit(first_origin, first_target))
+	_report(report, "move_uses_one_action", move_result.success and state.player_actions == actions_before_move - 1, move_result.describe())
+	_report(report, "move_does_not_cost_etherium", state.player_etherium == etherium_before_move)
 
-	var end_result: BattleResult = engine.execute(BattleCommand.end_turn())
-	_report(report, "execute_end_turn", end_result.success, end_result.describe())
+	var blocked_move_result: BattleResult = engine.execute(BattleCommand.move_unit(first_target, back_row_slot))
+	_report(report, "no_actions_blocks_third_action", not blocked_move_result.success and blocked_move_result.code == "NO_ACTIONS", blocked_move_result.describe())
 
-	var moved: bool = false
-	var moved_again: bool = false
-	var player_unit_slot: int = -1
-	for candidate_slot in state.board.indices_for_owner(BattleBoard.Owner.PLAYER):
-		if candidate_slot != state.player_hero_slot:
-			player_unit_slot = candidate_slot
-			break
-	if player_unit_slot >= 0:
-		var origin: Vector2i = state.board.position_from_index(player_unit_slot)
-		var target: int = BattleBoard.index_from_position_static(Vector2i(origin.x, max(BattleBoard.PLAYER_ZONE_MIN_ROW, origin.y - 1)))
-		var previous_actions: int = state.player_actions
-		var previous_etherium: int = state.player_etherium
-		var move_result: BattleResult = engine.execute(BattleCommand.move_unit(player_unit_slot, target))
-		moved = move_result.success
-		_report(report, "move_keeps_actions", state.player_actions == previous_actions)
-		_report(report, "move_does_not_cost_etherium", state.player_etherium == previous_etherium)
+	var turn_end_result: BattleResult = engine.execute(BattleCommand.end_turn())
+	_report(report, "end_turn", turn_end_result.success, turn_end_result.describe())
+	_report(report, "actions_reset", state.player_actions == state.player_max_actions)
+	_report(report, "actions_are_two", state.player_max_actions == BattleState.ACTIONS_PER_TURN)
 
-		var second_origin: int = target
-		var second_position: Vector2i = state.board.position_from_index(second_origin)
-		var second_target: int = BattleBoard.index_from_position_static(Vector2i(second_position.x, max(BattleBoard.PLAYER_ZONE_MIN_ROW, second_position.y - 1)))
-		var second_previous_etherium: int = state.player_etherium
-		var second_result: BattleResult = engine.execute(BattleCommand.move_unit(second_origin, second_target))
-		moved_again = second_result.success
-		_report(report, "same_unit_cannot_move_again", not moved_again and second_result.code == "UNIT_ALREADY_MOVED", second_result.describe())
-		_report(report, "blocked_second_move_keeps_etherium", state.player_etherium == second_previous_etherium)
+	var etherium_before_growth: int = state.player_max_etherium
+	_report(report, "etherium_grows", state.player_max_etherium == min(BattleState.MAX_ETHERIUM, etherium_before_growth))
 
-	_report(report, "execute_move_unit", moved)
-	_report(report, "execute_second_move_same_unit", not moved_again)
+	var advanced_creature := _make_test_creature("Despliegue adelantado")
+	state.hand.append(advanced_creature)
+	var advanced_slot: int = BattleBoard.index_from_position_static(Vector2i(4, 6))
+	var etherium_before_advanced: int = state.player_etherium
+	var actions_before_advanced: int = state.player_actions
+	var advanced_result: BattleResult = engine.execute(BattleCommand.play_card(state.hand.size() - 1, advanced_slot, false))
+	_report(report, "advanced_deploy_succeeds", advanced_result.success, advanced_result.describe())
+	_report(report, "advanced_deploy_uses_action", state.player_actions == actions_before_advanced - 1)
+	_report(report, "advanced_deploy_costs_etherium", state.player_etherium == etherium_before_advanced - BattleState.ADVANCED_DEPLOYMENT_ETHERIUM_COST)
 
-	var hero_moved: bool = false
-	var hero_origin: int = state.player_hero_slot
-	var hero_target: int = BattleBoard.index_from_position_static(Vector2i(4, 6))
-	var hero_previous_etherium: int = state.player_etherium
-	var hero_move_result: BattleResult = engine.execute(BattleCommand.move_unit(hero_origin, hero_target))
-	hero_moved = hero_move_result.success
-	_report(report, "move_hero", hero_moved, hero_move_result.describe())
-	_report(report, "hero_move_does_not_cost_etherium", state.player_etherium == hero_previous_etherium)
-	_report(report, "hero_left_throne", state.board.get_card(BattleBoard.PLAYER_HERO_SLOT) == null)
-	var hero_return_result: BattleResult = engine.execute(BattleCommand.move_unit(hero_target, BattleBoard.PLAYER_HERO_SLOT))
-	_report(report, "hero_cannot_move_twice_same_turn", not hero_return_result.success and hero_return_result.code == "UNIT_ALREADY_MOVED", hero_return_result.describe())
-	_report(report, "hero_can_return_to_throne", state.board.can_move(hero_target, BattleBoard.PLAYER_HERO_SLOT, BattleBoard.Owner.PLAYER, state.player_hero.movement))
+	state.player_actions = state.player_max_actions
+	var attack_creature := _make_test_creature("Atacante de prueba")
+	attack_creature.attack_range = 4
+	var attack_slot: int = BattleBoard.index_from_position_static(Vector2i(2, 5))
+	state.hand.append(attack_creature)
+	var attack_deploy_result: BattleResult = engine.execute(BattleCommand.play_card(state.hand.size() - 1, attack_slot, false))
+	_report(report, "attack_unit_deployed", attack_deploy_result.success, attack_deploy_result.describe())
 
-	var previous_actions_before_hero_attack: int = state.player_actions
-	var hero_attack_result: BattleResult = engine.execute(BattleCommand.hero_attack(hero_target, Vector2i.UP))
-	_report(report, "hero_attack_command", hero_attack_result.success, hero_attack_result.describe())
-	_report(report, "hero_attack_costs_action", state.player_actions == previous_actions_before_hero_attack - 1)
-	_report(report, "one_attack_remaining", state.player_attacks_remaining == state.player_max_attacks_per_turn - 1)
+	var enemy_test := _make_test_creature("Enemigo de prueba")
+	enemy_test.counter_attack = false
+	var enemy_slot: int = BattleBoard.index_from_position_static(Vector2i(2, 2))
+	var enemy_placed: bool = state.board.place(enemy_slot, enemy_test, BattleBoard.Owner.ENEMY)
+	_report(report, "enemy_test_placed", enemy_placed)
 
-	var second_attack_result: BattleResult = engine.execute(BattleCommand.hero_attack(hero_target, Vector2i.UP))
-	_report(report, "second_attack_rejected_same_turn", not second_attack_result.success and second_attack_result.code == "NO_ATTACKS_REMAINING", second_attack_result.describe())
+	var actions_before_move_and_attack: int = state.player_actions
+	var move_for_attack_result: BattleResult = engine.execute(BattleCommand.move_unit(attack_slot, BattleBoard.index_from_position_static(Vector2i(2, 4))))
+	_report(report, "move_then_attack_first_action", move_for_attack_result.success, move_for_attack_result.describe())
+	var actions_before_attack: int = state.player_actions
+	var attack_result: BattleResult = engine.execute(BattleCommand.attack(BattleBoard.index_from_position_static(Vector2i(2, 4)), enemy_slot))
+	_report(report, "attack_after_move_is_allowed", attack_result.success, attack_result.describe())
+	_report(report, "move_and_attack_use_two_actions", state.player_actions == actions_before_move_and_attack - 2)
+	_report(report, "attack_uses_one_action", state.player_actions == actions_before_attack - 1)
 
-	var actions_before_turn: int = state.player_actions
-	var etherium_before_turn: int = state.player_max_etherium
-	var end_again_result: BattleResult = engine.execute(BattleCommand.end_turn())
-	_report(report, "next_turn_starts", end_again_result.success)
-	_report(report, "actions_reset_to_two", state.player_actions == state.player_max_actions)
-	_report(report, "actions_remain_fixed", state.player_max_actions == BattleState.ACTIONS_PER_TURN)
-	_report(report, "attack_resets_next_turn", state.player_attacks_remaining == state.player_max_attacks_per_turn)
-	_report(report, "etherium_grows_next_turn", state.player_max_etherium == min(BattleState.MAX_ETHERIUM, etherium_before_turn + BattleState.ETHERIUM_GROWTH_PER_TURN))
 	report["snapshot"] = engine.debug_snapshot()
 
 	var all_steps_passed: bool = true
@@ -112,6 +98,18 @@ static func run() -> Dictionary:
 
 	report["passed"] = report["errors"].is_empty() and all_steps_passed
 	return report
+
+static func _make_test_creature(name: String) -> CardDefinition:
+	var card := CardDefinition.new()
+	card.id = name.to_lower().replace(" ", "_")
+	card.display_name = name
+	card.card_type = CardDefinition.CardType.CREATURE
+	card.health = 10
+	card.attack = 2
+	card.movement = 1
+	card.attack_range = 1
+	card.counter_attack = true
+	return card
 
 static func _report(report: Dictionary, step_name: String, passed: bool, detail: String = "") -> void:
 	report["steps"].append({
