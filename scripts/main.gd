@@ -40,10 +40,6 @@ var drag_active: bool = false
 
 var enemy_name_label: Label
 var player_name_label: Label
-var enemy_health_label: Label
-var player_health_label: Label
-var enemy_health_bar: ProgressBar
-var player_health_bar: ProgressBar
 var turn_label: Label
 var actions_label: Label
 var etherium_label: Label
@@ -187,12 +183,13 @@ func _build_character_panel(player: bool) -> PanelContainer:
 	panel.add_child(content)
 
 	var portrait := Button.new()
-	portrait.custom_minimum_size = Vector2(70, 62)
+	portrait.custom_minimum_size = Vector2(64, 64)
 	portrait.text = "J" if player else "E"
 	portrait.add_theme_font_size_override("font_size", 18)
 	portrait.add_theme_color_override("font_color", TEXT_COLOR)
-	portrait.add_theme_stylebox_override("normal", _button_style(SURFACE_ALT_COLOR, CYAN_COLOR if player else DANGER_COLOR, 8, 2))
-	portrait.add_theme_stylebox_override("hover", _button_style(SELECTED_COLOR, GOLD_COLOR, 8, 2))
+	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	portrait.add_theme_stylebox_override("normal", _button_style(SURFACE_ALT_COLOR, CYAN_COLOR if player else DANGER_COLOR, 0, 2))
+	portrait.add_theme_stylebox_override("hover", _button_style(SELECTED_COLOR, GOLD_COLOR, 0, 2))
 	content.add_child(portrait)
 
 	var info := VBoxContainer.new()
@@ -200,29 +197,12 @@ func _build_character_panel(player: bool) -> PanelContainer:
 	info.alignment = BoxContainer.ALIGNMENT_CENTER
 	content.add_child(info)
 
-	var name_label := _make_label("JUGADOR" if player else "ENEMIGO", 14, CYAN_COLOR if player else DANGER_COLOR)
+	var name_label := _make_label("TU REY" if player else "REY ENEMIGO", 14, CYAN_COLOR if player else DANGER_COLOR)
 	info.add_child(name_label)
-
-	var health_bar := ProgressBar.new()
-	health_bar.custom_minimum_size.y = 16
-	health_bar.max_value = 30
-	health_bar.value = 30
-	health_bar.show_percentage = false
-	health_bar.add_theme_stylebox_override("background", _style_box(Color("#07150F"), BORDER_COLOR, 5, 1))
-	health_bar.add_theme_stylebox_override("fill", _style_box(CYAN_COLOR if player else DANGER_COLOR, CYAN_COLOR if player else DANGER_COLOR, 5, 1))
-	info.add_child(health_bar)
-
-	var health_label := _make_label("30 / 30", 11, TEXT_COLOR)
-	info.add_child(health_label)
-
 	if player:
 		player_name_label = name_label
-		player_health_bar = health_bar
-		player_health_label = health_label
 	else:
 		enemy_name_label = name_label
-		enemy_health_bar = health_bar
-		enemy_health_label = health_label
 
 	return panel
 
