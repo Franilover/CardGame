@@ -1,0 +1,32 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.0
+          use-dotnet: false
+          include-templates: true
+      - run: mkdir -p EXPORT
+      - run: godot --headless --path . --editor --quit
+      - run: godot --headless --path . --export-release "Windows Desktop" EXPORT/GarliaCardGame.exe
+      - run: godot --headless --path . --export-release "Linux" EXPORT/GarliaCardGame.x86_64
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            EXPORT/GarliaCardGame.exe
+            EXPORT/GarliaCardGame.x86_64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
