@@ -1,5 +1,7 @@
 extends Control
 
+@onready var canon_repository: Node = get_node("/root/GarliaCanonRepository")
+
 const NEXT_SCENE_PATH := "res://scenes/main_menu.tscn"
 const MINIMUM_DISPLAY_TIME := 0.8
 
@@ -43,7 +45,7 @@ func _process(delta: float) -> void:
 			progress_bar.value = 100.0
 			percent_label.text = "100%"
 			status_label.text = "LISTO"
-			detail_label.text = GarliaCanonRepository.get_status_text()
+			detail_label.text = canon_repository.get_status_text()
 
 			if boot_finished and elapsed_time >= MINIMUM_DISPLAY_TIME:
 				_open_menu()
@@ -54,7 +56,7 @@ func _process(delta: float) -> void:
 				progress_bar.value = 100.0
 				percent_label.text = "100%"
 				status_label.text = "LISTO"
-				detail_label.text = GarliaCanonRepository.get_status_text()
+				detail_label.text = canon_repository.get_status_text()
 				if boot_finished:
 					_open_menu()
 			else:
@@ -70,12 +72,12 @@ func _boot() -> void:
 	scene_loading = true
 	status_label.text = "SINCRONIZANDO"
 	detail_label.text = "Consultando el canon..."
-	var online: bool = await GarliaCanonRepository.initialize()
+	var online: bool = await canon_repository.initialize()
 	boot_finished = true
 
 	if online:
 		detail_label.text = "Canon sincronizado."
-	elif GarliaCanonRepository.has_canon_data():
+	elif canon_repository.has_canon_data():
 		detail_label.text = "Usando canon en caché."
 	else:
 		detail_label.text = "Modo local."
