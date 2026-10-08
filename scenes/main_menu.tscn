@@ -32,19 +32,19 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(600, 560)
+custom_minimum_size = Vector2(600, 620)
 layout_mode = 2
 
 [node name="Margin" type="MarginContainer" parent="Center/Panel"]
 layout_mode = 2
 theme_override_constants/margin_left = 64
-theme_override_constants/margin_top = 56
+theme_override_constants/margin_top = 28
 theme_override_constants/margin_right = 64
-theme_override_constants/margin_bottom = 56
+theme_override_constants/margin_bottom = 28
 
 [node name="Content" type="VBoxContainer" parent="Center/Panel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 18
+theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="Center/Panel/Margin/Content"]
 layout_mode = 2
@@ -69,9 +69,9 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="Jugar" type="Button" parent="Center/Panel/Margin/Content/Menu"]
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 text = "MODO EXPLORACIÓN"
 icon_alignment = 1
 
