@@ -515,7 +515,7 @@ func _start_battle() -> void:
 	selected_card_index = -1
 	selected_unit_slot = -1
 	selected_ium_index = -1
-	status_label.text = ""
+	status_label.text = "Despliega criaturas gratis en tu zona; pulsa INICIAR COMBATE."
 
 	var player_deck: Array[CardDefinition] = CardCatalog.starter_deck()
 	var enemy_deck: Array[CardDefinition] = CardCatalog.enemy_deck()
