@@ -10,13 +10,7 @@ static func starter_deck() -> Array[CardDefinition]:
 		_creature("ligniano", "Ligniano", 2, 5, 7, "Criatura robusta.", "criatura", "ligniano"),
 		_creature("guardian", "Guardián Verde", 3, 6, 8, "Defensor de primera línea.", "criatura", "guardian"),
 		_object("espada_madera", "Espada de Madera", 1, "Fortalece una criatura.", 2, 1),
-		_object("arco_aoris", "Arco Aoris", 2, "Fortalece y aumenta alcance.", 2, 1),
-		_ium("fluxus", "Fluxus", 1, "Manifestación de movimiento.", 3),
-		_ium("velox", "Velox", 2, "Acelera una manifestación.", 4),
-		_ium("fulgor", "Fulgor", 2, "Libera energía concentrada.", 5),
-		_process("transicion", "Transición", 1, "Transformación de estado.", 3),
-		_process("propagacion", "Propagación", 2, "Extiende la manifestación.", 4),
-		_oris("kinetoris", "Kinetoris", 4, "Movimiento y sonido.", 8)
+		_object("arco_aoris", "Arco Aoris", 2, "Fortalece y aumenta alcance.", 2, 1)
 	]
 
 	for i in range(20):
@@ -30,8 +24,7 @@ static func enemy_deck() -> Array[CardDefinition]:
 		_creature("enemy_aoris", "Aoris Hostil", 1, 3, 5, "Unidad enemiga.", "criatura", "enemy_aoris"),
 		_creature("enemy_ligniano", "Ligniano Hostil", 2, 5, 7, "Unidad enemiga resistente.", "criatura", "enemy_ligniano"),
 		_creature("enemy_guardian", "Guardián Hostil", 3, 6, 9, "Unidad pesada.", "criatura", "enemy_guardian"),
-		_process("enemy_flux", "Pulso", 2, "Daño directo.", 3),
-		_ium("enemy_fulgor", "Descarga", 3, "Daño energético.", 6)
+		_object("enemy_espada_madera", "Espada de Madera", 1, "Refuerza una unidad.", 2, 1)
 	]
 
 	for i in range(20):
@@ -68,7 +61,13 @@ static func from_canon(repository: Variant) -> Array[CardDefinition]:
 
 static func starter_deck_from_canon(repository: Variant) -> Array[CardDefinition]:
 	var all: Array[CardDefinition] = from_canon(repository)
-	if all.is_empty():
+	var battle_cards: Array[CardDefinition] = []
+
+	for card in all:
+		if card.card_type == CardDefinition.CardType.CREATURE or card.card_type == CardDefinition.CardType.CHARACTER or card.card_type == CardDefinition.CardType.OBJECT:
+			battle_cards.append(card)
+
+	if battle_cards.is_empty():
 		return starter_deck()
 
 	var deck: Array[CardDefinition] = []
@@ -77,40 +76,39 @@ static func starter_deck_from_canon(repository: Variant) -> Array[CardDefinition
 		CardDefinition.CardType.CREATURE,
 		CardDefinition.CardType.CREATURE,
 		CardDefinition.CardType.OBJECT,
-		CardDefinition.CardType.IUM,
-		CardDefinition.CardType.PROCESS,
-		CardDefinition.CardType.ORIS
+		CardDefinition.CardType.OBJECT
 	]
 
 	for desired_type in preferred_types:
-		for card in all:
+		for card in battle_cards:
 			if card.card_type == desired_type:
 				deck.append(card.make_runtime_copy())
 				break
 
 	while deck.size() < 20:
-		deck.append(all[deck.size() % all.size()].make_runtime_copy())
+		deck.append(battle_cards[deck.size() % battle_cards.size()].make_runtime_copy())
 
 	return deck
 
 static func enemy_deck_from_canon(repository: Variant) -> Array[CardDefinition]:
 	var all: Array[CardDefinition] = from_canon(repository)
-	var deck: Array[CardDefinition] = []
 	var creatures: Array[CardDefinition] = []
-	var effects: Array[CardDefinition] = []
+	var objects: Array[CardDefinition] = []
 
 	for card in all:
 		if card.card_type == CardDefinition.CardType.CREATURE:
 			creatures.append(card)
-		elif card.card_type == CardDefinition.CardType.IUM or card.card_type == CardDefinition.CardType.PROCESS or card.card_type == CardDefinition.CardType.ORIS:
-			effects.append(card)
+		elif card.card_type == CardDefinition.CardType.OBJECT:
+			objects.append(card)
 
 	if creatures.is_empty():
 		return enemy_deck()
 
+	var deck: Array[CardDefinition] = []
+
 	for i in range(20):
-		if not effects.is_empty() and i % 5 == 4:
-			deck.append(effects[floori(float(i) / 5.0) % effects.size()].make_runtime_copy())
+		if not objects.is_empty() and i % 5 == 4:
+			deck.append(objects[floori(float(i) / 5.0) % objects.size()].make_runtime_copy())
 		else:
 			deck.append(creatures[i % creatures.size()].make_runtime_copy())
 
