@@ -5,7 +5,7 @@ const MENU_SCENE_PATH := "res://scenes/main_menu.tscn"
 @onready var grid: GridContainer = $Margin/Columns/Library/Scroll/Grid
 @onready var count_label: Label = $Margin/Columns/Library/Header/Count
 @onready var source_label: Label = $Margin/Columns/Sidebar/Source
-@onready var detail_label: Label = $Margin/Columns/Sidebar/Detail
+@onready var detail_label: Label = $Margin/Columns/Sidebar/DetailPanel/Detail
 @onready var back_button: Button = $Margin/Columns/Sidebar/Back
 
 func _ready() -> void:
@@ -17,11 +17,31 @@ func _populate() -> void:
 	source_label.text = CanonRepository.get_status_text()
 
 	var entries: Array = []
-	entries.append_array(_tag_rows(CanonRepository.get_table("criaturas"), "CRIATURA"))
-	entries.append_array(_tag_rows(CanonRepository.get_table("items"), "OBJETO"))
-	entries.append_array(_tag_rows(CanonRepository.get_table("iums"), "IUM"))
-	entries.append_array(_tag_rows(CanonRepository.get_table("procesos"), "PROCESO"))
-	entries.append_array(_tag_rows(CanonRepository.get_table("oris"), "ORIS"))
+	var canonical_cards := CardCatalog.from_canon(CanonRepository)
+
+	if not canonical_cards.is_empty():
+		for card in canonical_cards:
+			entries.append({
+				"name": card.display_name,
+				"type": card.type_name(),
+				"description": card.description,
+				"attack": card.attack,
+				"health": card.health,
+				"cost": card.cost,
+				"canonical": card.canonical_table
+			})
+	else:
+		source_label.text = "CATÁLOGO LOCAL"
+		for card in CardCatalog.starter_deck():
+			entries.append({
+				"name": card.display_name,
+				"type": card.type_name(),
+				"description": card.description,
+				"attack": card.attack,
+				"health": card.health,
+				"cost": card.cost,
+				"canonical": "local"
+			})
 
 	count_label.text = "%d" % entries.size()
 
@@ -37,21 +57,19 @@ func _populate() -> void:
 		button.pressed.connect(_show_detail.bind(entry))
 		grid.add_child(button)
 
-func _tag_rows(rows: Array, type_name: String) -> Array:
-	var result: Array = []
-	for row in rows:
-		if row is Dictionary:
-			result.append({
-				"name": str(row.get("nombre", type_name)),
-				"type": type_name,
-				"description": str(row.get("descripcion", row.get("extra", row.get("detalle", row.get("formula", "")))))
-			})
-	return result
-
 func _show_detail(entry: Dictionary) -> void:
-	detail_label.text = "%s\\n\\n%s\\n\\n%s" % [
+	var stats := ""
+	if int(entry.get("attack", 0)) > 0 or int(entry.get("health", 0)) > 0:
+		stats = "\n\n%d ATQ  ·  %d VIDA  ·  %d E" % [
+			int(entry.get("attack", 0)),
+			int(entry.get("health", 0)),
+			int(entry.get("cost", 0))
+		]
+
+	detail_label.text = "%s\\n\\n%s%s\\n\\n%s" % [
 		entry.get("name", "Carta"),
 		entry.get("type", ""),
+		stats,
 		entry.get("description", "")
 	]
 
