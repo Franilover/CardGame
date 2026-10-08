@@ -25,3 +25,4 @@ theme/default_font_multichannel_signed_distance_field=true
 
 GarliaSupabaseClient="*res://scripts/data/supabase_client.gd"
 GarliaCanonRepository="*res://scripts/data/canon_repository.gd"
+GarliaAdminDebug="*res://scripts/debug/admin_debug.gd"
