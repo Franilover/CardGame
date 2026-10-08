@@ -404,8 +404,6 @@ func _enemy_move_units() -> void:
 	for index in board.indices_for_owner(BattleBoard.Owner.ENEMY):
 		if enemy_etherium < MOVE_ETHERIUM_COST:
 			break
-		if index == enemy_hero_slot:
-			continue
 		var unit: CardDefinition = board.get_card(index)
 		if unit == null or unit.exhausted or unit.has_moved or unit.movement <= 0:
 			continue
