@@ -1,6 +1,7 @@
 extends Control
 
 const BATTLE_SCENE_PATH := "res://scenes/main.tscn"
+const CARDS_SCENE_PATH := "res://scenes/cards.tscn"
 
 @onready var status_label: Label = $Center/Panel/Margin/Content/Status
 @onready var play_button: Button = $Center/Panel/Margin/Content/Menu/Jugar
@@ -27,7 +28,7 @@ func _on_online_pressed() -> void:
 	status_label.text = "Online estará disponible más adelante."
 
 func _on_cards_pressed() -> void:
-	status_label.text = "La colección de cartas se está preparando."
+	get_tree().change_scene_to_file(CARDS_SCENE_PATH)
 
 func _on_settings_pressed() -> void:
 	status_label.text = "La configuración se agregará aquí."
