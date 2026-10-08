@@ -198,6 +198,7 @@ func _build_middle() -> Control:
 
 	var board_panel := _new_panel()
 	board_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	board_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER if RunProgress.mode == "exploration" else Control.SIZE_EXPAND_FILL
 	board_panel.size_flags_stretch_ratio = 2.2 if RunProgress.mode == "exploration" else 2.8
 	middle.add_child(board_panel)
 
