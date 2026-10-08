@@ -1,0 +1,99 @@
+[gd_resource type="Theme" load_steps=8 format=3]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxPanel"]
+bg_color = Color(0.0706, 0.1451, 0.1098, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.1686, 0.349, 0.2745, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+shadow_color = Color(0, 0, 0, 0.35)
+shadow_size = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxButtonNormal"]
+bg_color = Color(0.1059, 0.2353, 0.1804, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.1686, 0.349, 0.2745, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 20.0
+content_margin_right = 20.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxButtonHover"]
+bg_color = Color(0.1255, 0.3216, 0.2863, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4706, 0.8118, 0.7569, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 20.0
+content_margin_right = 20.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxButtonPressed"]
+bg_color = Color(0.8039, 0.6902, 0.2667, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.949, 0.8784, 0.5059, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 20.0
+content_margin_right = 20.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxButtonDisabled"]
+bg_color = Color(0.0824, 0.1608, 0.1255, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.1137, 0.2235, 0.1725, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxProgressBg"]
+bg_color = Color(0.051, 0.1098, 0.0784, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxProgressFill"]
+bg_color = Color(0.4706, 0.8118, 0.7569, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[resource]
+default_font_size = 16
+default_base_scale = 1.0
+PanelContainer/styles/panel = SubResource("StyleBoxPanel")
+Button/colors/font_color = Color(0.88, 0.92, 0.88, 1)
+Button/colors/font_hover_color = Color(0.92, 0.97, 0.94, 1)
+Button/colors/font_pressed_color = Color(0.1059, 0.1451, 0.12, 1)
+Button/colors/font_disabled_color = Color(0.38, 0.45, 0.41, 1)
+Button/font_sizes/font_size = 18
+Button/styles/normal = SubResource("StyleBoxButtonNormal")
+Button/styles/hover = SubResource("StyleBoxButtonHover")
+Button/styles/pressed = SubResource("StyleBoxButtonPressed")
+Button/styles/disabled = SubResource("StyleBoxButtonDisabled")
+ProgressBar/styles/background = SubResource("StyleBoxProgressBg")
+ProgressBar/styles/fill = SubResource("StyleBoxProgressFill")
