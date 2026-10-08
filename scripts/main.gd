@@ -198,7 +198,7 @@ func _build_middle() -> Control:
 
 	var board_panel := _new_panel()
 	board_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	board_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	board_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	middle.add_child(board_panel)
 
 	var board_margin := MarginContainer.new()
@@ -206,17 +206,18 @@ func _build_middle() -> Control:
 	board_margin.add_theme_constant_override("margin_right", 7)
 	board_margin.add_theme_constant_override("margin_top", 7)
 	board_margin.add_theme_constant_override("margin_bottom", 7)
-	board_panel.add_child(board_margin)
+	board_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	board_margin.add_child(board_margin)
 
 	var board_root := VBoxContainer.new()
 	board_root.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	board_root.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	board_root.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	board_root.add_theme_constant_override("separation", 4)
 	board_margin.add_child(board_root)
 
 	var grid := GridContainer.new()
 	grid.columns = BattleBoard.COLUMNS
-	grid.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	grid.add_theme_constant_override("h_separation", 0)
 	grid.add_theme_constant_override("v_separation", 0)
@@ -227,7 +228,7 @@ func _build_middle() -> Control:
 		var cell_size: float = 48.0 if RunProgress.mode == "exploration" else 52.0
 		cell.custom_minimum_size = Vector2(cell_size, cell_size)
 		cell.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		cell.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		cell.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		cell.clip_contents = true
 		cell.autowrap_mode = TextServer.AUTOWRAP_OFF
 		cell.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
