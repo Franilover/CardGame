@@ -41,7 +41,9 @@ static func _validate_play_card(state: BattleState, command: BattleCommand) -> B
 
 	if card.is_unit():
 		if not state.board.can_place(command.target_slot, BattleBoard.Owner.PLAYER):
-			return BattleResult.error("UNIT_SLOT_INVALID", "La casilla no pertenece a la zona inicial del jugador.")
+			return BattleResult.error("UNIT_SLOT_INVALID", "La casilla no pertenece a la zona del jugador.")
+		if not state.board.is_player_back_row(command.target_slot) and state.player_etherium < BattleState.ADVANCED_DEPLOYMENT_ETHERIUM_COST:
+			return BattleResult.error("NO_ETHERIUM_FOR_DEPLOYMENT", "Necesitas Eterium para colocar la criatura fuera de la fila trasera.")
 		return BattleResult.ok()
 
 	match card.effect_kind:
@@ -64,8 +66,6 @@ static func _validate_attack(state: BattleState, command: BattleCommand) -> Batt
 	var attacker: CardDefinition = state.board.get_card(command.attacker_slot)
 	if state.board.get_owner(command.attacker_slot) != BattleBoard.Owner.PLAYER or attacker == null:
 		return BattleResult.error("ATTACKER_MISSING", "No existe una unidad aliada.")
-	if state.player_attacks_remaining <= 0:
-		return BattleResult.error("NO_ATTACKS_REMAINING", "Ya realizaste tu ataque de este turno.")
 	if not attacker.can_attack():
 		return BattleResult.error("ATTACK_NOT_ALLOWED", "La unidad no puede atacar.")
 
@@ -107,8 +107,8 @@ static func _validate_move(state: BattleState, command: BattleCommand) -> Battle
 		return BattleResult.error("UNIT_MISSING", "No existe una unidad aliada.")
 	if not unit.is_unit():
 		return BattleResult.error("UNIT_CANNOT_MOVE", "El objetivo no es una unidad movible.")
-	if unit.has_moved:
-		return BattleResult.error("UNIT_ALREADY_MOVED", "Esta unidad ya se movió este turno.")
+	if state.player_actions <= 0:
+		return BattleResult.error("NO_ACTIONS", "No quedan acciones.")
 	if not state.board.can_move(command.attacker_slot, command.target_slot, BattleBoard.Owner.PLAYER, unit.movement):
 		return BattleResult.error("MOVE_INVALID", "Destino bloqueado, ocupado o fuera de movimiento.")
 	return BattleResult.ok()
