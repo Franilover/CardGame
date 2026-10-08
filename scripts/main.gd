@@ -365,10 +365,34 @@ func _build_bottom_bar() -> Control:
 	bar.custom_minimum_size.y = 42
 	bar.add_theme_constant_override("separation", 7)
 
-	var hint := _make_label("Arrastra Rey o criatura para mover · 1 Eterium por cada desplazamiento · puedes repetir mientras tengas Eterium · atacar consume 1 acción.", 10, MUTED_COLOR)
+	var hint := _make_label("Arrastra Rey o criatura para mover · 1 Eterium por desplazamiento · puedes repetir mientras tengas Eterium.", 10, MUTED_COLOR)
 	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	bar.add_child(hint)
+
+	hero_attack_panel = HBoxContainer.new()
+	hero_attack_panel.add_theme_constant_override("separation", 3)
+	hero_attack_panel.visible = false
+
+	var hero_title := _make_label("REY · ATAQUE 3", 9, GOLD_COLOR)
+	hero_attack_panel.add_child(hero_title)
+
+	var directions: Array[Dictionary] = [
+		{"label": "ARRIBA", "direction": Vector2i.UP},
+		{"label": "ABAJO", "direction": Vector2i.DOWN},
+		{"label": "IZQ", "direction": Vector2i.LEFT},
+		{"label": "DER", "direction": Vector2i.RIGHT}
+	]
+	for direction_data in directions:
+		var attack_button := Button.new()
+		attack_button.text = str(direction_data["label"])
+		attack_button.custom_minimum_size = Vector2(48, 34)
+		attack_button.add_theme_font_size_override("font_size", 8)
+		attack_button.pressed.connect(_on_hero_attack_pressed.bind(direction_data["direction"]))
+		hero_attack_panel.add_child(attack_button)
+		hero_attack_buttons.append(attack_button)
+
+	bar.add_child(hero_attack_panel)
 
 	end_turn_button = Button.new()
 	end_turn_button.text = "TERMINAR TURNO"
