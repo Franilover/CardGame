@@ -14,6 +14,7 @@ const ACTIONS_PER_TURN: int = 3
 const MAX_ETHERIUM: int = 10
 const HERO_MAX_HEALTH: int = 30
 const MOVE_ETHERIUM_COST: int = 1
+const HERO_ATTACK_POWER: int = 5
 
 const PLAYER_SLOTS: int = BOARD_CELLS
 const ENEMY_SLOTS: int = BOARD_CELLS
@@ -186,6 +187,32 @@ func move_unit(player_slot: int, target_slot: int) -> bool:
 	state_changed.emit()
 	return true
 
+func hero_attack(player_slot: int, direction: Vector2i) -> bool:
+	if finished or player_actions <= 0:
+		return false
+	if player_slot != player_hero_slot or player_hero == null or not player_hero.can_attack():
+		return false
+	var attack_slots: Array[int] = board.front_attack_indices(player_slot, direction)
+	if attack_slots.is_empty():
+		return false
+
+	var hit_count: int = 0
+	for index in attack_slots:
+		var target: CardDefinition = board.get_card(index)
+		if board.get_owner(index) != BattleBoard.Owner.ENEMY or target == null:
+			continue
+		_damage_unit(target, player_hero.attack)
+		hit_count += 1
+
+	player_hero.has_attacked = true
+	player_hero.has_acted = true
+	player_actions -= 1
+	_event("%s atacó %d casillas frontales." % [player_hero.display_name, attack_slots.size()])
+	_cleanup_boards()
+	_check_finished()
+	state_changed.emit()
+	return true
+
 func attack_unit(player_slot: int, enemy_slot: int = -1) -> bool:
 	if finished or player_actions <= 0:
 		return false
@@ -289,7 +316,7 @@ func _create_hero(name: String) -> CardDefinition:
 	hero.card_type = CardDefinition.CardType.CHARACTER
 	hero.health = HERO_MAX_HEALTH
 	hero.cost = 0
-	hero.attack = 0
+	hero.attack = HERO_ATTACK_POWER
 	hero.movement = 1
 	hero.attack_range = 0
 	hero.counter_attack = false
