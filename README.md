@@ -56,6 +56,13 @@ Cada bando tiene un Rey/Reina permanente fuera del mazo con 30 V. Derrotar al h�
 Mover una criatura cuesta 1 Eterium y no consume una acción de turno.
 Cada desplazamiento cuesta 1 Eterium y no consume una acción. Una misma criatura o héroe puede desplazarse repetidamente durante el turno mientras haya Eterium suficiente, respetando su atributo de movimiento por desplazamiento.
 
+## Ataque del Rey
+
+El Rey tiene un ataque especial que consume 1 acción.
+Se puede elegir una de cuatro direcciones: arriba, abajo, izquierda o derecha.
+La dirección seleccionada golpea las 3 casillas frontales del Rey simultáneamente.
+Si una dirección no permite formar las 3 casillas dentro del tablero, esa dirección se deshabilita.
+
 ## Mezclador
 
 El mezclador es una rejilla 3x3 para preparar IUMs.
