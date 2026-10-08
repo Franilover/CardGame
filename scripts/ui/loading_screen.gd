@@ -1,6 +1,6 @@
 extends Control
 
-const NEXT_SCENE_PATH := "res://scenes/main.tscn"
+const NEXT_SCENE_PATH := "res://scenes/main_menu.tscn"
 const MINIMUM_DISPLAY_TIME := 0.8
 
 var elapsed_time := 0.0
