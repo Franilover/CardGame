@@ -629,7 +629,7 @@ func _refresh() -> void:
 		return
 
 	turn_label.text = "T%d" % state.turn
-	actions_label.text = "ACCIONES %d" % state.player_actions
+	actions_label.text = "ACCIONES %d/%d · ATAQUE %d/%d" % [state.player_actions, state.player_max_actions, state.player_attacks_remaining, state.player_max_attacks_per_turn]
 	player_health_label.text = "%d / %d" % [state.player_hero.health, BattleState.HERO_MAX_HEALTH]
 	enemy_health_label.text = "%d / %d" % [state.enemy_hero.health, BattleState.HERO_MAX_HEALTH]
 	player_health_bar.value = state.player_hero.health
@@ -693,7 +693,7 @@ func _refresh() -> void:
 	for direction_index in range(hero_attack_buttons.size()):
 		var direction: Vector2i = hero_attack_directions[direction_index]
 		var valid_three_cell_attack: bool = state.board.front_attack_indices(state.player_hero_slot, direction).size() == 3
-		hero_attack_buttons[direction_index].disabled = state.finished or state.player_actions <= 0 or not state.player_hero.can_attack() or not valid_three_cell_attack
+		hero_attack_buttons[direction_index].disabled = state.finished or state.player_actions <= 0 or state.player_attacks_remaining <= 0 or not state.player_hero.can_attack() or not valid_three_cell_attack
 
 func _cell_style(index: int, selected: bool) -> StyleBoxFlat:
 	var background := SURFACE_ALT_COLOR
