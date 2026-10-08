@@ -89,8 +89,10 @@ static func _validate_move(state: BattleState, command: BattleCommand) -> Battle
 	var unit: CardDefinition = state.board.get_card(command.attacker_slot)
 	if state.board.get_owner(command.attacker_slot) != BattleBoard.Owner.PLAYER or unit == null:
 		return BattleResult.error("UNIT_MISSING", "No existe una unidad aliada.")
-	if unit.exhausted or unit.has_acted:
-		return BattleResult.error("UNIT_ALREADY_ACTED", "La unidad ya actuó.")
+	if command.attacker_slot == state.player_hero_slot or unit.has_moved:
+		return BattleResult.error("UNIT_CANNOT_MOVE", "Esta unidad ya se movió este turno o es el Rey.")
+	if state.player_etherium < BattleState.MOVE_ETHERIUM_COST:
+		return BattleResult.error("NO_ETHERIUM_FOR_MOVE", "Necesitas 1 Eterium para mover.")
 	if not state.board.can_move(command.attacker_slot, command.target_slot, BattleBoard.Owner.PLAYER, unit.movement):
 		return BattleResult.error("MOVE_INVALID", "Destino bloqueado, ocupado o fuera de movimiento.")
 	return BattleResult.ok()
