@@ -177,11 +177,10 @@ func move_unit(player_slot: int, target_slot: int) -> bool:
 	var unit: CardDefinition = board.get_card(player_slot)
 	if board.get_owner(player_slot) != BattleBoard.Owner.PLAYER or unit == null:
 		return false
-	if unit.exhausted or unit.has_moved:
+	if not unit.is_unit() or unit.exhausted:
 		return false
 	if not board.move(player_slot, target_slot, BattleBoard.Owner.PLAYER, unit.movement):
 		return false
-	unit.has_moved = true
 	player_etherium -= MOVE_ETHERIUM_COST
 	_event("%s se movió por %d Eterium." % [unit.display_name, MOVE_ETHERIUM_COST])
 	state_changed.emit()
@@ -315,7 +314,6 @@ func _reset_units_for_owner(owner: int) -> void:
 			unit.exhausted = false
 			unit.has_attacked = false
 			unit.has_acted = false
-			unit.has_moved = false
 
 func end_turn() -> void:
 	if finished:
@@ -401,25 +399,33 @@ func _enemy_turn() -> void:
 func _enemy_move_units() -> void:
 	if enemy_etherium < MOVE_ETHERIUM_COST or player_hero == null or not player_hero.alive():
 		return
-	for index in board.indices_for_owner(BattleBoard.Owner.ENEMY):
-		if enemy_etherium < MOVE_ETHERIUM_COST:
-			break
-		var unit: CardDefinition = board.get_card(index)
-		if unit == null or unit.exhausted or unit.has_moved or unit.movement <= 0:
-			continue
+
+	while enemy_etherium >= MOVE_ETHERIUM_COST:
+		var best_source: int = -1
 		var best_target: int = -1
-		var best_distance: int = board.distance(index, player_hero_slot)
-		for destination in range(BattleBoard.CELL_COUNT):
-			if not board.can_move(index, destination, BattleBoard.Owner.ENEMY, unit.movement):
+		var best_distance: int = board.distance(0, player_hero_slot)
+
+		for index in board.indices_for_owner(BattleBoard.Owner.ENEMY):
+			var unit: CardDefinition = board.get_card(index)
+			if unit == null or unit.exhausted or not unit.is_unit() or unit.movement <= 0:
 				continue
-			var candidate_distance: int = board.distance(destination, player_hero_slot)
-			if candidate_distance < best_distance:
-				best_distance = candidate_distance
-				best_target = destination
-		if best_target >= 0 and board.move(index, best_target, BattleBoard.Owner.ENEMY, unit.movement):
-			unit.has_moved = true
-			enemy_etherium -= MOVE_ETHERIUM_COST
-			_event("%s avanzó por %d Eterium." % [unit.display_name, MOVE_ETHERIUM_COST])
+			for destination in range(BattleBoard.CELL_COUNT):
+				if not board.can_move(index, destination, BattleBoard.Owner.ENEMY, unit.movement):
+					continue
+				var candidate_distance: int = board.distance(destination, player_hero_slot)
+				if best_source < 0 or candidate_distance < best_distance:
+					best_source = index
+					best_target = destination
+					best_distance = candidate_distance
+
+		if best_source < 0 or best_target < 0:
+			break
+
+		var moved_unit: CardDefinition = board.get_card(best_source)
+		if moved_unit == null or not board.move(best_source, best_target, BattleBoard.Owner.ENEMY, moved_unit.movement):
+			break
+		enemy_etherium -= MOVE_ETHERIUM_COST
+		_event("%s avanzó por %d Eterium." % [moved_unit.display_name, MOVE_ETHERIUM_COST])
 
 func _resolve_enemy_non_unit(card: CardDefinition) -> bool:
 	match card.effect_kind:
