@@ -26,7 +26,7 @@ func _process(delta: float) -> void:
 		return
 
 	var progress: Array = []
-	var status := ResourceLoader.load_threaded_get_status(NEXT_SCENE_PATH, progress)
+	var status: ResourceLoader.ThreadLoadStatus = ResourceLoader.load_threaded_get_status(NEXT_SCENE_PATH, progress)
 
 	if not progress.is_empty():
 		progress_bar.value = clamp(float(progress[0]) * 100.0, 0.0, 100.0)
@@ -43,7 +43,7 @@ func _process(delta: float) -> void:
 			progress_bar.value = 100.0
 			percent_label.text = "100%"
 			status_label.text = "LISTO"
-			detail_label.text = CanonRepository.get_status_text()
+			detail_label.text = GarliaCanonRepository.get_status_text()
 
 			if boot_finished and elapsed_time >= MINIMUM_DISPLAY_TIME:
 				_open_menu()
@@ -54,7 +54,7 @@ func _process(delta: float) -> void:
 				progress_bar.value = 100.0
 				percent_label.text = "100%"
 				status_label.text = "LISTO"
-				detail_label.text = CanonRepository.get_status_text()
+				detail_label.text = GarliaCanonRepository.get_status_text()
 				if boot_finished:
 					_open_menu()
 			else:
@@ -70,12 +70,12 @@ func _boot() -> void:
 	scene_loading = true
 	status_label.text = "SINCRONIZANDO"
 	detail_label.text = "Consultando el canon..."
-	var online := await CanonRepository.initialize()
+	var online: bool = await GarliaCanonRepository.initialize()
 	boot_finished = true
 
 	if online:
 		detail_label.text = "Canon sincronizado."
-	elif CanonRepository.has_canon_data():
+	elif GarliaCanonRepository.has_canon_data():
 		detail_label.text = "Usando canon en caché."
 	else:
 		detail_label.text = "Modo local."
