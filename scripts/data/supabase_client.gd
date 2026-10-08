@@ -1,4 +1,4 @@
-class_name SupabaseClient
+class_name GarliaSupabaseClient
 extends Node
 
 var last_error := ""
@@ -37,12 +37,12 @@ func get_rows(path: String, query: String = "") -> Array:
 	add_child(request)
 
 	var url := GarliaSupabaseConfig.PROJECT_URL + "/rest/v1/" + path + query
-	var headers := PackedStringArray([
+	var headers: PackedStringArray([
 		"apikey: " + publishable_key,
 		"Accept: application/json"
 	])
 
-	var error := request.request(url, headers, HTTPClient.METHOD_GET)
+	var error: Error = request.request(url, headers, HTTPClient.METHOD_GET)
 	if error != OK:
 		last_error = "HTTPRequest error %d" % error
 		request.queue_free()
