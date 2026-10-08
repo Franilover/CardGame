@@ -614,8 +614,14 @@ func _on_ium_catalog_pressed(index: int) -> void:
 		return
 	if index < 0 or index >= available_iums.size():
 		return
-	selected_ium_index = index
-	status_label.text = "%s seleccionado. Elige una casilla vacía del mezclador." % available_iums[index].display_name
+
+	if selected_ium_index == index:
+		selected_ium_index = -1
+		status_label.text = ""
+	else:
+		selected_ium_index = index
+		status_label.text = "%s seleccionado. Elige una casilla vacía del mezclador." % available_iums[index].display_name
+
 	_refresh()
 
 func _on_mixer_pressed(index: int) -> void:
