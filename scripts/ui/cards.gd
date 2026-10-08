@@ -14,10 +14,10 @@ func _ready() -> void:
 	back_button.grab_focus()
 
 func _populate() -> void:
-	source_label.text = GarliaCanon.get_status_text()
+	source_label.text = GarliaCanonRepository.get_status_text()
 
 	var entries: Array = []
-	var canonical_cards: Array[CardDefinition] = CardCatalog.from_canon(GarliaCanon)
+	var canonical_cards: Array[CardDefinition] = CardCatalog.from_canon(GarliaCanonRepository)
 
 	if not canonical_cards.is_empty():
 		for card in canonical_cards:
