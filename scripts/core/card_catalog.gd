@@ -39,7 +39,7 @@ static func enemy_deck() -> Array[CardDefinition]:
 
 	return cards
 
-static func from_canon(repository: GarliaCanonRepository) -> Array[CardDefinition]:
+static func from_canon(repository: Variant) -> Array[CardDefinition]:
 	var cards: Array[CardDefinition] = []
 
 	for row in repository.get_table("criaturas"):
