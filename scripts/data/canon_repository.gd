@@ -6,6 +6,7 @@ const CACHE_PATH := "user://garlia_cardgame_canon.json"
 
 var loaded := false
 var online_loaded := false
+var refresh_in_progress := false
 var data: Dictionary = {
 	"criaturas": [],
 	"items": [],
@@ -23,9 +24,27 @@ func initialize() -> bool:
 
 	_load_cache()
 
-	if not supabase_client.is_configured():
+	if not _has_cached_data():
+		if not supabase_client.is_configured():
+			loaded = true
+			return false
+
+		var online: bool = await _refresh_online()
 		loaded = true
-		return false
+		return online
+
+	loaded = true
+
+	if supabase_client.is_configured():
+		call_deferred("_refresh_online")
+
+	return online_loaded
+
+func _refresh_online() -> bool:
+	if refresh_in_progress:
+		return online_loaded
+
+	refresh_in_progress = true
 
 	var successful := 0
 	var results: Array = [
@@ -91,8 +110,14 @@ func initialize() -> bool:
 		online_loaded = true
 		_save_cache()
 
-	loaded = true
+	refresh_in_progress = false
 	return online_loaded
+
+func _has_cached_data() -> bool:
+	for key in data.keys():
+		if data[key] is Array and not data[key].is_empty():
+			return true
+	return false
 
 func _load_cache() -> void:
 	if not FileAccess.file_exists(CACHE_PATH):
@@ -117,7 +142,7 @@ func get_table(table_name: String) -> Array:
 	return data.get(table_name, []) as Array
 
 func has_canon_data() -> bool:
-	return not get_table("criaturas").is_empty() 		or not get_table("iums").is_empty() 		or not get_table("procesos").is_empty()
+	return not get_table("criaturas").is_empty() or not get_table("iums").is_empty() or not get_table("procesos").is_empty()
 
 func get_status_text() -> String:
 	if online_loaded:
