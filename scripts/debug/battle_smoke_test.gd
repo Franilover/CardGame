@@ -88,7 +88,7 @@ static func run() -> Dictionary:
 	_report(report, "hero_attack_costs_action", state.player_actions == previous_actions_before_hero_attack - 1)
 	_report(report, "one_attack_remaining", state.player_attacks_remaining == state.player_max_attacks_per_turn - 1)
 
-	var second_attack_result: BattleResult = engine.execute(BattleCommand.hero_attack(state.player_hero_slot, Vector2i.UP))
+	var second_attack_result: BattleResult = engine.execute(BattleCommand.hero_attack(hero_target, Vector2i.UP))
 	_report(report, "second_attack_rejected_same_turn", not second_attack_result.success and second_attack_result.code == "NO_ATTACKS_REMAINING", second_attack_result.describe())
 
 	var actions_before_turn: int = state.player_actions
