@@ -47,6 +47,8 @@ var deck: Array[CardDefinition] = []
 var discard: Array[CardDefinition] = []
 var enemy_deck: Array[CardDefinition] = []
 var enemy_discard: Array[CardDefinition] = []
+var unlocked_cards: Array[CardDefinition] = []
+var lost_cards: Array[CardDefinition] = []
 
 var finished: bool = false
 var winner_is_player: bool = false
@@ -81,6 +83,8 @@ func reset() -> void:
 	discard.clear()
 	enemy_deck.clear()
 	enemy_discard.clear()
+	unlocked_cards.clear()
+	lost_cards.clear()
 	state_changed.emit()
 
 func setup(
@@ -362,11 +366,28 @@ func _cleanup_boards() -> void:
 	for index in board.indices_for_owner(BattleBoard.Owner.PLAYER):
 		var player_unit: CardDefinition = board.get_card(index)
 		if index != player_hero_slot and player_unit != null and not player_unit.alive():
-			discard.append(board.remove(index))
+			var dead_card: CardDefinition = board.remove(index)
+			if dead_card != null:
+				lost_cards.append(dead_card)
+				hand.erase(dead_card)
+				_remove_one_matching(deck, dead_card.id)
+				_remove_one_matching(discard, dead_card.id)
+				_event("Perdiste la carta de %s." % dead_card.display_name)
 	for index in board.indices_for_owner(BattleBoard.Owner.ENEMY):
 		var enemy_unit: CardDefinition = board.get_card(index)
 		if index != enemy_hero_slot and enemy_unit != null and not enemy_unit.alive():
-			enemy_discard.append(board.remove(index))
+			var defeated_card: CardDefinition = board.remove(index)
+			if defeated_card != null:
+				enemy_discard.append(defeated_card)
+				unlocked_cards.append(defeated_card.make_runtime_copy())
+				deck.append(defeated_card.make_runtime_copy())
+				_event("Desbloqueaste la carta de %s." % defeated_card.display_name)
+
+func _remove_one_matching(cards: Array[CardDefinition], card_id: String) -> void:
+	for i in range(cards.size()):
+		if cards[i] != null and cards[i].id == card_id:
+			cards.remove_at(i)
+			return
 
 func end_turn() -> void:
 	if finished:
@@ -378,7 +399,6 @@ func end_turn() -> void:
 	player_max_etherium = min(MAX_ETHERIUM, player_max_etherium + ETHERIUM_GROWTH_PER_TURN)
 	player_etherium = player_max_etherium
 	player_actions = player_max_actions
-	draw_card()
 	_cleanup_boards()
 	state_changed.emit()
 
