@@ -1,11 +1,16 @@
 class_name BattleCommand
 extends RefCounted
 
-## Comando declarativo de alto nivel enviado al BattleEngine.
+## Comando declarativo enviado al BattleEngine.
+## La UI expresa intenciones; nunca modifica BattleState directamente.
 
 enum CommandType {
 	PLAY_CARD,
 	ATTACK,
+	MOVE_UNIT,
+	MIXER_PLACE,
+	MIXER_REMOVE,
+	MIXER_RESOLVE,
 	END_TURN,
 	SURRENDER
 }
@@ -15,6 +20,7 @@ var type: int = CommandType.END_TURN
 var hand_index: int = -1
 var attacker_slot: int = -1
 var target_slot: int = -1
+var mixer_slot: int = -1
 var target_enemy: bool = false
 var metadata: Dictionary = {}
 
@@ -33,6 +39,31 @@ static func attack(attacker: int, target: int = -1) -> BattleCommand:
 	command.target_slot = target
 	return command
 
+static func move_unit(attacker: int, target: int) -> BattleCommand:
+	var command := BattleCommand.new()
+	command.type = CommandType.MOVE_UNIT
+	command.attacker_slot = attacker
+	command.target_slot = target
+	return command
+
+static func mixer_place(index: int, slot: int) -> BattleCommand:
+	var command := BattleCommand.new()
+	command.type = CommandType.MIXER_PLACE
+	command.hand_index = index
+	command.mixer_slot = slot
+	return command
+
+static func mixer_remove(slot: int) -> BattleCommand:
+	var command := BattleCommand.new()
+	command.type = CommandType.MIXER_REMOVE
+	command.mixer_slot = slot
+	return command
+
+static func mixer_resolve() -> BattleCommand:
+	var command := BattleCommand.new()
+	command.type = CommandType.MIXER_RESOLVE
+	return command
+
 static func end_turn() -> BattleCommand:
 	var command := BattleCommand.new()
 	command.type = CommandType.END_TURN
@@ -49,6 +80,14 @@ func type_name() -> String:
 			return "PLAY_CARD"
 		CommandType.ATTACK:
 			return "ATTACK"
+		CommandType.MOVE_UNIT:
+			return "MOVE_UNIT"
+		CommandType.MIXER_PLACE:
+			return "MIXER_PLACE"
+		CommandType.MIXER_REMOVE:
+			return "MIXER_REMOVE"
+		CommandType.MIXER_RESOLVE:
+			return "MIXER_RESOLVE"
 		CommandType.END_TURN:
 			return "END_TURN"
 		CommandType.SURRENDER:
