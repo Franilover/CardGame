@@ -65,11 +65,11 @@ static func run() -> Dictionary:
 		var second_previous_etherium: int = state.player_etherium
 		var second_result: BattleResult = engine.execute(BattleCommand.move_unit(second_origin, second_target))
 		moved_again = second_result.success
-		_report(report, "same_unit_can_move_again", moved_again, second_result.describe())
-		_report(report, "second_move_does_not_cost_etherium", state.player_etherium == second_previous_etherium)
+		_report(report, "same_unit_cannot_move_again", not moved_again and second_result.code == "UNIT_ALREADY_MOVED", second_result.describe())
+		_report(report, "blocked_second_move_keeps_etherium", state.player_etherium == second_previous_etherium)
 
 	_report(report, "execute_move_unit", moved)
-	_report(report, "execute_second_move_same_unit", moved_again)
+	_report(report, "execute_second_move_same_unit", not moved_again)
 
 	var hero_moved: bool = false
 	var hero_origin: int = state.player_hero_slot
@@ -80,6 +80,8 @@ static func run() -> Dictionary:
 	_report(report, "move_hero", hero_moved, hero_move_result.describe())
 	_report(report, "hero_move_does_not_cost_etherium", state.player_etherium == hero_previous_etherium)
 	_report(report, "hero_left_throne", state.board.get_card(BattleBoard.PLAYER_HERO_SLOT) == null)
+	var hero_return_result: BattleResult = engine.execute(BattleCommand.move_unit(hero_target, BattleBoard.PLAYER_HERO_SLOT))
+	_report(report, "hero_cannot_move_twice_same_turn", not hero_return_result.success and hero_return_result.code == "UNIT_ALREADY_MOVED", hero_return_result.describe())
 	_report(report, "hero_can_return_to_throne", state.board.can_move(hero_target, BattleBoard.PLAYER_HERO_SLOT, BattleBoard.Owner.PLAYER, state.player_hero.movement))
 
 	var previous_actions_before_hero_attack: int = state.player_actions
