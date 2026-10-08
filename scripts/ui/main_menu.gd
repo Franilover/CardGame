@@ -17,7 +17,7 @@ func _ready() -> void:
 	settings_button.pressed.connect(_on_settings_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 	play_button.grab_focus()
-	status_label.text = GarliaCanonRepository.get_status_text()
+	status_label.text = GarliaCanon.get_status_text()
 
 func _on_play_pressed() -> void:
 	status_label.text = "Preparando partida..."
