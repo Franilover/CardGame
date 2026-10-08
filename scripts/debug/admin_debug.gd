@@ -17,7 +17,7 @@ var query_definitions: Array[Dictionary] = [
 	{
 		"name": "CRIATURAS",
 		"table": "criaturas",
-		"select": "id,nombre,descripcion,imagen_url,stats_dnd,biologia_calculada,ia_config",
+		"select": "id,nombre,descripcion,imagen_url,stats_dnd,ia_config",
 		"limit": QUERY_LIMIT
 	},
 	{

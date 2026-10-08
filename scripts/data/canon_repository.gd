@@ -1,5 +1,7 @@
 extends Node
 
+signal canon_online_updated
+
 @onready var supabase_client: Node = get_node("/root/GarliaSupabaseClient")
 
 const CACHE_PATH := "user://garlia_cardgame_canon.json"
@@ -50,7 +52,7 @@ func _refresh_online() -> bool:
 	var results: Array = [
 		await supabase_client.get_table_rows(
 			"criaturas",
-			"id,nombre,descripcion,imagen_url,stats_dnd,biologia_calculada,ia_config",
+			"id,nombre,descripcion,imagen_url,stats_dnd,ia_config",
 			60
 		),
 		await supabase_client.get_table_rows(
@@ -76,7 +78,7 @@ func _refresh_online() -> bool:
 		await supabase_client.get_table_rows(
 			"procesos",
 			"id,nombre,tipo,descripcion,regla_clave,entrada,transformacion,salida,estado_fundamento",
-			40
+			100
 		),
 		await supabase_client.get_table_rows(
 			"personajes_game",
@@ -109,6 +111,7 @@ func _refresh_online() -> bool:
 	if successful > 0:
 		online_loaded = true
 		_save_cache()
+		canon_online_updated.emit()
 
 	refresh_in_progress = false
 	return online_loaded

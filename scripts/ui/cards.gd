@@ -20,11 +20,19 @@ const CATEGORY_ORDER := [
 
 func _ready() -> void:
 	back_button.pressed.connect(_on_back_pressed)
+	canon_repository.canon_online_updated.connect(_on_canon_refreshed)
 	_populate()
 	back_button.grab_focus()
 
+func _on_canon_refreshed() -> void:
+	_populate()
+
 func _populate() -> void:
-	source_label.text = canon_repository.get_status_text()
+	var status: String = canon_repository.get_status_text()
+	if canon_repository.refresh_in_progress:
+		source_label.text = status + " · ACTUALIZANDO..."
+	else:
+		source_label.text = status
 
 	var total := 0
 
@@ -57,7 +65,14 @@ func _make_entries_from_rows(rows: Array, type_name: String) -> Array:
 			continue
 
 		var dictionary: Dictionary = row
-		var name := str(dictionary.get("nombre", "")).strip_edges()
+		var raw_nombre: Variant = dictionary.get("nombre", null)
+		var name := ""
+		if raw_nombre != null:
+			name = str(raw_nombre).strip_edges()
+		if name.is_empty():
+			var raw_id: Variant = dictionary.get("id", null)
+			if raw_id != null:
+				name = str(raw_id).strip_edges()
 		if name.is_empty():
 			name = type_name
 

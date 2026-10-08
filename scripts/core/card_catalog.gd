@@ -117,30 +117,45 @@ static func enemy_deck_from_canon(repository: Variant) -> Array[CardDefinition]:
 	return deck
 
 static func _creature_from_canon(row: Dictionary) -> CardDefinition:
-	var stats: Dictionary = row.get("stats_dnd", {}) if row.get("stats_dnd") is Dictionary else {}
-	var ai: Dictionary = row.get("ia_config", {}) if row.get("ia_config") is Dictionary else {}
-	var attack_data: Dictionary = ai.get("ataque", {}) if ai.get("ataque") is Dictionary else {}
+	var stats_raw: Variant = row.get("stats_dnd", null)
+	var stats: Dictionary = stats_raw if stats_raw is Dictionary else {}
+
+	var ai_raw: Variant = row.get("ia_config", null)
+	var ai: Dictionary = ai_raw if ai_raw is Dictionary else {}
+
+	var attack_raw: Variant = ai.get("ataque", null)
+	var attack_data: Dictionary = attack_raw if attack_raw is Dictionary else {}
 
 	var attack: int = int(attack_data.get("danio", 2))
-	var health: int = int(stats.get("hp_max", 6))
+	if attack <= 0:
+		attack = 2
+
+	var health: int = int(stats.get("hp_max", 0))
 	if health <= 0:
-		var bio: Dictionary = row.get("biologia_calculada", {}) if row.get("biologia_calculada") is Dictionary else {}
-		var stability: float = float(bio.get("estabilidad", 0.5))
-		health = 5 + int(clamp(stability * 5.0, 0.0, 5.0))
+		health = 6
 
 	var cost: int = 1 + int(clamp(float(health - 5) / 3.0, 0.0, 4.0))
-	var card: CardDefinition = _creature(
-		str(row.get("id", "")),
-		str(row.get("nombre", "Criatura")),
-		cost,
-		attack,
-		health,
-		str(row.get("descripcion", "")),
-		"canon",
-		str(row.get("id", ""))
-	)
+
+	var nombre_raw: Variant = row.get("nombre", null)
+	var display: String = ""
+	if nombre_raw != null:
+		display = str(nombre_raw).strip_edges()
+	if display.is_empty():
+		var id_raw: Variant = row.get("id", null)
+		if id_raw != null:
+			display = str(id_raw).strip_edges()
+	if display.is_empty():
+		display = "Criatura"
+
+	var desc_raw: Variant = row.get("descripcion", null)
+	var desc: String = str(desc_raw).strip_edges() if desc_raw != null else ""
+
+	var id_str: String = str(row.get("id", ""))
+
+	var card: CardDefinition = _creature(id_str, display, cost, attack, health, desc, "canon", id_str)
 	card.canonical_table = "criaturas"
-	card.image_url = str(row.get("imagen_url", ""))
+	var img_raw: Variant = row.get("imagen_url", null)
+	card.image_url = str(img_raw).strip_edges() if img_raw != null else ""
 	card.source_data = row.duplicate(true)
 	return card
 
