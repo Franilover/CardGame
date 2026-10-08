@@ -128,11 +128,22 @@ func can_move(index_from: int, index_to: int, owner: int, movement: int) -> bool
 		return false
 	if index_from == index_to or blocked[index_to] or occupants[index_to] != null:
 		return false
+	if owners[index_from] != owner:
+		return false
+
+	var moving_card: CardDefinition = occupants[index_from]
+	if moving_card == null or movement <= 0:
+		return false
+
+	if is_hero_slot(index_from):
+		if moving_card.card_type != CardDefinition.CardType.CHARACTER or index_from != hero_slot(owner):
+			return false
+
 	if is_hero_slot(index_to):
-		return false
-	if owners[index_from] != owner or is_hero_slot(index_from):
-		return false
-	return movement > 0 and distance(index_from, index_to) <= movement
+		if moving_card.card_type != CardDefinition.CardType.CHARACTER or index_to != hero_slot(owner):
+			return false
+
+	return distance(index_from, index_to) <= movement
 
 func move(index_from: int, index_to: int, owner: int, movement: int) -> bool:
 	if not can_move(index_from, index_to, owner, movement):
