@@ -25,6 +25,8 @@ var selected_unit_slot: int = -1
 var board_buttons: Array[Button] = []
 var mixer_buttons: Array[Button] = []
 var hand_buttons: Array[Button] = []
+var hand_units_row: HBoxContainer
+var hand_objects_row: HBoxContainer
 
 var drag_source_slot: int = -1
 var drag_press_position: Vector2 = Vector2.ZERO
@@ -300,19 +302,55 @@ func _build_hand_bar() -> Control:
 	margin.add_theme_constant_override("margin_bottom", 6)
 	panel.add_child(margin)
 
-	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 4)
-	margin.add_child(root)
+	var groups := HBoxContainer.new()
+	groups.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	groups.add_theme_constant_override("separation", 7)
+	margin.add_child(groups)
 
-	var scroll := ScrollContainer.new()
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(scroll)
+	var units_section := VBoxContainer.new()
+	units_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	units_section.size_flags_stretch_ratio = 3.0
+	units_section.add_theme_constant_override("separation", 3)
+	groups.add_child(units_section)
 
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 5)
-	scroll.add_child(row)
+	var units_title := _make_label("PERSONAJES Y CRIATURAS", 9, CYAN_COLOR)
+	units_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	units_section.add_child(units_title)
+
+	var units_scroll := ScrollContainer.new()
+	units_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	units_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	units_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	units_section.add_child(units_scroll)
+
+	hand_units_row = HBoxContainer.new()
+	hand_units_row.add_theme_constant_override("separation", 5)
+	units_scroll.add_child(hand_units_row)
+
+	var divider := VSeparator.new()
+	divider.custom_minimum_size.x = 1
+	divider.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	groups.add_child(divider)
+
+	var objects_section := VBoxContainer.new()
+	objects_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	objects_section.size_flags_stretch_ratio = 1.0
+	objects_section.add_theme_constant_override("separation", 3)
+	groups.add_child(objects_section)
+
+	var objects_title := _make_label("OBJETOS", 9, GOLD_COLOR)
+	objects_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	objects_section.add_child(objects_title)
+
+	var objects_scroll := ScrollContainer.new()
+	objects_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	objects_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	objects_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	objects_section.add_child(objects_scroll)
+
+	hand_objects_row = HBoxContainer.new()
+	hand_objects_row.add_theme_constant_override("separation", 5)
+	objects_scroll.add_child(hand_objects_row)
 
 	for index in range(BattleState.MAX_HAND):
 		var button := Button.new()
@@ -320,11 +358,10 @@ func _build_hand_bar() -> Control:
 		button.add_theme_font_size_override("font_size", 10)
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button.pressed.connect(_on_hand_pressed.bind(index))
-		row.add_child(button)
+		button.visible = false
 		hand_buttons.append(button)
 
 	return panel
-
 func _build_bottom_bar() -> Control:
 	var bar := HBoxContainer.new()
 	bar.custom_minimum_size.y = 42
@@ -626,19 +663,67 @@ func _refresh() -> void:
 		mixer_button.text = mixer_card.display_name if mixer_card != null else "+"
 		mixer_button.add_theme_stylebox_override("normal", _button_style(SELECTED_COLOR if mixer_card != null else SURFACE_ALT_COLOR, GOLD_COLOR if mixer_card != null else BORDER_COLOR, 7, 1))
 
+	for hand_button in hand_buttons:
+		if hand_button.get_parent() != null:
+			hand_button.get_parent().remove_child(hand_button)
+		hand_button.visible = false
+
 	for index in range(hand_buttons.size()):
 		var hand_button: Button = hand_buttons[index]
-		if index < state.hand.size():
-			var card: CardDefinition = state.hand[index]
-			var etherium_cost: int = state.get_etherium_cost_for_card(card)
-			hand_button.text = "%s\n%s\n%d E" % [card.display_name, card.type_name(), etherium_cost] if etherium_cost > 0 else "%s\n%s" % [card.display_name, card.type_name()]
-			hand_button.tooltip_text = card.description
-			hand_button.disabled = state.finished or etherium_cost > state.player_etherium or state.player_actions <= 0
-			hand_button.add_theme_stylebox_override("normal", _button_style(SELECTED_COLOR if index == selected_card_index else SURFACE_ALT_COLOR, GOLD_COLOR if index == selected_card_index else BORDER_COLOR, 7, 2 if index == selected_card_index else 1))
+		if index >= state.hand.size():
+			continue
+
+		var card: CardDefinition = state.hand[index]
+		var target_row: HBoxContainer = null
+
+		match card.card_type:
+			CardDefinition.CardType.CREATURE:
+				target_row = hand_units_row
+			CardDefinition.CardType.CHARACTER:
+				target_row = hand_units_row
+			CardDefinition.CardType.OBJECT:
+				target_row = hand_objects_row
+			CardDefinition.CardType.IUM:
+				continue
+			CardDefinition.CardType.PROCESS:
+				continue
+			CardDefinition.CardType.ORIS:
+				continue
+
+		if target_row == null:
+			continue
+
+		target_row.add_child(hand_button)
+		hand_button.visible = true
+
+		var etherium_cost: int = state.get_etherium_cost_for_card(card)
+		if etherium_cost > 0:
+			hand_button.text = "%s\n%s\n%d E" % [
+				card.display_name,
+				card.type_name(),
+				etherium_cost
+			]
 		else:
-			hand_button.text = ""
-			hand_button.tooltip_text = ""
-			hand_button.disabled = true
+			hand_button.text = "%s\n%s" % [
+				card.display_name,
+				card.type_name()
+			]
+
+		hand_button.tooltip_text = card.description
+		hand_button.disabled = (
+			state.finished
+			or etherium_cost > state.player_etherium
+			or state.player_actions <= 0
+		)
+		hand_button.add_theme_stylebox_override(
+			"normal",
+			_button_style(
+				SELECTED_COLOR if index == selected_card_index else SURFACE_ALT_COLOR,
+				GOLD_COLOR if index == selected_card_index else BORDER_COLOR,
+				7,
+				2 if index == selected_card_index else 1
+			)
+		)
 
 	end_turn_button.disabled = state.finished
 	hero_attack_panel.visible = state.player_hero != null and selected_unit_slot == state.player_hero_slot and not state.finished
