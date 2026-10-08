@@ -155,6 +155,22 @@ func move(index_from: int, index_to: int, owner: int, movement: int) -> bool:
 	owners[index_to] = owner
 	return true
 
+func front_attack_indices(origin_index: int, direction: Vector2i) -> Array[int]:
+	var origin: Vector2i = position_from_index(origin_index)
+	if origin.x < 0 or origin.y < 0:
+		return []
+	if abs(direction.x) + abs(direction.y) != 1:
+		return []
+
+	var perpendicular := Vector2i(-direction.y, direction.x)
+	var result: Array[int] = []
+	for offset in [-1, 0, 1]:
+		var cell_position: Vector2i = origin + direction + perpendicular * offset
+		var index: int = index_from_position_static(cell_position)
+		if index >= 0:
+			result.append(index)
+	return result
+
 func distance(index_a: int, index_b: int) -> int:
 	var a := position_from_index(index_a)
 	var b := position_from_index(index_b)
