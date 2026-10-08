@@ -355,7 +355,6 @@ func _reset_units_for_owner(owner: int) -> void:
 	for index in board.indices_for_owner(owner):
 		var unit: CardDefinition = board.get_card(index)
 		if unit != null:
-			unit.exhausted = false
 
 func end_turn() -> void:
 	if finished:
@@ -401,7 +400,6 @@ func _enemy_turn() -> void:
 			if slot >= 0:
 				var enemy_card: CardDefinition = enemy_deck.pop_at(best_index)
 				if board.place(slot, enemy_card, BattleBoard.Owner.ENEMY):
-					enemy_card.exhausted = true
 					enemy_etherium -= get_etherium_cost_for_card(enemy_card)
 					enemy_actions -= 1
 					played = true
@@ -423,7 +421,7 @@ func _enemy_turn() -> void:
 		if enemy_actions <= 0:
 			break
 		var attacker: CardDefinition = board.get_card(index)
-		if attacker == null or attacker.exhausted or not attacker.can_attack():
+		if attacker == null or not attacker.can_attack():
 			continue
 
 		var target: int = board.nearest_index(index, BattleBoard.Owner.PLAYER)
