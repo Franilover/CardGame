@@ -3,8 +3,9 @@ extends RefCounted
 
 signal state_changed
 
-const PLAYER_SLOTS := 3
-const ENEMY_SLOTS := 3
+const PLAYER_SLOTS := 9
+const ENEMY_SLOTS := 9
+const GRID_COLUMNS := 3
 
 var turn: int = 1
 var player_etherium: int = 3
@@ -29,6 +30,13 @@ func reset() -> void:
 	enemy_board.clear()
 	hand.clear()
 	deck.clear()
+
+	for i in range(PLAYER_SLOTS):
+		player_board.append(null)
+
+	for i in range(ENEMY_SLOTS):
+		enemy_board.append(null)
+
 	state_changed.emit()
 
 func draw_card() -> CardDefinition:
@@ -47,16 +55,16 @@ func play_card(card: CardDefinition, slot: int = -1) -> bool:
 		return false
 	if not hand.has(card):
 		return false
+
 	if card.is_unit():
-		if slot < 0 or slot >= PLAYER_SLOTS or player_board.size() >= PLAYER_SLOTS:
+		if slot < 0 or slot >= PLAYER_SLOTS:
 			return false
-		if slot < player_board.size() and player_board[slot] != null:
+		if player_board[slot] != null:
 			return false
-		while player_board.size() < PLAYER_SLOTS:
-			player_board.append(null)
 		player_board[slot] = card
 	else:
 		_resolve_non_unit(card)
+
 	player_etherium -= card.cost
 	hand.erase(card)
 	state_changed.emit()
@@ -72,10 +80,9 @@ func _resolve_non_unit(card: CardDefinition) -> void:
 		CardDefinition.CardType.ORIS:
 			enemy_health = max(0, enemy_health - 8)
 		CardDefinition.CardType.OBJECT:
-			if not player_board.is_empty():
-				for unit in player_board:
-					if unit != null:
-						unit.attack += 1
+			for unit in player_board:
+				if unit != null:
+					unit.attack += 1
 
 func end_turn() -> void:
 	_resolve_player_board()
