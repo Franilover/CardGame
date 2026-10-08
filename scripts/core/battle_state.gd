@@ -102,9 +102,28 @@ func setup(
 	ium_catalog = _runtime_copies(canonical_iums)
 	deck.shuffle()
 	enemy_deck.shuffle()
+	_deploy_initial_enemy_creatures()
 	for index in range(min(START_HAND, deck.size())):
 		draw_card()
 	state_changed.emit()
+
+func _deploy_initial_enemy_creatures() -> void:
+	# Las criaturas enemigas que forman el encuentro aparecen una sola vez al inicio.
+	# Las cartas que no son criaturas permanecen en el mazo para las acciones normales.
+	var remaining_cards: Array[CardDefinition] = []
+	for card in enemy_deck:
+		if card == null:
+			continue
+		if card.is_unit():
+			var slot: int = board.first_empty_in_zone(BattleBoard.Owner.ENEMY)
+			if slot >= 0 and board.place(slot, card, BattleBoard.Owner.ENEMY):
+				_event("El enemigo desplegó %s al inicio." % card.display_name)
+			else:
+				# Si el campo inicial está lleno, no reaparecerá en turnos posteriores.
+				enemy_discard.append(card)
+		else:
+			remaining_cards.append(card)
+	enemy_deck = remaining_cards
 
 func _runtime_copies(cards: Array[CardDefinition]) -> Array[CardDefinition]:
 	var result: Array[CardDefinition] = []
@@ -415,9 +434,9 @@ func _enemy_turn() -> void:
 
 		for index in range(enemy_deck.size()):
 			var candidate: CardDefinition = enemy_deck[index]
-			if candidate == null or get_etherium_cost_for_card(candidate) > enemy_etherium:
-				continue
-			if candidate.is_unit() and board.first_empty_in_zone(BattleBoard.Owner.ENEMY) < 0:
+			# Las criaturas ya fueron desplegadas al inicio; no se vuelven a invocar
+			# automáticamente en turnos posteriores.
+			if candidate == null or candidate.is_unit() or get_etherium_cost_for_card(candidate) > enemy_etherium:
 				continue
 			if best_card == null or get_etherium_cost_for_card(candidate) < get_etherium_cost_for_card(best_card):
 				best_card = candidate
