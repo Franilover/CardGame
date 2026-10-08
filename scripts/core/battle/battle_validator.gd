@@ -39,12 +39,14 @@ static func _validate_play_card(state: BattleState, command: BattleCommand) -> B
 
 	var card: CardDefinition = state.hand[command.hand_index]
 	if card == null or not state.can_play(card):
+		if card != null and card.is_unit() and not state.setup_phase:
+			return BattleResult.error("CREATURE_DEPLOYMENT_CLOSED", "Las criaturas solo se despliegan en el turno 0.")
 		return BattleResult.error("CARD_NOT_PLAYABLE", "La carta no puede jugarse ahora.")
 
 	if card.is_unit():
 		if not state.board.can_place(command.target_slot, BattleBoard.Owner.PLAYER):
 			return BattleResult.error("UNIT_SLOT_INVALID", "La casilla no pertenece a la zona del jugador.")
-		if not state.board.is_player_back_row(command.target_slot) and state.player_etherium < BattleState.ADVANCED_DEPLOYMENT_ETHERIUM_COST:
+		if not state.setup_phase and not state.board.is_player_back_row(command.target_slot) and state.player_etherium < BattleState.ADVANCED_DEPLOYMENT_ETHERIUM_COST:
 			return BattleResult.error("NO_ETHERIUM_FOR_DEPLOYMENT", "Necesitas Eterium para colocar la criatura fuera de la fila trasera.")
 		return BattleResult.ok()
 
