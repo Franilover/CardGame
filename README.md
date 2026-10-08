@@ -54,7 +54,7 @@ Cada bando tiene un Rey/Reina permanente fuera del mazo con 30 V. Derrotar al h�
 ## Movimiento
 
 Mover una criatura o héroe no consume Eterium ni acciones.
-Una misma criatura o héroe puede desplazarse repetidamente durante el turno, respetando su atributo de movimiento por desplazamiento.
+Cada criatura o héroe puede moverse una vez por turno. El atributo de movimiento determina cuántas casillas puede recorrer en ese desplazamiento.
 
 ## Recursos de combate
 
