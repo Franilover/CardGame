@@ -23,7 +23,7 @@ func setup(
 	state.event_occurred.connect(_on_state_event)
 	state.state_changed.connect(_on_state_changed)
 	state.battle_finished.connect(_on_state_battle_finished)
-	_emit_event(BattleEvent.EventType.TURN_STARTED, "Turno 1 iniciado.", {"turn": 1})
+	_emit_event(BattleEvent.EventType.TURN_STARTED, "Turno 0: despliegue inicial.", {"turn": 0, "setup_phase": true})
 
 func execute(command: BattleCommand) -> BattleResult:
 	if command == null:
