@@ -198,7 +198,7 @@ func _build_middle() -> Control:
 
 	var board_panel := _new_panel()
 	board_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	board_panel.size_flags_stretch_ratio = 2.8
+	board_panel.size_flags_stretch_ratio = 2.2
 	middle.add_child(board_panel)
 
 	var board_margin := MarginContainer.new()
@@ -222,10 +222,10 @@ func _build_middle() -> Control:
 
 	for index in range(BattleBoard.CELL_COUNT):
 		var cell := Button.new()
-		cell.custom_minimum_size = Vector2(0, 46)
+		cell.custom_minimum_size = Vector2(0, 32)
 		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		cell.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		cell.add_theme_font_size_override("font_size", 8)
+		cell.add_theme_font_size_override("font_size", 7)
 		cell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		cell.gui_input.connect(_on_board_gui_input.bind(index))
 		grid.add_child(cell)
@@ -400,12 +400,13 @@ func _build_bottom_bar() -> Control:
 	bar.add_child(hero_attack_panel)
 
 	end_turn_button = Button.new()
-	end_turn_button.text = "TERMINAR TURNO"
+	end_turn_button.text = "CONTINUAR"
 	end_turn_button.custom_minimum_size = Vector2(150, 38)
 	end_turn_button.add_theme_font_size_override("font_size", 11)
 	end_turn_button.add_theme_stylebox_override("normal", _button_style(GOLD_COLOR, Color("#F0D76A"), 7, 1))
 	end_turn_button.add_theme_color_override("font_color", Color("#182016"))
 	end_turn_button.pressed.connect(_on_end_turn_pressed)
+	end_turn_button.visible = false
 	bar.add_child(end_turn_button)
 
 	var back_button := Button.new()
@@ -440,7 +441,8 @@ func _start_battle() -> void:
 
 	for card in catalog_cards:
 		if card.card_type == CardDefinition.CardType.IUM:
-			available_iums.append(card)
+			if RunProgress.mode == "bosses":
+				available_iums.append(card)
 		elif card.card_type == CardDefinition.CardType.PROCESS:
 			process_catalog.append(card)
 
@@ -689,6 +691,16 @@ func _on_command_resolved(result: BattleResult) -> void:
 	if not result.success:
 		status_label.text = "ERROR · %s" % result.message
 	_refresh()
+	if result.success and state != null and not state.finished and state.player_actions <= 0:
+		call_deferred("_auto_end_turn_if_needed")
+
+func _auto_end_turn_if_needed() -> void:
+	if state == null or state.finished or state.player_actions > 0:
+		return
+	selected_card_index = -1
+	selected_unit_slot = -1
+	selected_ium_index = -1
+	engine.execute(BattleCommand.end_turn())
 
 func _on_engine_event(event: BattleEvent) -> void:
 	if event.type == BattleEvent.EventType.DIAGNOSTIC:
@@ -815,7 +827,8 @@ func _refresh() -> void:
 			)
 		)
 
-	end_turn_button.disabled = state.finished
+	end_turn_button.visible = state.finished
+	end_turn_button.disabled = not state.finished
 	hero_attack_panel.visible = state.player_hero != null and selected_unit_slot == state.player_hero_slot and not state.finished
 	for direction_index in range(hero_attack_buttons.size()):
 		var direction: Vector2i = hero_attack_directions[direction_index]
@@ -850,5 +863,4 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.physical_keycode == KEY_ESCAPE:
 			_return_to_menu()
-		elif event.physical_keycode == KEY_SPACE:
-			_on_end_turn_pressed()
+	
