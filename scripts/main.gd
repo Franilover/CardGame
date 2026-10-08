@@ -763,6 +763,7 @@ func _refresh() -> void:
 		hand_button.visible = true
 
 		hand_button.text = card.display_name
+		var etherium_cost: int = state.get_etherium_cost_for_card(card)
 		hand_button.tooltip_text = card.description
 		hand_button.disabled = (
 			state.finished
