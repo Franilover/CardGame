@@ -249,7 +249,7 @@ func _build_ui() -> void:
 	info_content.add_theme_constant_override("separation", 8)
 	info_panel.add_child(info_content)
 
-	source_label = _make_label(CanonRepository.get_status_text(), 10, CYAN_COLOR)
+	source_label = _make_label(GarliaCanonRepository.get_status_text(), 10, CYAN_COLOR)
 	source_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	info_content.add_child(source_label)
 
@@ -318,9 +318,9 @@ func _start_battle() -> void:
 	var player_deck := CardCatalog.starter_deck()
 	var enemies := CardCatalog.enemy_deck()
 
-	if CanonRepository.has_canon_data():
-		player_deck = CardCatalog.starter_deck_from_canon(CanonRepository)
-		enemies = CardCatalog.enemy_deck_from_canon(CanonRepository)
+	if GarliaCanonRepository.has_canon_data():
+		player_deck = CardCatalog.starter_deck_from_canon(GarliaCanonRepository)
+		enemies = CardCatalog.enemy_deck_from_canon(GarliaCanonRepository)
 
 	state = BattleState.new()
 	state.setup(player_deck, enemies)
@@ -428,7 +428,7 @@ func _refresh() -> void:
 	etherium_label.text = "E%d/%d" % [state.player_etherium, state.player_max_etherium]
 	deck_count_label.text = "%d" % state.deck.size()
 	hand_count_label.text = "%d CARTAS" % state.hand.size()
-	source_label.text = CanonRepository.get_status_text()
+	source_label.text = GarliaCanonRepository.get_status_text()
 
 	for i in range(enemy_slot_buttons.size()):
 		var button := enemy_slot_buttons[i]
