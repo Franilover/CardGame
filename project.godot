@@ -23,5 +23,5 @@ theme/default_font_multichannel_signed_distance_field=true
 
 [autoload]
 
-SupabaseClient="*res://scripts/data/supabase_client.gd"
-CanonRepository="*res://scripts/data/canon_repository.gd"
+GarliaSupabaseClient="*res://scripts/data/supabase_client.gd"
+GarliaCanonRepository="*res://scripts/data/canon_repository.gd"
