@@ -446,10 +446,11 @@ func _start_battle() -> void:
 		elif card.card_type == CardDefinition.CardType.PROCESS:
 			process_catalog.append(card)
 
-	if available_iums.is_empty():
+	if available_iums.is_empty() and RunProgress.mode == "bosses":
 		available_iums = CardCatalog.starter_ium_catalog()
 
-	RunProgress.ensure_deck(player_deck)
+	if RunProgress.mode == "bosses":
+		RunProgress.ensure_deck(player_deck)
 	player_deck = RunProgress.build_player_deck(catalog_cards, player_deck)
 	enemy_deck = RunProgress.build_enemy_deck(enemy_deck)
 
