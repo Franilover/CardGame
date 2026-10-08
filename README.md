@@ -51,22 +51,28 @@ Un único campo de batalla compartido de 9x8.
 Los tronos son casillas exclusivas de los héroes. Las criaturas no pueden ocuparlas.
 Cada bando tiene un Rey/Reina permanente fuera del mazo con 30 V. Derrotar al héroe enemigo termina la ronda inmediatamente.
 
-## Movimiento
+## Acciones
 
-Mover una criatura o héroe no consume Eterium ni acciones.
-Cada criatura o héroe puede moverse una vez por turno. El atributo de movimiento determina cuántas casillas puede recorrer en ese desplazamiento.
+Cada turno tienes 2 acciones.
+Mover una criatura o héroe consume 1 acción.
+Atacar consume 1 acción.
+Jugar una criatura consume 1 acción.
+Una criatura puede moverse y atacar en el mismo turno si todavía quedan acciones.
 
-## Recursos de combate
+## Eterium
 
-Las acciones y el Eterium son recursos separados.
+Eterium comienza en 3 y aumenta en 1 su máximo cada turno, restaurándose al nuevo máximo.
+No se consume al mover ni al atacar.
+Se consume al crear o usar IUMs y para desplegar una criatura fuera de la fila trasera.
 
-- Acciones: comienzan en 2 y se restauran al inicio de cada turno. Su máximo permanece en 2 durante la partida salvo efectos de objetos, habilidades u otras reglas que lo modifiquen.
-- Eterium: comienza en 3 y aumenta en 1 su máximo cada turno, restaurándose al nuevo máximo. Se consume únicamente al crear IUMs y al usar cartas IUM que tengan coste de Eterium.
-- Ataques: cada bando dispone de 1 ataque por turno. El ataque consume 1 acción y no consume Eterium.
+## Despliegue
+
+Las criaturas entran gratis por la fila trasera.
+Colocarlas en otra casilla de la zona del jugador consume 1 Eterium además de la acción de jugar.
 
 ## Ataque del Rey
 
-El Rey tiene un ataque especial que consume 1 acción y el ataque del turno.
+El Rey tiene un ataque especial que consume 1 acción.
 Se puede elegir una de cuatro direcciones: arriba, abajo, izquierda o derecha.
 La dirección seleccionada golpea las 3 casillas frontales del Rey simultáneamente.
 Si una dirección no permite formar las 3 casillas dentro del tablero, esa dirección se deshabilita.
