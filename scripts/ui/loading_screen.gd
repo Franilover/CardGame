@@ -63,7 +63,7 @@ func _process(delta: float) -> void:
 				set_process(false)
 
 func _boot() -> void:
-	var error := ResourceLoader.load_threaded_request(NEXT_SCENE_PATH, "PackedScene", true)
+	var error: Error = ResourceLoader.load_threaded_request(NEXT_SCENE_PATH, "PackedScene", true)
 	if error != OK:
 		loaded_scene = ResourceLoader.load(NEXT_SCENE_PATH, "PackedScene") as PackedScene
 
