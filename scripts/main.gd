@@ -46,6 +46,8 @@ var hand_count_label: Label
 var deck_count_label: Label
 var process_button: Button
 var end_turn_button: Button
+var hero_attack_panel: HBoxContainer
+var hero_attack_buttons: Array[Button] = []
 
 func _ready() -> void:
 	_build_ui()
@@ -482,6 +484,11 @@ func _resolve_board_drag(source_slot: int, target_slot: int) -> void:
 		_refresh()
 		return
 
+	if source_slot == state.player_hero_slot and state.board.get_owner(target_slot) == BattleBoard.Owner.ENEMY:
+		status_label.text = "Selecciona ARRIBA, ABAJO, IZQ o DER para elegir el lado del ataque del Rey."
+		_refresh()
+		return
+
 	var result: BattleResult
 	if state.board.get_owner(target_slot) == BattleBoard.Owner.ENEMY:
 		result = engine.execute(BattleCommand.attack(source_slot, target_slot))
@@ -514,6 +521,10 @@ func _on_board_pressed(index: int) -> void:
 		return
 
 	if selected_unit_slot >= 0:
+		if selected_unit_slot == state.player_hero_slot and state.board.get_owner(index) == BattleBoard.Owner.ENEMY:
+			status_label.text = "El Rey golpea 3 casillas a la vez. Elige una de las cuatro direcciones."
+			_refresh()
+			return
 		var result: BattleResult
 		if state.board.get_owner(index) == BattleBoard.Owner.ENEMY:
 			result = engine.execute(BattleCommand.attack(selected_unit_slot, index))
@@ -531,6 +542,16 @@ func _on_board_pressed(index: int) -> void:
 		var selected_card: CardDefinition = state.board.get_card(index)
 		status_label.text = "%s seleccionado. Cada desplazamiento cuesta %d Eterium." % [selected_card.display_name, BattleState.MOVE_ETHERIUM_COST]
 		_refresh()
+
+func _on_hero_attack_pressed(direction: Vector2i) -> void:
+	if state == null or state.is_finished() or selected_unit_slot != state.player_hero_slot:
+		return
+	var result: BattleResult = engine.execute(BattleCommand.hero_attack(state.player_hero_slot, direction))
+	if result.success:
+		selected_unit_slot = -1
+	else:
+		status_label.text = "ERROR · %s" % result.message
+	_refresh()
 
 func _on_mixer_pressed(index: int) -> void:
 	if state == null or state.is_finished():
@@ -642,6 +663,9 @@ func _refresh() -> void:
 			hand_button.disabled = true
 
 	end_turn_button.disabled = state.finished
+	hero_attack_panel.visible = state.player_hero != null and selected_unit_slot == state.player_hero_slot and not state.finished
+	for button in hero_attack_buttons:
+		button.disabled = state.finished or state.player_actions <= 0 or not state.player_hero.can_attack()
 
 func _cell_style(index: int, selected: bool) -> StyleBoxFlat:
 	var background := SURFACE_ALT_COLOR
