@@ -4,7 +4,7 @@ extends RefCounted
 static func starter_deck() -> Array[CardDefinition]:
 	var cards: Array[CardDefinition] = []
 
-	var base := [
+	var base: Array[CardDefinition] = [
 		_creature("aoris", "Aoris", 1, 4, 5, "Criatura veloz.", "criatura", "aoris"),
 		_creature("feerin", "Feerin", 1, 3, 6, "Criatura resistente.", "criatura", "feerin"),
 		_creature("ligniano", "Ligniano", 2, 5, 7, "Criatura robusta.", "criatura", "ligniano"),
@@ -72,7 +72,7 @@ static func starter_deck_from_canon(repository: CanonRepository) -> Array[CardDe
 		return starter_deck()
 
 	var deck: Array[CardDefinition] = []
-	var preferred_types := [
+	var preferred_types: Array[int] = [
 		CardDefinition.CardType.CREATURE,
 		CardDefinition.CardType.CREATURE,
 		CardDefinition.CardType.CREATURE,
