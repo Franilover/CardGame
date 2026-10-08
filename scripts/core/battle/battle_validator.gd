@@ -85,8 +85,6 @@ static func _validate_hero_attack(state: BattleState, command: BattleCommand) ->
 		return BattleResult.error("HERO_ATTACKER_INVALID", "Solo el Rey puede usar este ataque.")
 	if state.player_actions <= 0:
 		return BattleResult.error("NO_ACTIONS", "No quedan acciones.")
-	if state.player_attacks_remaining <= 0:
-		return BattleResult.error("NO_ATTACKS_REMAINING", "Ya realizaste tu ataque de este turno.")
 	var hero: CardDefinition = state.player_hero
 	if hero == null or not hero.can_attack():
 		return BattleResult.error("HERO_ATTACK_NOT_ALLOWED", "El Rey no puede atacar ahora.")
