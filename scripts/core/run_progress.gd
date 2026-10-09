@@ -81,6 +81,19 @@ func _sync_deck_from_loadout() -> void:
 		if not card_id.is_empty():
 			deck_ids.append(card_id)
 
+func move_loadout_card(source_slot: int, target_slot: int) -> bool:
+	if source_slot < 0 or source_slot >= loadout_ids.size() or target_slot < 0 or target_slot >= loadout_ids.size():
+		return false
+	if source_slot == target_slot:
+		return true
+	var source_id := loadout_ids[source_slot]
+	var target_id := loadout_ids[target_slot]
+	loadout_ids[target_slot] = source_id
+	loadout_ids[source_slot] = target_id
+	_sync_deck_from_loadout()
+	_save_progress()
+	return true
+
 func set_loadout_card(slot: int, card_id: String) -> bool:
 	if slot < 0 or slot >= loadout_ids.size():
 		return false
