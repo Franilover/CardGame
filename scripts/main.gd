@@ -34,6 +34,9 @@ var mixer_buttons: Array[Button] = []
 var hand_buttons: Array[Button] = []
 var loadout_inventory_row: HBoxContainer
 var inventory_card_buttons: Dictionary = {}
+var inventory_drag_card_id: String = ""
+var inventory_drag_start: Vector2 = Vector2.ZERO
+var inventory_drag_active: bool = false
 var ium_bar_row: HBoxContainer
 var ium_buttons: Array[Button] = []
 var available_iums: Array[CardDefinition] = []
@@ -467,6 +470,41 @@ func _populate_loadout_inventory() -> void:
 			card_button.disabled = true
 		loadout_inventory_row.add_child(card_button)
 		inventory_card_buttons[card.id] = card_button
+
+func _on_inventory_card_gui_input(event: InputEvent, card_id: String) -> void:
+	if state == null or not state.setup_phase or state.is_finished():
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			inventory_drag_card_id = card_id
+			inventory_drag_start = event.global_position
+			inventory_drag_active = false
+		elif inventory_drag_card_id == card_id:
+			if inventory_drag_active:
+				var target_slot := _board_slot_at_global_position(event.global_position)
+				if target_slot >= 0:
+					if state.deploy_equipped_creature(card_id, target_slot):
+						status_label.text = "Criatura desplegada."
+					else:
+						status_label.text = "No puedes desplegarla ahí. Elige una casilla vacía de tu zona."
+				else:
+					status_label.text = "Arrastra la criatura hasta una casilla de tu lado."
+				_refresh()
+			inventory_drag_card_id = ""
+			inventory_drag_active = false
+		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseMotion and inventory_drag_card_id == card_id:
+		if (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0 and event.global_position.distance_to(inventory_drag_start) >= 8.0:
+			inventory_drag_active = true
+			status_label.text = "Arrastra %s hasta la casilla donde quieres desplegarla." % card_id
+			get_viewport().set_input_as_handled()
+
+func _board_slot_at_global_position(global_position: Vector2) -> int:
+	for index in range(board_buttons.size()):
+		var cell: Button = board_buttons[index]
+		if cell.get_global_rect().has_point(global_position):
+			return index
+	return -1
 
 func _on_inventory_card_pressed(card_id: String) -> void:
 	if state == null or state.setup_phase or state.is_finished():
@@ -1037,23 +1075,19 @@ func _refresh() -> void:
 		var inventory_button: Button = inventory_card_buttons[card_id] as Button
 		if inventory_button == null:
 			continue
-		var hand_index := -1
-		for index in range(state.hand.size()):
-			var held_card: CardDefinition = state.hand[index]
-			if held_card != null and held_card.id == str(card_id):
-				hand_index = index
+		var available := false
+		for card in state.deck:
+			if card != null and card.id == str(card_id):
+				available = true
 				break
-		var available := hand_index >= 0
-		var is_selected := available and hand_index == selected_card_index
-		inventory_button.disabled = state.finished or state.setup_phase or not available
+		for card in state.hand:
+			if card != null and card.id == str(card_id):
+				available = true
+				break
+		inventory_button.disabled = state.finished or (state.setup_phase and not available)
 		inventory_button.add_theme_stylebox_override(
 			"normal",
-			_button_style(
-				SELECTED_COLOR if is_selected else SURFACE_ALT_COLOR,
-				GOLD_COLOR if is_selected else BORDER_COLOR,
-				0,
-				2 if is_selected else 1
-			)
+			_button_style(SURFACE_ALT_COLOR, BORDER_COLOR, 0, 1)
 		)
 
 	for index in range(ium_buttons.size()):
