@@ -22,6 +22,8 @@ const GRID_COLUMNS: int = BOARD_COLUMNS
 
 var turn: int = 0
 var setup_phase: bool = true
+var local_mode: bool = false
+var active_owner: int = BattleBoard.Owner.PLAYER
 var player_max_actions: int = ACTIONS_PER_TURN
 var player_actions: int = ACTIONS_PER_TURN
 var player_etherium: int = 3
@@ -56,9 +58,25 @@ var finished: bool = false
 var winner_is_player: bool = false
 var fatigue_damage: int = 1
 
+func get_active_actions() -> int:
+	return player_actions if active_owner == BattleBoard.Owner.PLAYER else enemy_actions
+
+func get_active_max_actions() -> int:
+	return player_max_actions if active_owner == BattleBoard.Owner.PLAYER else enemy_max_actions
+
+func get_active_hero() -> CardDefinition:
+	return player_hero if active_owner == BattleBoard.Owner.PLAYER else enemy_hero
+
+func get_active_hero_slot() -> int:
+	return player_hero_slot if active_owner == BattleBoard.Owner.PLAYER else enemy_hero_slot
+
+func get_opposing_owner() -> int:
+	return BattleBoard.Owner.ENEMY if active_owner == BattleBoard.Owner.PLAYER else BattleBoard.Owner.PLAYER
+
 func reset(player_character_style: String = "guardian") -> void:
 	turn = 0
 	setup_phase = true
+	active_owner = BattleBoard.Owner.PLAYER
 	player_max_actions = ACTIONS_PER_TURN
 	player_actions = 0
 	player_etherium = 3
@@ -279,10 +297,10 @@ func _resolve_non_unit(card: CardDefinition, target_slot: int, target_enemy: boo
 	return false
 
 func move_unit(player_slot: int, target_slot: int) -> bool:
-	if finished or player_actions <= 0:
+	if finished or get_active_actions() <= 0:
 		return false
 	var unit: CardDefinition = board.get_card(player_slot)
-	if board.get_owner(player_slot) != BattleBoard.Owner.PLAYER or unit == null:
+	if board.get_owner(player_slot) != active_owner or unit == null:
 		return false
 	if not unit.is_unit():
 		return false
@@ -293,40 +311,49 @@ func move_unit(player_slot: int, target_slot: int) -> bool:
 		player_hero_slot = target_slot
 	elif unit == enemy_hero:
 		enemy_hero_slot = target_slot
-	player_actions -= 1
+	if active_owner == BattleBoard.Owner.PLAYER:
+		player_actions -= 1
+	else:
+		enemy_actions -= 1
 	_event("%s se movió." % unit.display_name)
 	state_changed.emit()
 	return true
 
 func hero_attack(player_slot: int, direction: Vector2i) -> bool:
-	if finished or player_actions <= 0:
+	var acting_hero: CardDefinition = get_active_hero()
+	if finished or get_active_actions() <= 0:
 		return false
-	if player_slot != player_hero_slot or player_hero == null or not player_hero.can_attack():
+	if player_slot != get_active_hero_slot() or acting_hero == null or not acting_hero.can_attack():
 		return false
-
-	if player_hero.tags.has("ataque_lineal"):
-		var first_target: int = board.first_occupied_in_line(player_slot, direction, player_hero.attack_range)
-		if first_target < 0 or board.get_owner(first_target) != BattleBoard.Owner.ENEMY:
+	if acting_hero.tags.has("ataque_lineal"):
+		var first_target: int = board.first_occupied_in_line(player_slot, direction, acting_hero.attack_range)
+		if first_target < 0 or board.get_owner(first_target) != get_opposing_owner():
 			return false
 		var defender: CardDefinition = board.get_card(first_target)
 		if defender == null:
 			return false
-		_damage_unit(defender, player_hero.attack)
-		player_actions -= 1
-		_event("%s disparó en línea recta contra %s." % [player_hero.display_name, defender.display_name])
+		_damage_unit(defender, acting_hero.attack)
+		if active_owner == BattleBoard.Owner.PLAYER:
+			player_actions -= 1
+		else:
+			enemy_actions -= 1
+		_event("%s disparó en línea recta contra %s." % [acting_hero.display_name, defender.display_name])
 	else:
 		if direction != Vector2i.ZERO:
 			return false
 		var targets_hit := 0
 		for index in board.adjacent_indices(player_slot):
 			var target: CardDefinition = board.get_card(index)
-			if board.get_owner(index) == BattleBoard.Owner.ENEMY and target != null:
-				_damage_unit(target, player_hero.attack)
+			if board.get_owner(index) == get_opposing_owner() and target != null:
+				_damage_unit(target, acting_hero.attack)
 				targets_hit += 1
 		if targets_hit == 0:
 			return false
-		player_actions -= 1
-		_event("%s golpeó alrededor y alcanzó %d enemigo(s)." % [player_hero.display_name, targets_hit])
+		if active_owner == BattleBoard.Owner.PLAYER:
+			player_actions -= 1
+		else:
+			enemy_actions -= 1
+		_event("%s golpeó alrededor y alcanzó %d enemigo(s)." % [acting_hero.display_name, targets_hit])
 
 	_cleanup_boards()
 	_check_finished()
@@ -334,21 +361,24 @@ func hero_attack(player_slot: int, direction: Vector2i) -> bool:
 	return true
 
 func attack_unit(player_slot: int, enemy_slot: int = -1) -> bool:
-	if finished or player_actions <= 0:
+	if finished or get_active_actions() <= 0:
 		return false
 	var attacker: CardDefinition = board.get_card(player_slot)
-	if board.get_owner(player_slot) != BattleBoard.Owner.PLAYER or attacker == null or not attacker.can_attack():
+	if board.get_owner(player_slot) != active_owner or attacker == null or not attacker.can_attack():
 		return false
 	if enemy_slot < 0 or enemy_slot >= BattleBoard.CELL_COUNT:
 		return false
 
 	var defender: CardDefinition = board.get_card(enemy_slot)
-	if board.get_owner(enemy_slot) != BattleBoard.Owner.ENEMY or defender == null:
+	if board.get_owner(enemy_slot) != get_opposing_owner() or defender == null:
 		return false
 	if board.distance(player_slot, enemy_slot) > max(1, attacker.attack_range):
 		return false
 
-	player_actions -= 1
+	if active_owner == BattleBoard.Owner.PLAYER:
+		player_actions -= 1
+	else:
+		enemy_actions -= 1
 	_damage_unit(defender, attacker.attack)
 	if defender.health > 0 and defender.counter_attack and board.distance(player_slot, enemy_slot) <= max(1, defender.attack_range):
 		_damage_unit(attacker, defender.attack)
@@ -497,9 +527,28 @@ func end_turn() -> void:
 		setup_phase = false
 		# Las criaturas no desplegadas permanecen en el mazo y costarán una acción después.
 		turn = 1
+		active_owner = BattleBoard.Owner.PLAYER
 		player_actions = player_max_actions
+		enemy_actions = enemy_max_actions
 		player_etherium = player_max_etherium
 		_event("Comenzó el combate. Turno 1.")
+		state_changed.emit()
+		return
+	if local_mode:
+		if active_owner == BattleBoard.Owner.PLAYER:
+			active_owner = BattleBoard.Owner.ENEMY
+			enemy_actions = enemy_max_actions
+			enemy_max_etherium = min(MAX_ETHERIUM, enemy_max_etherium + ETHERIUM_GROWTH_PER_TURN)
+			enemy_etherium = enemy_max_etherium
+			_event("Turno del Rey local 2.")
+		else:
+			active_owner = BattleBoard.Owner.PLAYER
+			turn += 1
+			player_actions = player_max_actions
+			player_max_etherium = min(MAX_ETHERIUM, player_max_etherium + ETHERIUM_GROWTH_PER_TURN)
+			player_etherium = player_max_etherium
+			_event("Turno del Rey local 1.")
+		_cleanup_boards()
 		state_changed.emit()
 		return
 	_enemy_turn()
