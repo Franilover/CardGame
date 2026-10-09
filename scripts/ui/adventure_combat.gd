@@ -85,35 +85,6 @@ func _build_ui() -> void:
 	back.pressed.connect(_return_to_adventure)
 	header.add_child(back)
 
-	var fighters := HBoxContainer.new()
-	fighters.add_theme_constant_override("separation", 18)
-	root.add_child(fighters)
-	var player_info := VBoxContainer.new()
-	player_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	fighters.add_child(player_info)
-	var player_title := Label.new()
-	player_title.text = "TÚ · ATQ %d" % PLAYER_ATTACK
-	player_title.add_theme_color_override("font_color", GREEN)
-	player_info.add_child(player_title)
-	player_health_bar = _health_bar(GREEN)
-	player_info.add_child(player_health_bar)
-	player_health_label = Label.new()
-	player_health_label.add_theme_color_override("font_color", TEXT)
-	player_info.add_child(player_health_label)
-
-	var enemy_info := VBoxContainer.new()
-	enemy_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	fighters.add_child(enemy_info)
-	creature_title = Label.new()
-	creature_title.text = "CRIATURA"
-	creature_title.add_theme_color_override("font_color", RED)
-	enemy_info.add_child(creature_title)
-	creature_health_bar = _health_bar(RED)
-	enemy_info.add_child(creature_health_bar)
-	creature_health_label = Label.new()
-	creature_health_label.add_theme_color_override("font_color", TEXT)
-	enemy_info.add_child(creature_health_label)
-
 	var board_center := CenterContainer.new()
 	board_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(board_center)
