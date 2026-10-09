@@ -8,6 +8,9 @@ const ADVENTURE_SCENE_PATH := "res://scenes/adventure.tscn"
 
 var character_selector: VBoxContainer
 var selector_mode: String = "exploration"
+var show_discoveries: bool = false
+var loadout_row: HBoxContainer
+var king_selector: OptionButton
 
 @onready var left_column: VBoxContainer = $Layout/Sidebar/SidebarContent
 @onready var menu_container: VBoxContainer = $Layout/Sidebar/SidebarContent/Menu
@@ -15,20 +18,26 @@ var selector_mode: String = "exploration"
 @onready var play_button: Button = $Layout/Sidebar/SidebarContent/Menu/Jugar
 @onready var boss_button: Button = $Layout/Sidebar/SidebarContent/Menu/Jefes
 @onready var online_button: Button = $Layout/Sidebar/SidebarContent/Menu/Online
+@onready var discoveries_button: Button = $Layout/Sidebar/SidebarContent/Menu/Descubrimientos
 @onready var settings_button: Button = $Layout/Sidebar/SidebarContent/BottomMenu/Configuracion
 @onready var quit_button: Button = $Layout/Sidebar/SidebarContent/BottomMenu/Salir
 @onready var card_grid: GridContainer = $Layout/CatalogArea/CatalogScroll/CardGrid
 @onready var card_count: Label = $Layout/CatalogArea/CatalogHeader/CatalogHeaderRow/CardCount
+@onready var loadout_scroll: ScrollContainer = $Layout/CatalogArea/LoadoutScroll
 
 func _ready() -> void:
 	play_button.pressed.connect(_on_play_pressed)
 	boss_button.pressed.connect(_on_bosses_pressed)
 	online_button.pressed.connect(_on_online_pressed)
+	discoveries_button.pressed.connect(_on_discoveries_pressed)
 	settings_button.pressed.connect(_on_settings_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 	play_button.grab_focus()
 	status_label.text = ""
 	await canon_repository.initialize()
+	var starter_cards: Array[CardDefinition] = CardCatalog.starter_deck_from_canon(canon_repository)
+	run_progress.initialize_collection(starter_cards)
+	_build_loadout_row()
 	_populate_home_cards()
 
 func _on_play_pressed() -> void:
@@ -88,6 +97,14 @@ func _on_character_selector_back() -> void:
 func _on_online_pressed() -> void:
 	status_label.text = "Online estará disponible más adelante."
 
+func _on_discoveries_pressed() -> void:
+	show_discoveries = not show_discoveries
+	discoveries_button.text = "VOLVER A CARTAS" if show_discoveries else "DESCUBRIMIENTOS"
+	_populate_home_cards()
+	_build_loadout_row()
+	loadout_scroll.visible = not show_discoveries
+	$Layout/CatalogArea/CatalogHeader/CatalogHeaderRow/CatalogTitle.text = "DESCUBRIMIENTOS" if show_discoveries else "CARTAS"
+
 func _on_settings_pressed() -> void:
 	status_label.text = "La configuración se agregará aquí."
 
@@ -105,16 +122,125 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			else:
 				_on_quit_pressed()
 
+func _build_loadout_row() -> void:
+	var row_node := loadout_scroll.get_node_or_null("LoadoutRow")
+	if row_node == null:
+		return
+	for child in row_node.get_children():
+		row_node.remove_child(child)
+		child.queue_free()
+	loadout_row = row_node as HBoxContainer
+	loadout_row.add_theme_constant_override("separation", 8)
+
+	var king_panel := PanelContainer.new()
+	king_panel.custom_minimum_size = Vector2(130, 76)
+	king_panel.add_theme_stylebox_override("panel", _loadout_style())
+	var king_content := VBoxContainer.new()
+	king_content.add_theme_constant_override("separation", 3)
+	king_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	king_panel.add_child(king_content)
+	var king_label := Label.new()
+	king_label.text = "REY"
+	king_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	king_label.add_theme_font_size_override("font_size", 10)
+	king_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	king_content.add_child(king_label)
+	king_selector = OptionButton.new()
+	king_selector.add_item("Guardián", 0)
+	king_selector.add_item("Arquero", 1)
+	king_selector.select(1 if run_progress.selected_character_style == "archer" else 0)
+	king_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	king_selector.item_selected.connect(_on_king_selected)
+	king_content.add_child(king_selector)
+	loadout_row.add_child(king_panel)
+
+	var cards_by_id: Dictionary = {}
+	for card in CardCatalog.from_canon(canon_repository):
+		if card != null and not cards_by_id.has(card.id):
+			cards_by_id[card.id] = card
+
+	for index in range(run_progress.loadout_ids.size()):
+		var card_id: String = run_progress.loadout_ids[index]
+		var card: CardDefinition = cards_by_id.get(card_id) as CardDefinition
+		var slot := PanelContainer.new()
+		slot.set_script(load("res://scripts/ui/card_loadout_item.gd"))
+		slot.set("slot_index", index)
+		slot.set("card_id", card_id)
+		slot.custom_minimum_size = Vector2(92, 76)
+		slot.add_theme_stylebox_override("panel", _loadout_style())
+		slot.connect("card_dropped", _on_loadout_card_dropped)
+		slot.connect("slot_activated", _on_loadout_slot_activated)
+		var slot_content := VBoxContainer.new()
+		slot_content.add_theme_constant_override("separation", 2)
+		slot_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_child(slot_content)
+		var number_label := Label.new()
+		number_label.text = str(index + 1)
+		number_label.add_theme_font_size_override("font_size", 9)
+		number_label.add_theme_color_override("font_color", Color("#7FAF99"))
+		number_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot_content.add_child(number_label)
+		var name_label := Label.new()
+		name_label.text = card.display_name if card != null else "ARRASTRA"
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		name_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		name_label.add_theme_font_size_override("font_size", 10)
+		name_label.add_theme_color_override("font_color", Color("#E0EEE5") if card != null else Color("#7FAF99"))
+		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot_content.add_child(name_label)
+		loadout_row.add_child(slot)
+
+func _loadout_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#0F3024")
+	style.border_color = Color("#2C6651")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(0)
+	return style
+
+func _on_king_selected(index: int) -> void:
+	run_progress.selected_character_style = "archer" if index == 1 else "guardian"
+	run_progress._save_progress()
+
+func _on_loadout_card_dropped(slot_index: int, data: Dictionary) -> void:
+	var card_id := str(data.get("card_id", ""))
+	var source_slot := int(data.get("source_slot", -1))
+	if source_slot >= 0:
+		run_progress.move_loadout_card(source_slot, slot_index)
+	elif not run_progress.set_loadout_card(slot_index, card_id):
+		status_label.text = "No tienes otra copia de esa carta."
+		return
+	status_label.text = ""
+	_build_loadout_row()
+	_populate_home_cards()
+
+func _on_loadout_slot_activated(slot_index: int) -> void:
+	if Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
+		run_progress.set_loadout_card(slot_index, "")
+		_build_loadout_row()
+		_populate_home_cards()
+
 func _populate_home_cards() -> void:
 	for child in card_grid.get_children():
+		card_grid.remove_child(child)
 		child.queue_free()
 	var cards: Array[CardDefinition] = CardCatalog.from_canon(canon_repository)
 	var visible_count := 0
 	for card in cards:
-		if card == null or not run_progress.is_card_discovered(card):
+		if card == null:
+			continue
+		var owned_count: int = run_progress.get_owned_count(card.id)
+		var should_show: bool = run_progress.is_card_discovered(card) if show_discoveries else owned_count > 0
+		if not should_show:
 			continue
 		visible_count += 1
 		var tile := PanelContainer.new()
+		if not show_discoveries and owned_count > 0:
+			tile.set_script(load("res://scripts/ui/card_loadout_item.gd"))
+			tile.set("card_id", card.id)
+			tile.set("slot_index", -1)
 		var card_style := StyleBoxFlat.new()
 		card_style.bg_color = Color(0.035, 0.105, 0.075, 1)
 		card_style.border_width_left = 1
@@ -151,7 +277,7 @@ func _populate_home_cards() -> void:
 		name_label.add_theme_font_size_override("font_size", 13)
 		body.add_child(name_label)
 		var type_label := Label.new()
-		type_label.text = _card_type_name(card)
+		type_label.text = _card_type_name(card) if show_discoveries else "%s · x%d" % [_card_type_name(card), owned_count]
 		type_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		type_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		type_label.add_theme_font_size_override("font_size", 10)
