@@ -1,6 +1,7 @@
 extends Control
 
 @onready var canon_repository: Node = get_node("/root/GarliaCanonRepository")
+@onready var run_progress: Node = get_node("/root/RunProgress")
 
 const BATTLE_SCENE_PATH := "res://scenes/main.tscn"
 const CARDS_SCENE_PATH := "res://scenes/cards.tscn"
@@ -36,7 +37,7 @@ func _on_bosses_pressed() -> void:
 
 func _show_character_selector(mode_name: String) -> void:
 	selector_mode = mode_name
-	RunProgress.start_mode(mode_name)
+	run_progress.start_mode(mode_name)
 	menu_container.visible = false
 	status_label.text = "Elige tu personaje para esta partida."
 	if character_selector != null:
@@ -68,7 +69,7 @@ func _show_character_selector(mode_name: String) -> void:
 	character_selector.add_child(back_button)
 
 func _on_character_selected(character_style: String) -> void:
-	RunProgress.selected_character_style = character_style
+	run_progress.selected_character_style = character_style
 	status_label.text = "Preparando partida con %s..." % ("Rey Arquero" if character_style == "archer" else "Rey Guardián")
 	set_process_input(false)
 	get_tree().change_scene_to_file(BATTLE_SCENE_PATH)
