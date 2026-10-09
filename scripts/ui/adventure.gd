@@ -105,7 +105,9 @@ func _populate_creatures() -> void:
 		status_label.text = "No hay criaturas canónicas disponibles. Conéctate y sincroniza Supabase."
 		return
 
-	creatures.sort_custom(func(a: CardDefinition, b: CardDefinition) -> bool: return a.display_name.naturalcasecmp_to(b.display_name) < 0)
+	creatures.sort_custom(func(a: CardDefinition, b: CardDefinition) -> bool:
+		return a.display_name.naturalcasecmp_to(b.display_name) < 0
+	)
 	for creature in creatures:
 		var unlocked := run_progress.is_creature_unlocked(creature.id)
 		var button := Button.new()
