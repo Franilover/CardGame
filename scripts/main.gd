@@ -591,6 +591,21 @@ func _start_battle() -> void:
 	player_deck = CardCatalog.starter_deck_from_canon(canon_repository)
 	enemy_deck = CardCatalog.enemy_deck_from_canon(canon_repository)
 
+	var random_encounter: Dictionary = {}
+	if run_progress.mode == "combat":
+		random_encounter = _choose_random_encounter()
+		if random_encounter.is_empty():
+			status_label.text = "Supabase no tiene encuentros de azar activos. Revisa public.combates_azar_cardgame."
+			return
+		enemy_deck = _build_encounter_enemy_deck(random_encounter, catalog_cards)
+		if enemy_deck.is_empty():
+			status_label.text = "El encuentro no contiene criaturas válidas del catálogo canónico."
+			return
+		current_encounter_label = "%s · %s" % [
+			str(random_encounter.get("nombre", "Combate al azar")),
+			str(random_encounter.get("ubicacion", "Ubicación desconocida"))
+		]
+
 	for card in catalog_cards:
 		if card.card_type == CardDefinition.CardType.IUM:
 			if run_progress.mode == "bosses":
@@ -613,6 +628,16 @@ func _start_battle() -> void:
 	state = engine.get_state()
 	state.local_mode = run_progress.mode == "local"
 	status_label.text = "Despliega tus criaturas y pulsa INICIAR COMBATE."
+	if not random_encounter.is_empty():
+		var encounter_description := str(random_encounter.get("descripcion", "")).strip_edges()
+		var encounter_climate := str(random_encounter.get("clima", "")).strip_edges()
+		var encounter_details: Array[String] = []
+		if not encounter_description.is_empty():
+			encounter_details.append(encounter_description)
+		if not encounter_climate.is_empty():
+			encounter_details.append("Clima: " + encounter_climate)
+		if not encounter_details.is_empty():
+			status_label.text = " · ".join(encounter_details)
 	if run_progress.is_boss_encounter():
 		state.enemy_hero.display_name = "Jefe de Garlia"
 		state.enemy_hero.health = 45
@@ -630,6 +655,54 @@ func _start_battle() -> void:
 	_populate_ium_bar()
 	_populate_loadout_inventory()
 	_refresh()
+
+func _choose_random_encounter() -> Dictionary:
+	var rows: Array = canon_repository.get_table("combates_azar_cardgame")
+	var active_rows: Array[Dictionary] = []
+	var total_weight := 0
+	for row in rows:
+		if not row is Dictionary or not bool(row.get("activo", false)):
+			continue
+		var weight := maxi(1, int(row.get("peso", 1)))
+		active_rows.append(row)
+		total_weight += weight
+	if active_rows.is_empty():
+		return {}
+	var roll := randi_range(1, total_weight)
+	var accumulated := 0
+	for encounter in active_rows:
+		accumulated += maxi(1, int(encounter.get("peso", 1)))
+		if roll <= accumulated:
+			return encounter
+	return active_rows[0]
+
+func _build_encounter_enemy_deck(encounter: Dictionary, cards: Array[CardDefinition]) -> Array[CardDefinition]:
+	var cards_by_id: Dictionary = {}
+	for card in cards:
+		if card != null and card.card_type == CardDefinition.CardType.CREATURE:
+			cards_by_id[card.id] = card
+	var pool: Array[CardDefinition] = []
+	var raw_creatures: Variant = encounter.get("criaturas", [])
+	if not raw_creatures is Array:
+		return []
+	for raw_entry in raw_creatures:
+		if not raw_entry is Dictionary:
+			continue
+		var creature_id := str(raw_entry.get("criatura_id", "")).strip_edges()
+		if creature_id.is_empty() or not cards_by_id.has(creature_id):
+			continue
+		var creature: CardDefinition = cards_by_id[creature_id] as CardDefinition
+		var quantity := clampi(int(raw_entry.get("cantidad", 1)), 1, 20)
+		for _copy_index in range(quantity):
+			pool.append(creature.make_runtime_copy())
+	if pool.is_empty():
+		return []
+	var deck: Array[CardDefinition] = []
+	for card in pool:
+		deck.append(card.make_runtime_copy())
+	while deck.size() < 20:
+		deck.append(pool[(deck.size() - pool.size()) % pool.size()].make_runtime_copy())
+	return deck
 
 func _character_name_from_canon(fallback: String) -> String:
 	var rows: Array = canon_repository.get_table("personajes_game")
