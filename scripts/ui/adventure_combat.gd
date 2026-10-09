@@ -247,7 +247,7 @@ func _player_attack() -> void:
 	creature_health = max(0, creature_health - PLAYER_ATTACK)
 	if creature_health <= 0:
 		battle_finished = true
-		var newly_unlocked := run_progress.unlock_creature_after_adventure_victory(creature.id)
+		var newly_unlocked: bool = run_progress.unlock_creature_after_adventure_victory(creature.id)
 		status_label.text = "¡VICTORIA! Carta desbloqueada: %s." % creature.display_name if newly_unlocked else "¡VICTORIA! %s ya estaba desbloqueada." % creature.display_name
 		attack_button.disabled = true
 		retry_button.visible = true
