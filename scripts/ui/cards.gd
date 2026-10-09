@@ -53,8 +53,8 @@ func _populate() -> void:
 		categories.add_child(_make_category_section(category_title, entries))
 
 	if total == 0:
-		_populate_local_fallback()
-
+		source_label.text = "SUPABASE SIN DATOS CANÓNICOS"
+		detail_label.text = "El catálogo se carga desde Supabase. Conéctate y vuelve a abrir esta sección para sincronizarlo."
 	count_label.text = "%d" % total
 
 func _make_entries_from_rows(rows: Array, type_name: String) -> Array:
@@ -97,51 +97,6 @@ func _make_entries_from_rows(rows: Array, type_name: String) -> Array:
 		})
 
 	return entries
-
-func _populate_local_fallback() -> void:
-	source_label.text = "CATÁLOGO LOCAL"
-
-	var local_entries: Array = []
-	for card in CardCatalog.starter_deck():
-		local_entries.append({
-			"name": card.display_name,
-			"type": card.type_name(),
-			"description": card.description,
-			"attack": card.attack,
-			"health": card.health,
-			"cost": card.cost
-		})
-
-	var grouped: Dictionary = {}
-	for category in CATEGORY_ORDER:
-		grouped[category["id"]] = []
-
-	for entry in local_entries:
-		var type_name: String = str(entry.get("type", "")).to_lower()
-		var category_id := "criaturas"
-
-		if type_name.contains("objeto"):
-			category_id = "items"
-		elif type_name.contains("proceso"):
-			category_id = "procesos"
-		elif type_name.contains("ium"):
-			category_id = "iums"
-		elif type_name.contains("oris"):
-			category_id = "oris"
-
-		var category_entries: Array = grouped[category_id]
-		category_entries.append(entry)
-		grouped[category_id] = category_entries
-
-	for category in CATEGORY_ORDER:
-		var category_id: String = category["id"]
-		var category_entries: Array = grouped[category_id]
-		if category_entries.is_empty():
-			continue
-		categories.add_child(_make_category_section(
-			str(category["title"]),
-			category_entries
-		))
 
 func _make_category_section(title: String, entries: Array) -> VBoxContainer:
 	var section := VBoxContainer.new()
