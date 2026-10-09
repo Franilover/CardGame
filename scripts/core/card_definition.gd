@@ -18,6 +18,7 @@ var card_type: CardType = CardType.CREATURE
 var cost: int = 0
 var attack: int = 0
 var health: int = 0
+var max_health: int = 0
 var armor: int = 0
 
 var movement: int = 1
@@ -64,6 +65,7 @@ func make_runtime_copy() -> CardDefinition:
 	copy.cost = cost
 	copy.attack = attack
 	copy.health = health
+	copy.max_health = max_health
 	copy.armor = armor
 	copy.movement = movement
 	copy.attack_range = attack_range
