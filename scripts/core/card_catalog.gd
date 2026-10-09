@@ -255,6 +255,7 @@ static func _creature(id: String, name: String, cost: int, attack: int, health: 
 	var card := _base(id, name, CardDefinition.CardType.CREATURE, cost, description)
 	card.attack = attack
 	card.health = health
+	card.max_health = health
 	var lower_name: String = name.to_lower()
 	card.movement = 2 if lower_name.contains("aoris") else 1
 	card.attack_range = 2 if lower_name.contains("aoris") else 1
