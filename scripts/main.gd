@@ -360,13 +360,13 @@ func _fit_board_cells() -> void:
 		return
 	var height_limit: float = (middle_container.size.y - 22.0) / float(BattleBoard.ROWS)
 	var width_limit: float = (size.x * 0.46) / float(BattleBoard.COLUMNS)
-	var cell_size: float = clampf(floor(minf(height_limit, width_limit)), 64.0, 100.0)
+	var cell_size: float = clampf(floor(minf(height_limit, width_limit)), 24.0, 64.0)
 	for cell in board_buttons:
 		cell.custom_minimum_size = Vector2(cell_size, cell_size)
 	board_grid.custom_minimum_size = Vector2(cell_size * BattleBoard.COLUMNS, cell_size * BattleBoard.ROWS)
 
 func _build_hand_bar() -> Control:
-	var panel := _new_panel(Vector2(0, 115))
+	var panel := _new_panel(Vector2(0, 88))
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 7)
 	margin.add_theme_constant_override("margin_right", 7)
@@ -418,7 +418,7 @@ func _build_hand_bar() -> Control:
 
 	for index in range(BattleState.MAX_HAND):
 		var button := Button.new()
-		button.custom_minimum_size = Vector2(145, 73)
+		button.custom_minimum_size = Vector2(120, 58)
 		button.add_theme_font_size_override("font_size", 10)
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button.pressed.connect(_on_hand_pressed.bind(index))
@@ -429,7 +429,7 @@ func _build_hand_bar() -> Control:
 
 func _build_bottom_bar() -> Control:
 	var bar := HBoxContainer.new()
-	bar.custom_minimum_size.y = 42
+	bar.custom_minimum_size.y = 36
 	bar.add_theme_constant_override("separation", 7)
 
 	hero_attack_panel = HBoxContainer.new()
