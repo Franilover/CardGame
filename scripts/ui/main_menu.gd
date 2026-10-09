@@ -45,10 +45,7 @@ func _on_play_pressed() -> void:
 	get_tree().change_scene_to_file(ADVENTURE_SCENE_PATH)
 
 func _on_bosses_pressed() -> void:
-	run_progress.start_mode("combat")
-	status_label.text = "Preparando combate aleatorio..."
-	set_process_input(false)
-	get_tree().change_scene_to_file(BATTLE_SCENE_PATH)
+	_show_character_selector("combat")
 
 func _show_character_selector(mode_name: String) -> void:
 	selector_mode = mode_name
@@ -78,13 +75,27 @@ func _show_character_selector(mode_name: String) -> void:
 	archer_button.pressed.connect(_on_character_selected.bind("archer"))
 	character_selector.add_child(archer_button)
 
+	var local_button := Button.new()
+	local_button.custom_minimum_size.y = 48
+	local_button.text = "LOCAL · CONTROLAR AMBOS REYES"
+	local_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	local_button.pressed.connect(_on_local_selected)
+	character_selector.add_child(local_button)
+
 	var back_button := Button.new()
 	back_button.text = "VOLVER"
 	back_button.custom_minimum_size.y = 38
 	back_button.pressed.connect(_on_character_selector_back)
 	character_selector.add_child(back_button)
 
+func _on_local_selected() -> void:
+	run_progress.start_mode("local")
+	status_label.text = "Preparando partida local..."
+	set_process_input(false)
+	get_tree().change_scene_to_file(BATTLE_SCENE_PATH)
+
 func _on_character_selected(character_style: String) -> void:
+	run_progress.start_mode("combat")
 	run_progress.selected_character_style = character_style
 	status_label.text = "Preparando combate con %s..." % ("Rey Arquero" if character_style == "archer" else "Rey Guardián")
 	set_process_input(false)
