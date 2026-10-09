@@ -42,23 +42,23 @@ size_flags_stretch_ratio = 1.0
 
 [node name="SidebarContent" type="VBoxContainer" parent="Layout/Sidebar"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 18
 
 [node name="Title" type="Label" parent="Layout/Sidebar/SidebarContent"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.88, 0.96, 0.90, 1)
-theme_override_font_sizes/font_size = 34
+theme_override_font_sizes/font_size = 30
 text = "The Crown Games"
 horizontal_alignment = 0
 
 [node name="Menu" type="VBoxContainer" parent="Layout/Sidebar/SidebarContent"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
 [node name="Jugar" type="Button" parent="Layout/Sidebar/SidebarContent/Menu"]
-custom_minimum_size = Vector2(0, 48)
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 16
 text = "AVENTURA"
 
 [node name="Jefes" type="Button" parent="Layout/Sidebar/SidebarContent/Menu"]
@@ -117,7 +117,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.88, 0.96, 0.90, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 16
 text = "CARTAS"
 
 [node name="CardCount" type="Label" parent="Layout/CatalogArea/CatalogHeader/CatalogHeaderRow"]
