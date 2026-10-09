@@ -769,6 +769,7 @@ func _on_hero_attack_pressed(direction: Vector2i) -> void:
 	var result: BattleResult = engine.execute(BattleCommand.hero_attack(state.player_hero_slot, direction))
 	if result.success:
 		selected_unit_slot = -1
+		attack_preview_slot = -1
 	else:
 		status_label.text = "ERROR · %s" % result.message
 	_refresh()
