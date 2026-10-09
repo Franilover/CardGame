@@ -40,7 +40,7 @@ var retry_button: Button
 
 func _ready() -> void:
 	await canon_repository.initialize()
-	_load_rules()
+	await _load_rules()
 	_build_ui()
 	_load_creature()
 	_refresh()
