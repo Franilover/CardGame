@@ -294,7 +294,7 @@ func _enemy_turn() -> void:
 		if _can_attack_from(creature_slot, player_slot, max(1, creature.attack_range)):
 			player_health = max(0, player_health - max(1, creature.attack))
 			enemy_actions -= 1
-			status_label.text = "%s te atacó." % creature.display_name
+			status_label.text = "%s te atacó." % creature.display_name if run_progress.is_creature_unlocked(creature.id) else "La criatura desconocida te atacó."
 			if player_health <= 0:
 				battle_finished = true
 				status_label.text = "DERROTA. La criatura sigue sin desbloquearse."
@@ -307,7 +307,7 @@ func _enemy_turn() -> void:
 				break
 			creature_slot = next_slot
 			enemy_actions -= 1
-			status_label.text = "%s se acercó." % creature.display_name
+			status_label.text = "%s se acercó." % creature.display_name if run_progress.is_creature_unlocked(creature.id) else "La criatura desconocida se acercó."
 	_refresh()
 	if not battle_finished:
 		turn_number += 1
@@ -379,12 +379,14 @@ func _refresh() -> void:
 			background = Color("#174B37")
 			border = GREEN
 		elif is_creature and creature != null:
-			cell.text = creature.display_name
+			var creature_discovered: bool = run_progress.is_creature_unlocked(creature.id)
+			cell.text = creature.display_name if creature_discovered else "DESCONOCIDA"
 			background = Color("#512B2B")
 			border = RED
-			var texture: Texture2D = _load_creature_portrait(creature)
-			if texture != null:
-				cell.icon = texture
+			if creature_discovered:
+				var texture: Texture2D = _load_creature_portrait(creature)
+				if texture != null:
+					cell.icon = texture
 		cell.add_theme_stylebox_override("normal", _style(background, border, 2 if is_player or is_creature or movement_target or attack_target else 1))
 		cell.add_theme_stylebox_override("hover", _style(background.lightened(0.08), border, 2))
 		cell.add_theme_stylebox_override("pressed", _style(background.darkened(0.08), border, 2))
