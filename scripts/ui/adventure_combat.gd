@@ -28,6 +28,7 @@ var attack_button: Button
 var retry_button: Button
 var creature_title: Label
 var creature_description: Label
+var creature_portrait: TextureRect
 
 func _ready() -> void:
 	_build_ui()
@@ -162,6 +163,14 @@ func _fighter_panel(label_text: String, accent: Color) -> PanelContainer:
 		creature_title.add_theme_font_size_override("font_size", 20)
 		creature_title.add_theme_color_override("font_color", TEXT)
 		column.add_child(creature_title)
+		creature_portrait = TextureRect.new()
+		creature_portrait.custom_minimum_size = Vector2(144, 144)
+		creature_portrait.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		creature_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		creature_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		creature_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		creature_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		column.add_child(creature_portrait)
 		creature_description = Label.new()
 		creature_description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		creature_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -204,11 +213,33 @@ func _load_creature() -> void:
 		return
 	creature_health = max(1, creature.max_health)
 	creature_title.text = creature.display_name
+	creature_portrait.texture = _load_creature_portrait(creature)
 	creature_description.text = creature.description
 	var stats_label := creature_title.get_parent().get_node_or_null("CreatureStats") as Label
 	if stats_label != null:
 		stats_label.text = "ATQ %d" % creature.attack
 	status_label.text = "Derrota a la criatura para desbloquear su carta."
+
+func _load_creature_portrait(card: CardDefinition) -> Texture2D:
+	var directory := DirAccess.open("res://assets/criatures/")
+	if directory == null:
+		return null
+	var wanted: Array[String] = [
+		_normalize_sprite_key(card.id),
+		_normalize_sprite_key(card.canonical_id),
+		_normalize_sprite_key(card.display_name)
+	]
+	for file_name in directory.get_files():
+		if not file_name.to_lower().ends_with(".png"):
+			continue
+		if wanted.has(_normalize_sprite_key(file_name.get_basename())):
+			return load("res://assets/criatures/" + file_name) as Texture2D
+	return null
+
+func _normalize_sprite_key(value: String) -> String:
+	var normalized := value.get_file().get_basename().to_lower().strip_edges()
+	return normalized.replace(" ", "").replace("_", "").replace("-", "").replace(".", "")
+
 
 func _player_attack() -> void:
 	if battle_finished or creature == null:
