@@ -15,8 +15,8 @@ var selector_mode: String = "exploration"
 @onready var play_button: Button = $Layout/Sidebar/SidebarContent/Menu/Jugar
 @onready var boss_button: Button = $Layout/Sidebar/SidebarContent/Menu/Jefes
 @onready var online_button: Button = $Layout/Sidebar/SidebarContent/Menu/Online
-@onready var settings_button: Button = $Layout/Sidebar/SidebarContent/Menu/Configuracion
-@onready var quit_button: Button = $Layout/Sidebar/SidebarContent/Menu/Salir
+@onready var settings_button: Button = $Layout/Sidebar/SidebarContent/BottomMenu/Configuracion
+@onready var quit_button: Button = $Layout/Sidebar/SidebarContent/BottomMenu/Salir
 @onready var card_grid: GridContainer = $Layout/CatalogArea/CatalogScroll/CardGrid
 @onready var card_count: Label = $Layout/CatalogArea/CatalogHeader/CatalogHeaderRow/CardCount
 
