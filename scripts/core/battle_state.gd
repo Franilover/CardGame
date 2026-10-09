@@ -435,6 +435,7 @@ func _create_hero(name: String, character_style: String = "guardian") -> CardDef
 	hero.display_name = name
 	hero.card_type = CardDefinition.CardType.CHARACTER
 	hero.health = HERO_MAX_HEALTH
+	hero.max_health = HERO_MAX_HEALTH
 	hero.cost = 0
 	hero.attack = HERO_ATTACK_POWER
 	hero.movement = 1
