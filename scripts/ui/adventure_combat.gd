@@ -106,7 +106,7 @@ func _build_ui() -> void:
 	retry_button.text = "VOLVER A AVENTURA"
 	retry_button.custom_minimum_size = Vector2(180, 52)
 	retry_button.visible = false
-	retry_button.pressed.connect(_return_to_adventure)
+	retry_button.pressed.connect(_on_retry_pressed)
 	actions.add_child(retry_button)
 
 	status_label = Label.new()
@@ -216,7 +216,7 @@ func _player_attack() -> void:
 	creature_health = max(0, creature_health - PLAYER_ATTACK)
 	if creature_health <= 0:
 		battle_finished = true
-		var newly_unlocked := run_progress.unlock_creature_after_adventure_victory(creature.id, creature.display_name)
+		var newly_unlocked := run_progress.unlock_creature_after_adventure_victory(creature.id)
 		status_label.text = "¡VICTORIA! Carta desbloqueada: %s." % creature.display_name if newly_unlocked else "¡VICTORIA! %s ya estaba desbloqueada." % creature.display_name
 		attack_button.disabled = true
 		retry_button.visible = true
@@ -242,6 +242,19 @@ func _refresh() -> void:
 		creature_health_bar.max_value = max(1, creature.max_health)
 		creature_health_bar.value = creature_health
 		creature_health_label.text = "VIDA %d / %d" % [creature_health, max(1, creature.max_health)]
+
+func _on_retry_pressed() -> void:
+	if player_health <= 0 and creature != null:
+		player_health = PLAYER_MAX_HEALTH
+		creature_health = max(1, creature.max_health)
+		battle_finished = false
+		attack_button.disabled = false
+		retry_button.visible = false
+		status_label.text = "Inténtalo de nuevo. Derrota a la criatura para desbloquearla."
+		_refresh()
+		return
+	_return_to_adventure()
+
 
 func _return_to_adventure() -> void:
 	get_tree().change_scene_to_file("res://scenes/adventure.tscn")
