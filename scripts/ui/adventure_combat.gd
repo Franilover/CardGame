@@ -38,7 +38,6 @@ var player_health_label: Label
 var creature_health_label: Label
 var status_label: Label
 var actions_label: Label
-var end_turn_button: Button
 var retry_button: Button
 var creature_title: Label
 var creature_description: Label
@@ -171,11 +170,6 @@ func _build_ui() -> void:
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	actions.add_theme_constant_override("separation", 10)
 	root.add_child(actions)
-	end_turn_button = Button.new()
-	end_turn_button.text = "FIN DEL TURNO"
-	end_turn_button.custom_minimum_size = Vector2(160, 42)
-	end_turn_button.pressed.connect(_end_player_turn)
-	actions.add_child(end_turn_button)
 	retry_button = Button.new()
 	retry_button.text = "VOLVER A AVENTURA"
 	retry_button.custom_minimum_size = Vector2(190, 42)
@@ -208,7 +202,6 @@ func _load_creature() -> void:
 			break
 	if creature == null:
 		status_label.text = "No se encontró la criatura canónica. Vuelve a Aventura y selecciona otra."
-		end_turn_button.disabled = true
 		return
 	creature_health = max(1, creature.max_health)
 	creature_title.text = "%s · ATQ %d" % [creature.display_name, creature.attack]
@@ -295,6 +288,10 @@ func _move_player(target_slot: int) -> void:
 	movement_preview = false
 	attack_preview = false
 	status_label.text = "Te moviste. Acción consumida."
+	if player_actions <= 0:
+		_refresh()
+		_enemy_turn()
+		return
 	_refresh()
 
 func _player_attack() -> void:
@@ -315,12 +312,11 @@ func _player_attack() -> void:
 		retry_button.text = "VOLVER A AVENTURA"
 	else:
 		status_label.text = "Ataque realizado. Acción consumida."
+		if player_actions <= 0:
+			_refresh()
+			_enemy_turn()
+			return
 	_refresh()
-
-func _end_player_turn() -> void:
-	if battle_finished or creature == null:
-		return
-	_enemy_turn()
 
 func _enemy_turn() -> void:
 	movement_preview = false
