@@ -436,12 +436,16 @@ func _build_bottom_bar() -> Control:
 	hero_attack_panel.add_theme_constant_override("separation", 3)
 	hero_attack_panel.visible = false
 
-	var directions: Array[Dictionary] = [
-		{"label": "ARRIBA", "direction": Vector2i.UP},
-		{"label": "ABAJO", "direction": Vector2i.DOWN},
-		{"label": "IZQ", "direction": Vector2i.LEFT},
-		{"label": "DER", "direction": Vector2i.RIGHT}
-	]
+	var directions: Array[Dictionary] = []
+	if RunProgress.selected_character_style == "archer":
+		directions = [
+			{"label": "FLECHA ↑", "direction": Vector2i.UP},
+			{"label": "FLECHA ↓", "direction": Vector2i.DOWN},
+			{"label": "FLECHA ←", "direction": Vector2i.LEFT},
+			{"label": "FLECHA →", "direction": Vector2i.RIGHT}
+		]
+	else:
+		directions = [{"label": "GOLPE CIRCULAR", "direction": Vector2i.ZERO}]
 	for direction_data in directions:
 		var attack_button := Button.new()
 		attack_button.text = str(direction_data["label"])
@@ -471,21 +475,29 @@ func _start_battle() -> void:
 	selected_card_index = -1
 	selected_unit_slot = -1
 	selected_ium_index = -1
-	status_label.text = "Despliega criaturas gratis en tu zona; pulsa INICIAR COMBATE."
+	status_label.text = "Preparando el catálogo de criaturas de Supabase..."
 
-	var player_deck: Array[CardDefinition] = CardCatalog.starter_deck()
-	var enemy_deck: Array[CardDefinition] = CardCatalog.enemy_deck()
+	var player_deck: Array[CardDefinition] = []
+	var enemy_deck: Array[CardDefinition] = []
 	var process_catalog: Array[CardDefinition] = []
 	available_iums.clear()
 	catalog_cards.clear()
 
-	if canon_repository.has_canon_data():
-		catalog_cards = CardCatalog.from_canon(canon_repository)
-		catalog_cards.append_array(CardCatalog.starter_deck())
-		player_deck = CardCatalog.starter_deck_from_canon(canon_repository)
-		enemy_deck = CardCatalog.enemy_deck_from_canon(canon_repository)
-	else:
-		catalog_cards = CardCatalog.starter_deck()
+	if not canon_repository.has_canon_data():
+		status_label.text = "No hay criaturas de Supabase en caché. Conéctate para sincronizar el canon y vuelve a jugar."
+		return
+
+	catalog_cards = CardCatalog.from_canon(canon_repository)
+	var canonical_creature_count := 0
+	for canonical_card in catalog_cards:
+		if canonical_card.card_type == CardDefinition.CardType.CREATURE:
+			canonical_creature_count += 1
+	if canonical_creature_count == 0:
+		status_label.text = "Supabase no devolvió criaturas para el catálogo. La partida no puede iniciarse."
+		return
+
+	player_deck = CardCatalog.starter_deck_from_canon(canon_repository)
+	enemy_deck = CardCatalog.enemy_deck_from_canon(canon_repository)
 
 	for card in catalog_cards:
 		if card.card_type == CardDefinition.CardType.IUM:
@@ -497,13 +509,15 @@ func _start_battle() -> void:
 	if available_iums.is_empty() and RunProgress.mode == "bosses":
 		available_iums = CardCatalog.starter_ium_catalog()
 
-	if RunProgress.mode == "bosses":
-		RunProgress.ensure_deck(player_deck)
+	RunProgress.ensure_deck(player_deck)
 	player_deck = RunProgress.build_player_deck(catalog_cards, player_deck)
+	if player_deck.is_empty() or enemy_deck.is_empty():
+		status_label.text = "No hay suficientes criaturas canónicas para construir ambos mazos."
+		return
 	enemy_deck = RunProgress.build_enemy_deck(enemy_deck)
 
 	engine = BattleEngine.new()
-	engine.setup(player_deck, enemy_deck, process_catalog, available_iums)
+	engine.setup(player_deck, enemy_deck, process_catalog, available_iums, RunProgress.selected_character_style)
 	state = engine.get_state()
 	if RunProgress.is_boss_encounter():
 		state.enemy_hero.display_name = "Jefe de Garlia"
@@ -890,8 +904,16 @@ func _refresh() -> void:
 	hero_attack_panel.visible = state.player_hero != null and selected_unit_slot == state.player_hero_slot and not state.finished
 	for direction_index in range(hero_attack_buttons.size()):
 		var direction: Vector2i = hero_attack_directions[direction_index]
-		var valid_three_cell_attack: bool = state.board.front_attack_indices(state.player_hero_slot, direction).size() == 3
-		hero_attack_buttons[direction_index].disabled = state.finished or state.player_actions <= 0 or not state.player_hero.can_attack() or not valid_three_cell_attack
+		var has_target := false
+		if state.player_hero.tags.has("ataque_lineal"):
+			var first_target: int = state.board.first_occupied_in_line(state.player_hero_slot, direction, state.player_hero.attack_range)
+			has_target = first_target >= 0 and state.board.get_owner(first_target) == BattleBoard.Owner.ENEMY
+		else:
+			for adjacent_index in state.board.adjacent_indices(state.player_hero_slot):
+				if state.board.get_owner(adjacent_index) == BattleBoard.Owner.ENEMY and state.board.get_card(adjacent_index) != null:
+					has_target = true
+					break
+		hero_attack_buttons[direction_index].disabled = state.finished or state.player_actions <= 0 or not state.player_hero.can_attack() or not has_target
 
 func _cell_style(index: int, selected: bool) -> StyleBoxFlat:
 	var row: int = floori(float(index) / float(BattleBoard.COLUMNS))
