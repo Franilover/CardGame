@@ -113,6 +113,18 @@ func _populate_home_cards() -> void:
 		if card == null:
 			continue
 		var tile := PanelContainer.new()
+		var card_style := StyleBoxFlat.new()
+		card_style.bg_color = Color(0.035, 0.105, 0.075, 1)
+		card_style.border_width_left = 1
+		card_style.border_width_top = 1
+		card_style.border_width_right = 1
+		card_style.border_width_bottom = 1
+		card_style.border_color = Color(0.16, 0.43, 0.29, 1)
+		card_style.corner_radius_top_left = 4
+		card_style.corner_radius_top_right = 4
+		card_style.corner_radius_bottom_right = 4
+		card_style.corner_radius_bottom_left = 4
+		tile.add_theme_stylebox_override("panel", card_style)
 		tile.custom_minimum_size = Vector2(120, 150)
 		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var body := VBoxContainer.new()
