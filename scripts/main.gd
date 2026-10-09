@@ -484,7 +484,7 @@ func _start_battle() -> void:
 	catalog_cards.clear()
 
 	if not canon_repository.has_canon_data():
-		status_label.text = "No hay criaturas de Supabase en caché. Conéctate para sincronizar el canon y vuelve a jugar."
+		status_label.text = "No hay criaturas de Supabase en caché. Conéctate para sincronizar el canon y vuelve a jugar. Pulsa ESC para volver."
 		return
 
 	catalog_cards = CardCatalog.from_canon(canon_repository)
@@ -493,7 +493,7 @@ func _start_battle() -> void:
 		if canonical_card.card_type == CardDefinition.CardType.CREATURE:
 			canonical_creature_count += 1
 	if canonical_creature_count == 0:
-		status_label.text = "Supabase no devolvió criaturas para el catálogo. La partida no puede iniciarse."
+		status_label.text = "Supabase no devolvió criaturas para el catálogo. Pulsa ESC para volver."
 		return
 
 	player_deck = CardCatalog.starter_deck_from_canon(canon_repository)
@@ -512,13 +512,14 @@ func _start_battle() -> void:
 	RunProgress.ensure_deck(player_deck)
 	player_deck = RunProgress.build_player_deck(catalog_cards, player_deck)
 	if player_deck.is_empty() or enemy_deck.is_empty():
-		status_label.text = "No hay suficientes criaturas canónicas para construir ambos mazos."
+		status_label.text = "No hay suficientes criaturas canónicas para construir ambos mazos. Pulsa ESC para volver."
 		return
 	enemy_deck = RunProgress.build_enemy_deck(enemy_deck)
 
 	engine = BattleEngine.new()
 	engine.setup(player_deck, enemy_deck, process_catalog, available_iums, RunProgress.selected_character_style)
 	state = engine.get_state()
+	status_label.text = "Tus guardias ya están desplegados. Pulsa INICIAR COMBATE."
 	if RunProgress.is_boss_encounter():
 		state.enemy_hero.display_name = "Jefe de Garlia"
 		state.enemy_hero.health = 45
