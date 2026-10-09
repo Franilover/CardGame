@@ -840,7 +840,7 @@ func _on_board_pressed(index: int) -> void:
 	if selected_card_index >= 0 and selected_card_index < state.hand.size():
 		var card: CardDefinition = state.hand[selected_card_index]
 		if card.card_type == CardDefinition.CardType.IUM:
-					return
+			return
 		var enemy_target: bool = state.board.get_owner(index) == BattleBoard.Owner.ENEMY
 		var result: BattleResult = engine.execute(BattleCommand.play_card(selected_card_index, index, enemy_target))
 		if result.success:
