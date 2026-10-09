@@ -855,7 +855,8 @@ func _refresh() -> void:
 		var health_bar: ProgressBar = board_health_bars[index]
 		if occupant != null:
 			button.icon = null
-			piece_sprite.texture = _pixel_sprite_for(occupant, index == state.player_hero_slot or index == state.enemy_hero_slot)
+			var is_hero: bool = occupant == state.player_hero or occupant == state.enemy_hero
+			piece_sprite.texture = _pixel_sprite_for(occupant, is_hero)
 			var tint_material := piece_sprite.material as ShaderMaterial
 			var team_tint: Color = Color("#45E878") if owner == BattleBoard.Owner.PLAYER else Color("#4A9DFF")
 			if tint_material != null:
