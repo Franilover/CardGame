@@ -32,10 +32,6 @@ var battle_finished: bool = false
 var movement_preview: bool = false
 var attack_preview: bool = false
 var board_buttons: Array[Button] = []
-var player_health_bar: ProgressBar
-var creature_health_bar: ProgressBar
-var player_health_label: Label
-var creature_health_label: Label
 var status_label: Label
 var actions_label: Label
 var retry_button: Button
@@ -88,11 +84,6 @@ func _build_ui() -> void:
 	back.text = "HUIR"
 	back.pressed.connect(_return_to_adventure)
 	header.add_child(back)
-
-	var subtitle := Label.new()
-	subtitle.text = "3×3 · Dos acciones por turno · Mover o atacar consume una acción."
-	subtitle.add_theme_color_override("font_color", MUTED)
-	root.add_child(subtitle)
 
 	var fighters := HBoxContainer.new()
 	fighters.add_theme_constant_override("separation", 18)
@@ -154,12 +145,6 @@ func _build_ui() -> void:
 		grid.add_child(cell)
 		board_buttons.append(cell)
 
-	var legend := Label.new()
-	legend.text = "Clic izquierdo: ver/mover · Clic derecho: ver objetivos de ataque"
-	legend.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	legend.add_theme_color_override("font_color", MUTED)
-	root.add_child(legend)
-
 	actions_label = Label.new()
 	actions_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	actions_label.add_theme_font_size_override("font_size", 18)
@@ -183,17 +168,6 @@ func _build_ui() -> void:
 	status_label.add_theme_color_override("font_color", GOLD)
 	root.add_child(status_label)
 
-func _health_bar(fill_color: Color) -> ProgressBar:
-	var bar := ProgressBar.new()
-	bar.custom_minimum_size = Vector2(0, 17)
-	bar.show_percentage = false
-	bar.min_value = 0
-	bar.max_value = 1
-	bar.value = 1
-	bar.add_theme_stylebox_override("background", _style(Color("#101714"), Color("#101714"), 0))
-	bar.add_theme_stylebox_override("fill", _style(fill_color, fill_color, 0))
-	return bar
-
 func _load_creature() -> void:
 	var selected_id: String = run_progress.selected_adventure_creature_id
 	for card in CardCatalog.from_canon(canon_repository):
@@ -204,7 +178,7 @@ func _load_creature() -> void:
 		status_label.text = "No se encontró la criatura canónica. Vuelve a Aventura y selecciona otra."
 		return
 	creature_health = max(1, creature.max_health)
-	creature_title.text = "%s · ATQ %d" % [creature.display_name, creature.attack]
+	creature_title.text = creature.display_name
 	creature_description = Label.new()
 	creature_description.text = creature.description
 	creature_description.visible = false
@@ -386,16 +360,8 @@ func _distance(first_slot: int, second_slot: int) -> int:
 	return abs(first_row - second_row) + abs(first_column - second_column)
 
 func _refresh() -> void:
-	if player_health_bar != null:
-		player_health_bar.max_value = PLAYER_MAX_HEALTH
-		player_health_bar.value = player_health
-		player_health_label.text = "VIDA %d / %d" % [player_health, PLAYER_MAX_HEALTH]
-	if creature_health_bar != null and creature != null:
-		creature_health_bar.max_value = max(1, creature.max_health)
-		creature_health_bar.value = creature_health
-		creature_health_label.text = "VIDA %d / %d" % [creature_health, max(1, creature.max_health)]
 	if actions_label != null:
-		actions_label.text = "TURNO %d · ACCIONES %d/%d" % [turn_number, player_actions, ACTIONS_PER_TURN]
+		actions_label.text = "●".repeat(player_actions) + "○".repeat(ACTIONS_PER_TURN - player_actions)
 	for index in range(board_buttons.size()):
 		var cell: Button = board_buttons[index]
 		cell.icon = null
@@ -413,11 +379,11 @@ func _refresh() -> void:
 			background = Color("#62531B")
 			border = GOLD
 		if is_player:
-			cell.text = "TÚ\nATQ %d" % PLAYER_ATTACK
+			cell.text = "TÚ"
 			background = Color("#174B37")
 			border = GREEN
 		elif is_creature and creature != null:
-			cell.text = "%s\nATQ %d" % [creature.display_name, creature.attack]
+			cell.text = creature.display_name
 			background = Color("#512B2B")
 			border = RED
 			var texture: Texture2D = _load_creature_portrait(creature)
