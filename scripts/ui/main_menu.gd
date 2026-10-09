@@ -9,6 +9,7 @@ const ADVENTURE_SCENE_PATH := "res://scenes/adventure.tscn"
 var character_selector: VBoxContainer
 var selector_mode: String = "exploration"
 var show_discoveries: bool = false
+var combat_submenu: bool = false
 var loadout_row: HBoxContainer
 var king_selector: OptionButton
 
@@ -26,21 +27,72 @@ var king_selector: OptionButton
 @onready var loadout_scroll: ScrollContainer = $Layout/CatalogArea/LoadoutScroll
 
 func _ready() -> void:
-	play_button.text = "LOCAL"
-	boss_button.text = "AZAR"
-	discoveries_button.visible = false
-	play_button.pressed.connect(_on_local_selected)
-	boss_button.pressed.connect(_on_random_pressed)
+	play_button.pressed.connect(_on_play_pressed)
+	boss_button.pressed.connect(_on_boss_pressed)
 	online_button.pressed.connect(_on_online_pressed)
+	discoveries_button.pressed.connect(_on_discoveries_or_back_pressed)
 	settings_button.pressed.connect(_on_settings_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
-	play_button.grab_focus()
+	_show_main_menu()
 	status_label.text = ""
 	await canon_repository.initialize()
 	var starter_cards: Array[CardDefinition] = CardCatalog.starter_deck_from_canon(canon_repository)
 	run_progress.initialize_collection(starter_cards)
 	_build_loadout_row()
 	_populate_home_cards()
+
+func _show_main_menu() -> void:
+	combat_submenu = false
+	show_discoveries = false
+	play_button.text = "AVENTURA"
+	play_button.visible = true
+	boss_button.text = "COMBATE"
+	boss_button.visible = true
+	online_button.visible = false
+	discoveries_button.text = "DESCUBRIMIENTOS"
+	discoveries_button.visible = true
+	_populate_home_cards()
+	play_button.grab_focus()
+
+func _open_combat_menu() -> void:
+	combat_submenu = true
+	play_button.text = "LOCAL"
+	play_button.visible = true
+	boss_button.text = "AZAR"
+	boss_button.visible = true
+	online_button.text = "ONLINE"
+	online_button.visible = true
+	discoveries_button.text = "VOLVER"
+	discoveries_button.visible = true
+	status_label.text = "Elige cómo quieres jugar el combate."
+	play_button.grab_focus()
+
+func _on_play_pressed() -> void:
+	if combat_submenu:
+		_on_local_selected()
+	else:
+		_on_adventure_selected()
+
+func _on_boss_pressed() -> void:
+	if combat_submenu:
+		_on_random_pressed()
+	else:
+		_open_combat_menu()
+
+func _on_discoveries_or_back_pressed() -> void:
+	if combat_submenu:
+		_show_main_menu()
+		status_label.text = ""
+		return
+	show_discoveries = not show_discoveries
+	discoveries_button.text = "MIS CARTAS" if show_discoveries else "DESCUBRIMIENTOS"
+	_populate_home_cards()
+
+func _on_adventure_selected() -> void:
+	run_progress.start_mode("adventure")
+	status_label.text = "Preparando aventura..."
+	set_process_input(false)
+	get_tree().change_scene_to_file(ADVENTURE_SCENE_PATH)
 
 func _on_local_selected() -> void:
 	run_progress.start_mode("local")
