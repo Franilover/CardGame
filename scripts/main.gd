@@ -727,9 +727,15 @@ func _try_execute_attack_preview(target_slot: int) -> bool:
 				direction = Vector2i.LEFT
 			else:
 				direction = Vector2i.RIGHT
-		result = engine.execute(BattleCommand.hero_attack(attack_preview_slot, direction))
+		if state.local_mode:
+			result = BattleResult.ok("Ataque del rey ejecutado.") if state.hero_attack(attack_preview_slot, direction) else BattleResult.error("LOCAL_HERO_ATTACK_FAILED", "No se pudo ejecutar el ataque del rey.")
+		else:
+			result = engine.execute(BattleCommand.hero_attack(attack_preview_slot, direction))
 	else:
-		result = engine.execute(BattleCommand.attack(attack_preview_slot, target_slot))
+		if state.local_mode:
+			result = BattleResult.ok("Ataque ejecutado.") if state.attack_unit(attack_preview_slot, target_slot) else BattleResult.error("LOCAL_ATTACK_FAILED", "No se pudo realizar el ataque.")
+		else:
+			result = engine.execute(BattleCommand.attack(attack_preview_slot, target_slot))
 
 	if result.success:
 		selected_unit_slot = -1
@@ -816,9 +822,15 @@ func _resolve_board_drag(source_slot: int, target_slot: int) -> void:
 
 	var result: BattleResult
 	if state.board.get_owner(target_slot) == state.get_opposing_owner():
-		result = engine.execute(BattleCommand.attack(source_slot, target_slot))
+		if state.local_mode:
+			result = BattleResult.ok("Ataque ejecutado.") if state.attack_unit(source_slot, target_slot) else BattleResult.error("LOCAL_ATTACK_FAILED", "No se pudo realizar el ataque.")
+		else:
+			result = engine.execute(BattleCommand.attack(source_slot, target_slot))
 	elif state.board.is_empty(target_slot):
-		result = engine.execute(BattleCommand.move_unit(source_slot, target_slot))
+		if state.local_mode:
+			result = BattleResult.ok("Unidad movida.") if state.move_unit(source_slot, target_slot) else BattleResult.error("LOCAL_MOVE_FAILED", "No se pudo mover esa unidad.")
+		else:
+			result = engine.execute(BattleCommand.move_unit(source_slot, target_slot))
 	else:
 		status_label.text = "El destino está ocupado."
 		_refresh()
@@ -864,9 +876,15 @@ func _on_board_pressed(index: int) -> void:
 			return
 		var result: BattleResult
 		if state.board.get_owner(index) == state.get_opposing_owner():
-			result = engine.execute(BattleCommand.attack(selected_unit_slot, index))
+			if state.local_mode:
+				result = BattleResult.ok("Ataque ejecutado.") if state.attack_unit(selected_unit_slot, index) else BattleResult.error("LOCAL_ATTACK_FAILED", "No se pudo realizar el ataque.")
+			else:
+				result = engine.execute(BattleCommand.attack(selected_unit_slot, index))
 		elif state.board.is_empty(index):
-			result = engine.execute(BattleCommand.move_unit(selected_unit_slot, index))
+			if state.local_mode:
+				result = BattleResult.ok("Unidad movida.") if state.move_unit(selected_unit_slot, index) else BattleResult.error("LOCAL_MOVE_FAILED", "No se pudo mover esa unidad.")
+			else:
+				result = engine.execute(BattleCommand.move_unit(selected_unit_slot, index))
 		else:
 			status_label.text = "El destino está ocupado."
 			return
@@ -880,7 +898,11 @@ func _on_board_pressed(index: int) -> void:
 func _on_hero_attack_pressed(direction: Vector2i) -> void:
 	if state == null or state.is_finished() or selected_unit_slot != state.get_active_hero_slot():
 		return
-	var result: BattleResult = engine.execute(BattleCommand.hero_attack(state.get_active_hero_slot(), direction))
+	var result: BattleResult
+	if state.local_mode:
+		result = BattleResult.ok("Ataque del rey ejecutado.") if state.hero_attack(state.get_active_hero_slot(), direction) else BattleResult.error("LOCAL_HERO_ATTACK_FAILED", "No se pudo ejecutar el ataque del rey.")
+	else:
+		result = engine.execute(BattleCommand.hero_attack(state.get_active_hero_slot(), direction))
 	if result.success:
 		selected_unit_slot = -1
 		attack_preview_slot = -1
@@ -888,6 +910,8 @@ func _on_hero_attack_pressed(direction: Vector2i) -> void:
 	else:
 		status_label.text = "ERROR · %s" % result.message
 	_refresh()
+	if result.success and state.local_mode and not state.setup_phase and state.get_active_actions() <= 0:
+		call_deferred("_auto_end_turn_if_needed")
 
 func _populate_ium_bar() -> void:
 	for child in ium_bar_row.get_children():
