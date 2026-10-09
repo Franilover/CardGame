@@ -17,6 +17,7 @@ const SELECTED_COLOR := Color("#205B49")
 const NEUTRAL_COLOR := Color("#1C3329")
 const HERO_COLOR := Color("#C99F4A")
 const HERO_BG_COLOR := Color("#3A301C")
+const TEAM_TINT_SHADER: Shader = preload("res://assets/shaders/team_tint.gdshader")
 
 var engine: BattleEngine
 var state: BattleState
@@ -24,6 +25,7 @@ var selected_card_index: int = -1
 var selected_unit_slot: int = -1
 
 var board_buttons: Array[Button] = []
+var board_piece_sprites: Array[TextureRect] = []
 var mixer_buttons: Array[Button] = []
 var hand_buttons: Array[Button] = []
 var hand_units_row: HBoxContainer
@@ -252,8 +254,19 @@ func _build_middle() -> Control:
 		cell.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		cell.add_theme_font_size_override("font_size", 7 if run_progress.mode == "exploration" else 8)
 		cell.gui_input.connect(_on_board_gui_input.bind(index))
+		var piece_sprite := TextureRect.new()
+		piece_sprite.name = "PieceSprite"
+		piece_sprite.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		piece_sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		piece_sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		piece_sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		var tint_material := ShaderMaterial.new()
+		tint_material.shader = TEAM_TINT_SHADER
+		piece_sprite.material = tint_material
+		cell.add_child(piece_sprite)
 		grid.add_child(cell)
 		board_buttons.append(cell)
+		board_piece_sprites.append(piece_sprite)
 
 	var side_column := VBoxContainer.new()
 	side_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -813,11 +826,19 @@ func _refresh() -> void:
 		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		button.expand_icon = true
 		button.text = ""
+		var piece_sprite: TextureRect = board_piece_sprites[index]
 		if occupant != null:
-			button.icon = _pixel_sprite_for(occupant, index == state.player_hero_slot or index == state.enemy_hero_slot)
+			button.icon = null
+			piece_sprite.texture = _pixel_sprite_for(occupant, index == state.player_hero_slot or index == state.enemy_hero_slot)
+			var tint_material := piece_sprite.material as ShaderMaterial
+			if tint_material != null:
+				var team_tint: Color = Color("#45E878") if owner == BattleBoard.Owner.PLAYER else Color("#4A9DFF")
+				tint_material.set_shader_parameter("tint_color", team_tint)
+				tint_material.set_shader_parameter("tint_strength", 0.82)
 			button.tooltip_text = "%s · ATQ %d" % [occupant.display_name, occupant.attack]
 		else:
 			button.icon = null
+			piece_sprite.texture = null
 			button.tooltip_text = "Casilla vacía"
 		button.add_theme_stylebox_override("normal", _cell_style(index, selected))
 		button.add_theme_stylebox_override("hover", _cell_style(index, true))
