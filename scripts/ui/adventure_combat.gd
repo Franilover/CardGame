@@ -35,9 +35,6 @@ var board_buttons: Array[Button] = []
 var status_label: Label
 var actions_label: Label
 var retry_button: Button
-var creature_title: Label
-var creature_description: Label
-var creature_portrait: TextureRect
 
 func _ready() -> void:
 	_build_ui()
@@ -149,12 +146,6 @@ func _load_creature() -> void:
 		status_label.text = "No se encontró la criatura canónica. Vuelve a Aventura y selecciona otra."
 		return
 	creature_health = max(1, creature.max_health)
-	creature_title.text = creature.display_name
-	creature_description = Label.new()
-	creature_description.text = creature.description
-	creature_description.visible = false
-	creature_portrait = TextureRect.new()
-	creature_portrait.texture = _load_creature_portrait(creature)
 	status_label.text = "Derrota a la criatura para desbloquear su carta."
 
 func _load_creature_portrait(card: CardDefinition) -> Texture2D:
