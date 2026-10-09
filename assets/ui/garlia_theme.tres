@@ -13,7 +13,7 @@ corner_radius_bottom_left = 0
 shadow_size = 0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxButtonNormal"]
-bg_color = Color(0, 0, 0, 0)
+bg_color = Color(0.055, 0.16, 0.105, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -27,7 +27,7 @@ content_margin_left = 12.0
 content_margin_right = 12.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxButtonHover"]
-bg_color = Color(0.075, 0.18, 0.12, 1)
+bg_color = Color(0.09, 0.23, 0.14, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -41,7 +41,7 @@ content_margin_left = 20.0
 content_margin_right = 20.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxButtonPressed"]
-bg_color = Color(0.12, 0.25, 0.16, 1)
+bg_color = Color(0.14, 0.31, 0.19, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
