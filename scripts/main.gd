@@ -466,6 +466,8 @@ func _populate_loadout_inventory() -> void:
 		card_button.add_theme_stylebox_override("hover", _button_style(SELECTED_COLOR, CYAN_COLOR, 0, 1))
 		if card.card_type == CardDefinition.CardType.OBJECT:
 			card_button.pressed.connect(_on_inventory_card_pressed.bind(card.id))
+		elif card.card_type == CardDefinition.CardType.CREATURE:
+			card_button.gui_input.connect(_on_inventory_card_gui_input.bind(card.id))
 		else:
 			card_button.disabled = true
 		loadout_inventory_row.add_child(card_button)
