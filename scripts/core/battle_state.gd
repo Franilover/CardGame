@@ -115,8 +115,8 @@ func _deploy_initial_player_guards(player_character_style: String) -> void:
 	var guard_count: int = 1 if player_character_style == "archer" else 3
 	var guard_slots: Array[int] = [
 		BattleBoard.COLUMNS * 6 + 1,
-		BattleBoard.COLUMNS * 6 + 2,
-		BattleBoard.COLUMNS * 6 + 3
+		BattleBoard.COLUMNS * 6 + 3,
+		BattleBoard.COLUMNS * 5 + 2
 	]
 	var deployed := 0
 	for slot in guard_slots:
