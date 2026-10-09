@@ -54,7 +54,7 @@ func initialize_collection(seed_cards: Array[CardDefinition]) -> void:
 				valid_starters.append(card.id)
 		for index in range(min(loadout_ids.size(), valid_starters.size())):
 			loadout_ids[index] = valid_starters[index]
-		if loadout_ids.all(func(id: String) -> bool: return id.is_empty()):
+		if _loadout_is_empty():
 			for index in range(min(loadout_ids.size(), deck_ids.size())):
 				loadout_ids[index] = deck_ids[index]
 	_sync_deck_from_loadout()
@@ -159,48 +159,69 @@ func encounter_label() -> String:
 	return "EXPLORACIÓN %d/%d" % [encounter_index + 1, EXPLORATION_COUNT]
 
 func ensure_deck(seed_cards: Array[CardDefinition], minimum_creatures: int = 3) -> void:
+	var has_configured_loadout := not _loadout_is_empty()
 	var canonical_creatures: Array[CardDefinition] = []
 	var canonical_objects: Array[CardDefinition] = []
-	var seen: Dictionary = {}
 	var valid_ids: Dictionary = {}
 	for card in seed_cards:
 		if card == null:
 			continue
 		valid_ids[card.id] = card
-		if seen.has(card.id):
+		if get_owned_count(card.id) <= 0:
 			continue
-		seen[card.id] = true
-		if card.card_type == CardDefinition.CardType.CREATURE:
+		if card.card_type == CardDefinition.CardType.CREATURE and not _contains_card_id(canonical_creatures, card.id):
 			canonical_creatures.append(card)
-		elif card.card_type == CardDefinition.CardType.OBJECT and canonical_objects.is_empty():
+		elif card.card_type == CardDefinition.CardType.OBJECT and not _contains_card_id(canonical_objects, card.id):
 			canonical_objects.append(card)
 
 	var filtered_ids: Array[String] = []
+	var used_counts: Dictionary = {}
 	for card_id in deck_ids:
-		if valid_ids.has(card_id):
-			filtered_ids.append(card_id)
+		if not valid_ids.has(card_id) or get_owned_count(card_id) <= 0:
+			continue
+		var used_count: int = int(used_counts.get(card_id, 0))
+		if used_count >= get_owned_count(card_id):
+			continue
+		filtered_ids.append(card_id)
+		used_counts[card_id] = used_count + 1
 	deck_ids = filtered_ids
 
-	if deck_ids.is_empty():
-		var starter_cards: Array[CardDefinition] = []
-		for index in range(min(3, canonical_creatures.size())):
-			starter_cards.append(canonical_creatures[index])
-		starter_cards.append_array(canonical_objects)
-		for card in starter_cards:
-			for _copy_index in range(3):
+	if deck_ids.is_empty() and not has_configured_loadout:
+		for card in canonical_creatures:
+			for _copy_index in range(get_owned_count(card.id)):
+				deck_ids.append(card.id)
+		for card in canonical_objects:
+			for _copy_index in range(get_owned_count(card.id)):
 				deck_ids.append(card.id)
 
-	var creature_count := 0
-	for card_id in deck_ids:
-		var seed_card: CardDefinition = valid_ids.get(card_id) as CardDefinition
-		if seed_card != null and seed_card.card_type == CardDefinition.CardType.CREATURE:
+	if not has_configured_loadout:
+		var creature_count := 0
+		for card_id in deck_ids:
+			var seed_card: CardDefinition = valid_ids.get(card_id) as CardDefinition
+			if seed_card != null and seed_card.card_type == CardDefinition.CardType.CREATURE:
+				creature_count += 1
+		while creature_count < minimum_creatures:
+			var next_creature: CardDefinition
+			for candidate in canonical_creatures:
+				var in_deck := 0
+				for existing_id in deck_ids:
+					if existing_id == candidate.id:
+						in_deck += 1
+				if in_deck < get_owned_count(candidate.id):
+					next_creature = candidate
+					break
+			if next_creature == null:
+				break
+			deck_ids.append(next_creature.id)
 			creature_count += 1
-	while creature_count < minimum_creatures and not canonical_creatures.is_empty():
-		var next_creature: CardDefinition = canonical_creatures[creature_count % canonical_creatures.size()]
-		deck_ids.append(next_creature.id)
-		creature_count += 1
 
 	_save_progress()
+
+func _contains_card_id(cards: Array[CardDefinition], card_id: String) -> bool:
+	for card in cards:
+		if card != null and card.id == card_id:
+			return true
+	return false
 
 func build_player_deck(catalog_cards: Array[CardDefinition], fallback_cards: Array[CardDefinition]) -> Array[CardDefinition]:
 	var catalog: Dictionary = {}
