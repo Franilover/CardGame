@@ -14,10 +14,11 @@ shadow_size = 0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxButtonNormal"]
 bg_color = Color(0, 0, 0, 0)
-border_width_left = 0
-border_width_top = 0
-border_width_right = 0
-border_width_bottom = 0
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.16, 0.43, 0.29, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
@@ -26,11 +27,12 @@ content_margin_left = 12.0
 content_margin_right = 12.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxButtonHover"]
-bg_color = Color(0.1059, 0.2353, 0.1804, 1)
-border_width_left = 0
-border_width_top = 0
-border_width_right = 0
-border_width_bottom = 0
+bg_color = Color(0.075, 0.18, 0.12, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.28, 0.66, 0.43, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
@@ -39,11 +41,12 @@ content_margin_left = 20.0
 content_margin_right = 20.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxButtonPressed"]
-bg_color = Color(0.1804, 0.3333, 0.2706, 1)
-border_width_left = 0
-border_width_top = 0
-border_width_right = 0
-border_width_bottom = 0
+bg_color = Color(0.12, 0.25, 0.16, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.36, 0.72, 0.48, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
