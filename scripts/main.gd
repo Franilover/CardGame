@@ -56,10 +56,12 @@ var hero_attack_panel: HBoxContainer
 var hero_attack_buttons: Array[Button] = []
 var hero_attack_directions: Array[Vector2i] = []
 var pixel_sprite_cache: Dictionary = {}
+var creature_sprite_paths: Dictionary = {}
 var middle_container: Control
 var board_grid: GridContainer
 
 func _ready() -> void:
+	_scan_creature_sprites()
 	_build_ui()
 	_start_battle()
 	call_deferred("_fit_board_cells")
@@ -971,11 +973,55 @@ func _cell_style(index: int, selected: bool) -> StyleBoxFlat:
 	var background: Color = Color("#24483F") if (row + column) % 2 == 0 else Color("#293F58")
 	return _style_box(background, GOLD_COLOR if selected else Color("#0B1712"), 0, 3 if selected else 1)
 
+func _scan_creature_sprites() -> void:
+	creature_sprite_paths.clear()
+	var directory := DirAccess.open("res://assets/criatures/")
+	if directory == null:
+		push_warning("No existe res://assets/criatures/. Se usarán placeholders para las criaturas.")
+		return
+
+	for file_name in directory.get_files():
+		if not file_name.to_lower().ends_with(".png"):
+			continue
+		var key: String = _normalize_sprite_key(file_name.get_basename())
+		if key.is_empty():
+			continue
+		creature_sprite_paths[key] = "res://assets/criatures/" + file_name
+
+
+func _load_creature_sprite(card: CardDefinition) -> Texture2D:
+	var candidate_keys: Array[String] = [
+		_normalize_sprite_key(card.id),
+		_normalize_sprite_key(card.canonical_id),
+		_normalize_sprite_key(card.display_name)
+	]
+	for key in candidate_keys:
+		if key.is_empty() or not creature_sprite_paths.has(key):
+			continue
+		var texture := load(str(creature_sprite_paths[key])) as Texture2D
+		if texture != null:
+			return texture
+	return null
+
+
+func _normalize_sprite_key(value: String) -> String:
+	var normalized := value.get_file().get_basename().to_lower().strip_edges()
+	normalized = normalized.replace(" ", "").replace("_", "").replace("-", "").replace(".", "")
+	return normalized
+
+
 func _pixel_sprite_for(card: CardDefinition, is_hero: bool = false) -> Texture2D:
 	var cache_key: String = card.id + ("_hero" if is_hero else "_unit")
 	if pixel_sprite_cache.has(cache_key):
 		return pixel_sprite_cache[cache_key] as Texture2D
 
+	if card.card_type == CardDefinition.CardType.CREATURE:
+		var creature_texture: Texture2D = _load_creature_sprite(card)
+		if creature_texture != null:
+			pixel_sprite_cache[cache_key] = creature_texture
+			return creature_texture
+
+	# Placeholder: solo se usa si no existe una imagen PNG para esta criatura.
 	var image: Image = Image.create(64, 64, false, Image.FORMAT_RGBA8)
 	image.fill(Color(0, 0, 0, 0))
 	var seed_value: int = abs(hash(card.id + card.display_name))
