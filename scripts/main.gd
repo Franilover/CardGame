@@ -1,6 +1,7 @@
 extends Control
 
 @onready var canon_repository: Node = get_node("/root/GarliaCanonRepository")
+@onready var run_progress: Node = get_node("/root/RunProgress")
 
 const MENU_SCENE_PATH := "res://scenes/main_menu.tscn"
 const BG_COLOR := Color("#071E16")
@@ -249,7 +250,7 @@ func _build_middle() -> Control:
 		cell.clip_contents = true
 		cell.autowrap_mode = TextServer.AUTOWRAP_OFF
 		cell.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		cell.add_theme_font_size_override("font_size", 7 if RunProgress.mode == "exploration" else 8)
+		cell.add_theme_font_size_override("font_size", 7 if run_progress.mode == "exploration" else 8)
 		cell.gui_input.connect(_on_board_gui_input.bind(index))
 		grid.add_child(cell)
 		board_buttons.append(cell)
@@ -332,7 +333,7 @@ func _build_middle() -> Control:
 	ium_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	ium_scroll.custom_minimum_size.y = 62
 	ium_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ium_scroll.visible = RunProgress.mode == "bosses"
+	ium_scroll.visible = run_progress.mode == "bosses"
 	mixer_root.add_child(ium_scroll)
 
 	ium_bar_row = HBoxContainer.new()
@@ -437,7 +438,7 @@ func _build_bottom_bar() -> Control:
 	hero_attack_panel.visible = false
 
 	var directions: Array[Dictionary] = []
-	if RunProgress.selected_character_style == "archer":
+	if run_progress.selected_character_style == "archer":
 		directions = [
 			{"label": "FLECHA ↑", "direction": Vector2i.UP},
 			{"label": "FLECHA ↓", "direction": Vector2i.DOWN},
@@ -471,7 +472,7 @@ func _build_bottom_bar() -> Control:
 	return bar
 
 func _start_battle() -> void:
-	current_encounter_label = RunProgress.encounter_label()
+	current_encounter_label = run_progress.encounter_label()
 	selected_card_index = -1
 	selected_unit_slot = -1
 	selected_ium_index = -1
@@ -501,26 +502,26 @@ func _start_battle() -> void:
 
 	for card in catalog_cards:
 		if card.card_type == CardDefinition.CardType.IUM:
-			if RunProgress.mode == "bosses":
+			if run_progress.mode == "bosses":
 				available_iums.append(card)
 		elif card.card_type == CardDefinition.CardType.PROCESS:
 			process_catalog.append(card)
 
-	if available_iums.is_empty() and RunProgress.mode == "bosses":
+	if available_iums.is_empty() and run_progress.mode == "bosses":
 		available_iums = CardCatalog.starter_ium_catalog()
 
-	RunProgress.ensure_deck(player_deck)
-	player_deck = RunProgress.build_player_deck(catalog_cards, player_deck)
+	run_progress.ensure_deck(player_deck)
+	player_deck = run_progress.build_player_deck(catalog_cards, player_deck)
 	if player_deck.is_empty() or enemy_deck.is_empty():
 		status_label.text = "No hay suficientes criaturas canónicas para construir ambos mazos. Pulsa ESC para volver."
 		return
-	enemy_deck = RunProgress.build_enemy_deck(enemy_deck)
+	enemy_deck = run_progress.build_enemy_deck(enemy_deck)
 
 	engine = BattleEngine.new()
-	engine.setup(player_deck, enemy_deck, process_catalog, available_iums, RunProgress.selected_character_style)
+	engine.setup(player_deck, enemy_deck, process_catalog, available_iums, run_progress.selected_character_style)
 	state = engine.get_state()
 	status_label.text = "Tus guardias ya están desplegados. Pulsa INICIAR COMBATE."
-	if RunProgress.is_boss_encounter():
+	if run_progress.is_boss_encounter():
 		state.enemy_hero.display_name = "Jefe de Garlia"
 		state.enemy_hero.health = 45
 		state.enemy_hero.attack = 8
@@ -772,7 +773,7 @@ func _on_engine_event(event: BattleEvent) -> void:
 		status_label.text = event.message
 
 func _on_battle_finished(player_won: bool) -> void:
-	var reward_message: String = RunProgress.finish_battle(state, player_won, catalog_cards)
+	var reward_message: String = run_progress.finish_battle(state, player_won, catalog_cards)
 	status_label.text = ("VICTORIA" if player_won else "DERROTA") + reward_message
 	end_turn_button.text = "CONTINUAR" if player_won else "REINTENTAR"
 	end_turn_button.disabled = false
