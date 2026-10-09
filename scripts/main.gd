@@ -657,6 +657,7 @@ func _resolve_board_drag(source_slot: int, target_slot: int) -> void:
 
 	if result.success:
 		selected_unit_slot = -1
+		_refresh()
 	else:
 		status_label.text = "ERROR · %s" % result.message
 		_refresh()
@@ -689,6 +690,7 @@ func _on_board_pressed(index: int) -> void:
 			return
 		if result.success:
 			selected_unit_slot = -1
+			_refresh()
 		return
 
 	if _is_draggable_player_unit(index):
