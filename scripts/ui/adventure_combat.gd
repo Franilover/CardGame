@@ -23,6 +23,7 @@ var creature_start_slot: int = 1
 var player_attack_range: int = 1
 
 var creature: CardDefinition
+var supabase_client: Node = get_node("/root/GarliaSupabaseClient")
 var player_health: int = 30
 var creature_health: int = 1
 var player_slot: int = 7
@@ -45,7 +46,10 @@ func _ready() -> void:
 	_refresh()
 
 func _load_rules() -> void:
-	for row in canon_repository.get_table("cardgame_reglas_v1"):
+	var rule_rows: Array = canon_repository.get_table("cardgame_reglas_v1")
+	if rule_rows.is_empty() and supabase_client.is_configured():
+		rule_rows = await supabase_client.get_table_rows("cardgame_reglas_v1", "clave,configuracion,activo,version", 10)
+	for row in rule_rows:
 		if not row is Dictionary or str(row.get("clave", "")) != "reglas_base" or not bool(row.get("activo", true)):
 			continue
 		var configuration: Variant = row.get("configuracion", {})
@@ -215,7 +219,7 @@ func _on_cell_gui_input(event: InputEvent, index: int) -> void:
 		return
 
 	if attack_preview and index == creature_slot:
-		if _can_attack_from(player_slot, creature_slot, PLAYER_ATTACK_RANGE):
+		if _can_attack_from(player_slot, creature_slot, player_attack_range):
 			_player_attack()
 		else:
 			status_label.text = "La criatura está fuera de alcance."
@@ -240,7 +244,7 @@ func _on_cell_gui_input(event: InputEvent, index: int) -> void:
 	_refresh()
 	get_viewport().set_input_as_handled()
 
-const PLAYER_ATTACK_RANGE: int = 1
+const player_attack_range: int = 1
 
 func _move_player(target_slot: int) -> void:
 	if player_actions <= 0 or not _movement_targets(player_slot).has(target_slot):
@@ -260,7 +264,7 @@ func _move_player(target_slot: int) -> void:
 func _player_attack() -> void:
 	if battle_finished or creature == null or player_actions <= 0:
 		return
-	if not _can_attack_from(player_slot, creature_slot, PLAYER_ATTACK_RANGE):
+	if not _can_attack_from(player_slot, creature_slot, player_attack_range):
 		status_label.text = "La criatura está fuera de alcance."
 		return
 	creature_health = max(0, creature_health - player_attack_power)
@@ -306,7 +310,7 @@ func _enemy_turn() -> void:
 	_refresh()
 	if not battle_finished:
 		turn_number += 1
-		player_actions = ACTIONS_PER_TURN
+		player_actions = actions_per_turn
 		status_label.text = "Turno %d: tienes %d acciones." % [turn_number, player_actions]
 	_refresh()
 
@@ -327,12 +331,12 @@ func _movement_targets(from_slot: int, movement: int = -1) -> Array[int]:
 	if from_slot < 0 or from_slot >= cell_count:
 		return targets
 	var from_row: int = int(from_slot / board_size)
-	var from_column: int = from_slot % BOARD_SIZE
-	for candidate in range(CELL_COUNT):
+	var from_column: int = from_slot % board_size
+	for candidate in range(cell_count):
 		if candidate == player_slot or candidate == creature_slot:
 			continue
-		var row: int = int(candidate / BOARD_SIZE)
-		var column: int = candidate % BOARD_SIZE
+		var row: int = int(candidate / board_size)
+		var column: int = candidate % board_size
 		var distance: int = abs(row - from_row) + abs(column - from_column)
 		if distance > 0 and distance <= max(1, movement):
 			targets.append(candidate)
@@ -344,15 +348,15 @@ func _can_attack_from(attacker_slot: int, target_slot: int, attack_range: int) -
 	return _distance(attacker_slot, target_slot) <= max(1, attack_range)
 
 func _distance(first_slot: int, second_slot: int) -> int:
-	var first_row: int = int(first_slot / BOARD_SIZE)
-	var first_column: int = first_slot % BOARD_SIZE
-	var second_row: int = int(second_slot / BOARD_SIZE)
-	var second_column: int = second_slot % BOARD_SIZE
+	var first_row: int = int(first_slot / board_size)
+	var first_column: int = first_slot % board_size
+	var second_row: int = int(second_slot / board_size)
+	var second_column: int = second_slot % board_size
 	return abs(first_row - second_row) + abs(first_column - second_column)
 
 func _refresh() -> void:
 	if actions_label != null:
-		actions_label.text = "●".repeat(player_actions) + "○".repeat(ACTIONS_PER_TURN - player_actions)
+		actions_label.text = "●".repeat(player_actions) + "○".repeat(actions_per_turn - player_actions)
 	for index in range(board_buttons.size()):
 		var cell: Button = board_buttons[index]
 		cell.icon = null
@@ -360,8 +364,8 @@ func _refresh() -> void:
 		var is_player: bool = index == player_slot
 		var is_creature: bool = index == creature_slot
 		var movement_target: bool = movement_preview and player_actions > 0 and _movement_targets(player_slot).has(index)
-		var attack_target: bool = attack_preview and is_creature and _can_attack_from(player_slot, creature_slot, PLAYER_ATTACK_RANGE) and player_actions > 0
-		var background: Color = Color("#20382E") if (int(index / BOARD_SIZE) + index % BOARD_SIZE) % 2 == 0 else Color("#263D32")
+		var attack_target: bool = attack_preview and is_creature and _can_attack_from(player_slot, creature_slot, player_attack_range) and player_actions > 0
+		var background: Color = Color("#20382E") if (int(index / board_size) + index % board_size) % 2 == 0 else Color("#263D32")
 		var border: Color = BORDER
 		if movement_target:
 			background = Color("#205B49")
@@ -391,7 +395,7 @@ func _on_retry_pressed() -> void:
 		creature_health = max(1, creature.max_health)
 		player_slot = player_start_slot
 		creature_slot = creature_start_slot
-		player_actions = ACTIONS_PER_TURN
+		player_actions = actions_per_turn
 		turn_number = 1
 		battle_finished = false
 		movement_preview = false
