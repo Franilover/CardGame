@@ -44,20 +44,6 @@ func discover_card(card_id: String) -> bool:
 	_save_progress()
 	return true
 
-func is_card_discovered(card: CardDefinition) -> bool:
-	if card == null:
-		return false
-	if card.card_type == CardDefinition.CardType.CREATURE:
-		return is_creature_unlocked(card.id)
-	return discovered_card_ids.has(card.id)
-
-func discover_card(card_id: String) -> bool:
-	if card_id.is_empty() or discovered_card_ids.has(card_id):
-		return false
-	discovered_card_ids.append(card_id)
-	_save_progress()
-	return true
-
 func unlock_creature_after_adventure_victory(creature_id: String) -> bool:
 	if mode != "adventure" or creature_id.is_empty() or unlocked_creature_ids.has(creature_id):
 		return false
@@ -245,16 +231,6 @@ func _load_progress() -> void:
 			var id_string := str(creature_id)
 			if not id_string.is_empty() and not unlocked_creature_ids.has(id_string):
 				unlocked_creature_ids.append(id_string)
-	discovered_card_ids.clear()
-	var saved_discovered: Variant = parsed.get("discovered_card_ids", [])
-	if saved_discovered is Array:
-		for card_id in saved_discovered:
-			var id_string := str(card_id)
-			if not id_string.is_empty() and not discovered_card_ids.has(id_string):
-				discovered_card_ids.append(id_string)
-	for creature_id in unlocked_creature_ids:
-		if not discovered_card_ids.has(creature_id):
-			discovered_card_ids.append(creature_id)
 	discovered_card_ids.clear()
 	var saved_discovered: Variant = parsed.get("discovered_card_ids", [])
 	if saved_discovered is Array:
