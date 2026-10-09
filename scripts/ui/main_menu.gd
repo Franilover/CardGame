@@ -4,6 +4,7 @@ extends Control
 @onready var run_progress: Node = get_node("/root/RunProgress")
 
 const BATTLE_SCENE_PATH := "res://scenes/main.tscn"
+const ADVENTURE_SCENE_PATH := "res://scenes/adventure.tscn"
 const CARDS_SCENE_PATH := "res://scenes/cards.tscn"
 
 var character_selector: VBoxContainer
@@ -30,16 +31,18 @@ func _ready() -> void:
 	status_label.text = canon_repository.get_status_text()
 
 func _on_play_pressed() -> void:
-	_show_character_selector("exploration")
+	run_progress.start_mode("adventure")
+	get_tree().change_scene_to_file(ADVENTURE_SCENE_PATH)
 
 func _on_bosses_pressed() -> void:
-	_show_character_selector("bosses")
+	_show_character_selector("combat")
 
 func _show_character_selector(mode_name: String) -> void:
 	selector_mode = mode_name
-	run_progress.start_mode(mode_name)
+	if mode_name == "combat":
+		run_progress.start_mode("combat")
 	menu_container.visible = false
-	status_label.text = "Elige tu personaje para esta partida."
+	status_label.text = "MODO COMBATE · Elige tu personaje."
 	if character_selector != null:
 		character_selector.queue_free()
 	character_selector = VBoxContainer.new()
@@ -70,7 +73,7 @@ func _show_character_selector(mode_name: String) -> void:
 
 func _on_character_selected(character_style: String) -> void:
 	run_progress.selected_character_style = character_style
-	status_label.text = "Preparando partida con %s..." % ("Rey Arquero" if character_style == "archer" else "Rey Guardián")
+	status_label.text = "Preparando combate con %s..." % ("Rey Arquero" if character_style == "archer" else "Rey Guardián")
 	set_process_input(false)
 	get_tree().change_scene_to_file(BATTLE_SCENE_PATH)
 
