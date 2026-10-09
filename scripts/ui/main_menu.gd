@@ -5,6 +5,11 @@ extends Control
 const BATTLE_SCENE_PATH := "res://scenes/main.tscn"
 const CARDS_SCENE_PATH := "res://scenes/cards.tscn"
 
+var character_selector: VBoxContainer
+var selector_mode: String = "exploration"
+
+@onready var content: VBoxContainer = $Center/Panel/Margin/Content
+@onready var menu_container: VBoxContainer = $Center/Panel/Margin/Content/Menu
 @onready var status_label: Label = $Center/Panel/Margin/Content/Status
 @onready var play_button: Button = $Center/Panel/Margin/Content/Menu/Jugar
 @onready var boss_button: Button = $Center/Panel/Margin/Content/Menu/Jefes
@@ -24,16 +29,56 @@ func _ready() -> void:
 	status_label.text = canon_repository.get_status_text()
 
 func _on_play_pressed() -> void:
-	RunProgress.start_mode("exploration")
-	status_label.text = "Preparando exploración..."
+	_show_character_selector("exploration")
+
+func _on_bosses_pressed() -> void:
+	_show_character_selector("bosses")
+
+func _show_character_selector(mode_name: String) -> void:
+	selector_mode = mode_name
+	RunProgress.start_mode(mode_name)
+	menu_container.visible = false
+	status_label.text = "Elige tu personaje para esta partida."
+	if character_selector != null:
+		character_selector.queue_free()
+	character_selector = VBoxContainer.new()
+	character_selector.name = "CharacterSelector"
+	character_selector.add_theme_constant_override("separation", 10)
+	content.add_child(character_selector)
+	content.move_child(character_selector, status_label.get_index())
+
+	var guardian_button := Button.new()
+	guardian_button.custom_minimum_size.y = 76
+	guardian_button.text = "REY GUARDIÁN\n3 guardias · golpe circular adyacente"
+	guardian_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	guardian_button.pressed.connect(_on_character_selected.bind("guardian"))
+	character_selector.add_child(guardian_button)
+
+	var archer_button := Button.new()
+	archer_button.custom_minimum_size.y = 76
+	archer_button.text = "REY ARQUERO\n1 guardia · disparo a distancia en línea recta"
+	archer_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	archer_button.pressed.connect(_on_character_selected.bind("archer"))
+	character_selector.add_child(archer_button)
+
+	var back_button := Button.new()
+	back_button.text = "VOLVER"
+	back_button.custom_minimum_size.y = 38
+	back_button.pressed.connect(_on_character_selector_back)
+	character_selector.add_child(back_button)
+
+func _on_character_selected(character_style: String) -> void:
+	RunProgress.selected_character_style = character_style
+	status_label.text = "Preparando partida con %s..." % ("Rey Arquero" if character_style == "archer" else "Rey Guardián")
 	set_process_input(false)
 	get_tree().change_scene_to_file(BATTLE_SCENE_PATH)
 
-func _on_bosses_pressed() -> void:
-	RunProgress.start_mode("bosses")
-	status_label.text = "Preparando jefe..."
-	set_process_input(false)
-	get_tree().change_scene_to_file(BATTLE_SCENE_PATH)
+func _on_character_selector_back() -> void:
+	if character_selector != null:
+		character_selector.queue_free()
+		character_selector = null
+	menu_container.visible = true
+	status_label.text = canon_repository.get_status_text()
 
 func _on_online_pressed() -> void:
 	status_label.text = "Online estará disponible más adelante."
@@ -50,7 +95,10 @@ func _on_quit_pressed() -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if event.pressed and not event.echo:
 		if event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER:
-			if play_button.has_focus():
+			if menu_container.visible and play_button.has_focus():
 				_on_play_pressed()
 		elif event.keycode == KEY_ESCAPE:
-			_on_quit_pressed()
+			if character_selector != null:
+				_on_character_selector_back()
+			else:
+				_on_quit_pressed()
