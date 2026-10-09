@@ -115,7 +115,7 @@ func setup(
 	deck.clear()
 	state_changed.emit()
 
-func _deploy_initial_player_guards(player_character_style: String) -> void:
+func _deploy_initial_player_guards(_player_character_style: String) -> void:
 	var remaining_cards: Array[CardDefinition] = []
 	for card in deck:
 		if card == null:
