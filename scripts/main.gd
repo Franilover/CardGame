@@ -568,6 +568,8 @@ func _start_battle() -> void:
 	selected_unit_slot = -1
 	selected_ium_index = -1
 	status_label.text = "Preparando el catálogo de criaturas de Supabase..."
+	if run_progress.mode == "combat":
+		await canon_repository.ensure_table_loaded("combates_azar_cardgame")
 
 	var player_deck: Array[CardDefinition] = []
 	var enemy_deck: Array[CardDefinition] = []
