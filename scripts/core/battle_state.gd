@@ -10,7 +10,7 @@ const BOARD_COLUMNS: int = BattleBoard.COLUMNS
 const BOARD_CELLS: int = BattleBoard.CELL_COUNT
 const MAX_HAND: int = 8
 const START_HAND: int = 5
-const ACTIONS_PER_TURN: int = 2
+const ACTIONS_PER_TURN: int = 1
 const ETHERIUM_GROWTH_PER_TURN: int = 1
 const MAX_ETHERIUM: int = 10
 const HERO_MAX_HEALTH: int = 30
@@ -120,12 +120,15 @@ func setup(
 	state_changed.emit()
 
 func deploy_equipped_creature(card_id: String, target_slot: int) -> bool:
-	if finished or not setup_phase or card_id.is_empty():
+	if finished or card_id.is_empty():
 		return false
-	if target_slot < 0 or target_slot >= BOARD_CELLS or not board.is_empty(target_slot):
+	if not setup_phase and player_actions <= 0:
 		return false
-	if not board.is_player_back_row(target_slot):
+	if target_slot < 0 or target_slot >= BOARD_CELLS:
 		return false
+	if not board.can_place(target_slot, BattleBoard.Owner.PLAYER):
+		return false
+
 	var card_index := -1
 	for index in range(deck.size()):
 		var candidate: CardDefinition = deck[index]
@@ -134,11 +137,16 @@ func deploy_equipped_creature(card_id: String, target_slot: int) -> bool:
 			break
 	if card_index < 0:
 		return false
+
 	var card: CardDefinition = deck[card_index]
 	if not board.place(target_slot, card, BattleBoard.Owner.PLAYER):
 		return false
 	deck.remove_at(card_index)
-	_event("%s desplegó a %s." % [player_hero.display_name, card.display_name])
+	if not setup_phase:
+		player_actions -= 1
+		_event("%s desplegó a %s gastando una acción." % [player_hero.display_name, card.display_name])
+	else:
+		_event("%s desplegó gratis a %s." % [player_hero.display_name, card.display_name])
 	state_changed.emit()
 	return true
 
@@ -487,8 +495,7 @@ func end_turn() -> void:
 		return
 	if setup_phase:
 		setup_phase = false
-		# Las criaturas no desplegadas durante la preparación no entran después.
-		deck.clear()
+		# Las criaturas no desplegadas permanecen en el mazo y costarán una acción después.
 		turn = 1
 		player_actions = player_max_actions
 		player_etherium = player_max_etherium
