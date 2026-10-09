@@ -76,7 +76,7 @@ static func starter_deck_from_canon(repository: Variant) -> Array[CardDefinition
 			battle_cards.append(card)
 
 	if battle_cards.is_empty():
-		return starter_deck()
+		return []
 
 	var deck: Array[CardDefinition] = []
 	var preferred_types: Array[int] = [
@@ -110,7 +110,7 @@ static func enemy_deck_from_canon(repository: Variant) -> Array[CardDefinition]:
 			objects.append(card)
 
 	if creatures.is_empty():
-		return enemy_deck()
+		return []
 
 	var deck: Array[CardDefinition] = []
 
