@@ -1,6 +1,7 @@
 extends Node
 
 signal canon_online_updated
+signal canon_refresh_finished
 
 @onready var supabase_client: Node = get_node("/root/GarliaSupabaseClient")
 
@@ -46,6 +47,7 @@ func initialize() -> bool:
 
 func _refresh_online() -> bool:
 	if refresh_in_progress:
+		await canon_refresh_finished
 		return online_loaded
 
 	refresh_in_progress = true
@@ -83,6 +85,7 @@ func _refresh_online() -> bool:
 		canon_online_updated.emit()
 
 	refresh_in_progress = false
+	canon_refresh_finished.emit()
 	return online_loaded
 
 func _has_cached_data() -> bool:
@@ -109,6 +112,14 @@ func _save_cache() -> void:
 	var file := FileAccess.open(CACHE_PATH, FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify(data))
+
+func ensure_table_loaded(table_name: String) -> bool:
+	if not get_table(table_name).is_empty():
+		return true
+	if not supabase_client.is_configured():
+		return false
+	await _refresh_online()
+	return not get_table(table_name).is_empty()
 
 func get_table(table_name: String) -> Array:
 	return data.get(table_name, []) as Array
