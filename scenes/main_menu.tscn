@@ -72,14 +72,14 @@ theme_override_constants/separation = 10
 custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "MODO EXPLORACIÓN"
+text = "MODO AVENTURA"
 icon_alignment = 1
 
 [node name="Jefes" type="Button" parent="Center/Panel/Margin/Content/Menu"]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "MODO JEFES"
+text = "MODO COMBATE"
 
 [node name="Online" type="Button" parent="Center/Panel/Margin/Content/Menu"]
 custom_minimum_size = Vector2(0, 56)
