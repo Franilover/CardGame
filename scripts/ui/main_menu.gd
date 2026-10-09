@@ -45,7 +45,10 @@ func _on_play_pressed() -> void:
 	get_tree().change_scene_to_file(ADVENTURE_SCENE_PATH)
 
 func _on_bosses_pressed() -> void:
-	_show_character_selector("combat")
+	run_progress.start_mode("combat")
+	status_label.text = "Preparando combate aleatorio..."
+	set_process_input(false)
+	get_tree().change_scene_to_file(BATTLE_SCENE_PATH)
 
 func _show_character_selector(mode_name: String) -> void:
 	selector_mode = mode_name
