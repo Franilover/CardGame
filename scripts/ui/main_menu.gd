@@ -130,6 +130,7 @@ func _populate_home_cards() -> void:
 		tile.custom_minimum_size = Vector2(120, 150)
 		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var body := VBoxContainer.new()
+		body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		body.add_theme_constant_override("separation", 6)
 		tile.add_child(body)
 		var art := TextureRect.new()
@@ -137,6 +138,7 @@ func _populate_home_cards() -> void:
 		art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var texture := _find_card_art(card)
 		if texture != null:
 			art.texture = texture
@@ -144,12 +146,14 @@ func _populate_home_cards() -> void:
 		var name_label := Label.new()
 		name_label.text = card.display_name
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		name_label.add_theme_font_size_override("font_size", 13)
 		body.add_child(name_label)
 		var type_label := Label.new()
 		type_label.text = _card_type_name(card)
 		type_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		type_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		type_label.add_theme_font_size_override("font_size", 10)
 		type_label.add_theme_color_override("font_color", Color("#7FAF99"))
 		body.add_child(type_label)
