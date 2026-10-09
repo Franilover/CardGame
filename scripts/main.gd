@@ -869,8 +869,11 @@ func _refresh() -> void:
 			piece_sprite.texture = null
 			health_bar.visible = false
 			button.tooltip_text = "Casilla vacía"
-		button.add_theme_stylebox_override("normal", _cell_style(index, selected))
-		button.add_theme_stylebox_override("hover", _cell_style(index, true))
+		var cell_style: StyleBoxFlat = _cell_style(index, selected)
+		button.add_theme_stylebox_override("normal", cell_style)
+		button.add_theme_stylebox_override("hover", _cell_style(index, selected))
+		button.add_theme_stylebox_override("pressed", _cell_style(index, selected))
+		button.add_theme_stylebox_override("focus", _cell_style(index, selected))
 
 	for index in range(mixer_buttons.size()):
 		var mixer_button: Button = mixer_buttons[index]
