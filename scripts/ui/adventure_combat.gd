@@ -12,21 +12,22 @@ const MUTED := Color("#7FAF99")
 const GOLD := Color("#E3C34F")
 const GREEN := Color("#45E878")
 const RED := Color("#D67A70")
-const BOARD_SIZE: int = 3
-const CELL_COUNT: int = BOARD_SIZE * BOARD_SIZE
-const PLAYER_MAX_HEALTH: int = 30
-const PLAYER_ATTACK: int = 5
-const PLAYER_MOVEMENT: int = 1
-const ACTIONS_PER_TURN: int = 2
-const PLAYER_START_SLOT: int = 7
-const CREATURE_START_SLOT: int = 1
+var board_size: int = 3
+var cell_count: int = 9
+var player_max_health: int = 30
+var player_attack_power: int = 5
+var player_movement: int = 1
+var actions_per_turn: int = 2
+var player_start_slot: int = 7
+var creature_start_slot: int = 1
+var player_attack_range: int = 1
 
 var creature: CardDefinition
-var player_health: int = PLAYER_MAX_HEALTH
+var player_health: int = 30
 var creature_health: int = 1
-var player_slot: int = PLAYER_START_SLOT
-var creature_slot: int = CREATURE_START_SLOT
-var player_actions: int = ACTIONS_PER_TURN
+var player_slot: int = 7
+var creature_slot: int = 1
+var player_actions: int = 2
 var turn_number: int = 1
 var battle_finished: bool = false
 var movement_preview: bool = false
@@ -37,10 +38,36 @@ var actions_label: Label
 var retry_button: Button
 
 func _ready() -> void:
-	_build_ui()
 	await canon_repository.initialize()
+	_load_rules()
+	_build_ui()
 	_load_creature()
 	_refresh()
+
+func _load_rules() -> void:
+	for row in canon_repository.get_table("cardgame_reglas_v1"):
+		if not row is Dictionary or str(row.get("clave", "")) != "reglas_base" or not bool(row.get("activo", true)):
+			continue
+		var configuration: Variant = row.get("configuracion", {})
+		if not configuration is Dictionary:
+			continue
+		var adventure_rules: Variant = configuration.get("aventura", {})
+		if not adventure_rules is Dictionary:
+			continue
+		board_size = clampi(int(adventure_rules.get("tablero_lado", board_size)), 2, 7)
+		cell_count = board_size * board_size
+		player_max_health = maxi(1, int(adventure_rules.get("vida_jugador", player_max_health)))
+		player_attack_power = maxi(1, int(adventure_rules.get("ataque_jugador", player_attack_power)))
+		player_movement = maxi(1, int(adventure_rules.get("movimiento_jugador", player_movement)))
+		actions_per_turn = clampi(int(adventure_rules.get("acciones_por_turno", actions_per_turn)), 1, 6)
+		player_start_slot = clampi(int(adventure_rules.get("casilla_jugador_inicio", player_start_slot)), 0, cell_count - 1)
+		creature_start_slot = clampi(int(adventure_rules.get("casilla_criatura_inicio", creature_start_slot)), 0, cell_count - 1)
+		player_attack_range = maxi(1, int(adventure_rules.get("alcance_ataque_jugador", player_attack_range)))
+		player_health = player_max_health
+		player_slot = player_start_slot
+		creature_slot = creature_start_slot
+		player_actions = actions_per_turn
+		return
 
 func _style(background: Color, border: Color, width: int = 1) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
@@ -95,12 +122,12 @@ func _build_ui() -> void:
 	board_margin.add_theme_constant_override("margin_bottom", 8)
 	board_panel.add_child(board_margin)
 	var grid := GridContainer.new()
-	grid.columns = BOARD_SIZE
+	grid.columns = board_size
 	grid.add_theme_constant_override("h_separation", 5)
 	grid.add_theme_constant_override("v_separation", 5)
 	board_margin.add_child(grid)
 
-	for index in range(CELL_COUNT):
+	for index in range(cell_count):
 		var cell := Button.new()
 		cell.custom_minimum_size = Vector2(116, 91)
 		cell.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -179,7 +206,7 @@ func _on_cell_gui_input(event: InputEvent, index: int) -> void:
 			attack_preview = true
 			movement_preview = false
 			status_label.text = "Selecciona una casilla enemiga marcada para atacar."
-		elif attack_preview and index == creature_slot and _can_attack_from(player_slot, creature_slot, PLAYER_ATTACK_RANGE):
+		elif attack_preview and index == creature_slot and _can_attack_from(player_slot, creature_slot, player_attack_range):
 			_player_attack()
 		_refresh()
 		get_viewport().set_input_as_handled()
@@ -236,7 +263,7 @@ func _player_attack() -> void:
 	if not _can_attack_from(player_slot, creature_slot, PLAYER_ATTACK_RANGE):
 		status_label.text = "La criatura está fuera de alcance."
 		return
-	creature_health = max(0, creature_health - PLAYER_ATTACK)
+	creature_health = max(0, creature_health - player_attack_power)
 	player_actions -= 1
 	movement_preview = false
 	attack_preview = false
@@ -257,7 +284,7 @@ func _player_attack() -> void:
 func _enemy_turn() -> void:
 	movement_preview = false
 	attack_preview = false
-	var enemy_actions: int = ACTIONS_PER_TURN
+	var enemy_actions: int = actions_per_turn
 	while enemy_actions > 0 and not battle_finished:
 		if _can_attack_from(creature_slot, player_slot, max(1, creature.attack_range)):
 			player_health = max(0, player_health - max(1, creature.attack))
@@ -293,11 +320,13 @@ func _best_enemy_move() -> int:
 			best_slot = candidate
 	return best_slot
 
-func _movement_targets(from_slot: int, movement: int = PLAYER_MOVEMENT) -> Array[int]:
+func _movement_targets(from_slot: int, movement: int = -1) -> Array[int]:
 	var targets: Array[int] = []
-	if from_slot < 0 or from_slot >= CELL_COUNT:
+	if movement < 1:
+		movement = player_movement
+	if from_slot < 0 or from_slot >= cell_count:
 		return targets
-	var from_row: int = int(from_slot / BOARD_SIZE)
+	var from_row: int = int(from_slot / board_size)
 	var from_column: int = from_slot % BOARD_SIZE
 	for candidate in range(CELL_COUNT):
 		if candidate == player_slot or candidate == creature_slot:
@@ -358,10 +387,10 @@ func _refresh() -> void:
 
 func _on_retry_pressed() -> void:
 	if player_health <= 0 and creature != null:
-		player_health = PLAYER_MAX_HEALTH
+		player_health = player_max_health
 		creature_health = max(1, creature.max_health)
-		player_slot = PLAYER_START_SLOT
-		creature_slot = CREATURE_START_SLOT
+		player_slot = player_start_slot
+		creature_slot = creature_start_slot
 		player_actions = ACTIONS_PER_TURN
 		turn_number = 1
 		battle_finished = false
