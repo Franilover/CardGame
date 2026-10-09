@@ -56,7 +56,7 @@ var finished: bool = false
 var winner_is_player: bool = false
 var fatigue_damage: int = 1
 
-func reset() -> void:
+func reset(player_character_style: String = "guardian") -> void:
 	turn = 0
 	setup_phase = true
 	player_max_actions = ACTIONS_PER_TURN
@@ -75,8 +75,8 @@ func reset() -> void:
 	fatigue_damage = 1
 	board.reset()
 	mixer.reset()
-	player_hero = _create_hero("Rey de Garlia")
-	enemy_hero = _create_hero("Reina de Garlia")
+	player_hero = _create_hero("Rey Arquero" if player_character_style == "archer" else "Rey Guardián", player_character_style)
+	enemy_hero = _create_hero("Rey Enemigo", "guardian")
 	board.place_hero(player_hero_slot, player_hero, BattleBoard.Owner.PLAYER)
 	board.place_hero(enemy_hero_slot, enemy_hero, BattleBoard.Owner.ENEMY)
 	_sync_health_mirrors()
@@ -95,19 +95,48 @@ func setup(
 	player_cards: Array[CardDefinition],
 	enemy_cards: Array[CardDefinition],
 	canonical_processes: Array[CardDefinition] = [],
-	canonical_iums: Array[CardDefinition] = []
+	canonical_iums: Array[CardDefinition] = [],
+	player_character_style: String = "guardian"
 ) -> void:
-	reset()
+	reset(player_character_style)
 	deck = _runtime_copies(player_cards)
 	enemy_deck = _runtime_copies(enemy_cards)
 	process_catalog = _runtime_copies(canonical_processes)
 	ium_catalog = _runtime_copies(canonical_iums)
 	deck.shuffle()
 	enemy_deck.shuffle()
+	_deploy_initial_player_guards(player_character_style)
 	_deploy_initial_enemy_creatures()
 	for index in range(min(START_HAND, deck.size())):
 		draw_card()
 	state_changed.emit()
+
+func _deploy_initial_player_guards(player_character_style: String) -> void:
+	var guard_count: int = 1 if player_character_style == "archer" else 3
+	var guard_slots: Array[int] = [
+		BattleBoard.COLUMNS * 6 + 1,
+		BattleBoard.COLUMNS * 6 + 2,
+		BattleBoard.COLUMNS * 6 + 3
+	]
+	var deployed := 0
+	for slot in guard_slots:
+		if deployed >= guard_count:
+			break
+		var card_index := -1
+		for index in range(deck.size()):
+			if deck[index] != null and deck[index].card_type == CardDefinition.CardType.CREATURE:
+				card_index = index
+				break
+		if card_index < 0:
+			break
+		var guard_card: CardDefinition = deck.pop_at(card_index)
+		if board.place(slot, guard_card, BattleBoard.Owner.PLAYER):
+			deployed += 1
+			_event("%s desplegó a %s." % [player_hero.display_name, guard_card.display_name])
+		else:
+			deck.append(guard_card)
+	if deployed < guard_count:
+		_event("Supabase solo proporcionó %d criatura(s) para la guardia inicial." % deployed)
 
 func _deploy_initial_enemy_creatures() -> void:
 	# Las criaturas enemigas que forman el encuentro aparecen una sola vez al inicio.
@@ -257,18 +286,31 @@ func hero_attack(player_slot: int, direction: Vector2i) -> bool:
 		return false
 	if player_slot != player_hero_slot or player_hero == null or not player_hero.can_attack():
 		return false
-	var attack_slots: Array[int] = board.front_attack_indices(player_slot, direction)
-	if attack_slots.size() != 3:
-		return false
 
-	for index in attack_slots:
-		var target: CardDefinition = board.get_card(index)
-		if board.get_owner(index) != BattleBoard.Owner.ENEMY or target == null:
-			continue
-		_damage_unit(target, player_hero.attack)
+	if player_hero.tags.has("ataque_lineal"):
+		var first_target: int = board.first_occupied_in_line(player_slot, direction, player_hero.attack_range)
+		if first_target < 0 or board.get_owner(first_target) != BattleBoard.Owner.ENEMY:
+			return false
+		var defender: CardDefinition = board.get_card(first_target)
+		if defender == null:
+			return false
+		_damage_unit(defender, player_hero.attack)
+		player_actions -= 1
+		_event("%s disparó en línea recta contra %s." % [player_hero.display_name, defender.display_name])
+	else:
+		if direction != Vector2i.ZERO:
+			return false
+		var targets_hit := 0
+		for index in board.adjacent_indices(player_slot):
+			var target: CardDefinition = board.get_card(index)
+			if board.get_owner(index) == BattleBoard.Owner.ENEMY and target != null:
+				_damage_unit(target, player_hero.attack)
+				targets_hit += 1
+		if targets_hit == 0:
+			return false
+		player_actions -= 1
+		_event("%s golpeó alrededor y alcanzó %d enemigo(s)." % [player_hero.display_name, targets_hit])
 
-	player_actions -= 1
-	_event("%s atacó 3 casillas frontales." % player_hero.display_name)
 	_cleanup_boards()
 	_check_finished()
 	state_changed.emit()
@@ -385,7 +427,7 @@ func _sync_health_mirrors() -> void:
 	player_health = player_hero.health if player_hero != null else HERO_MAX_HEALTH
 	enemy_health = enemy_hero.health if enemy_hero != null else HERO_MAX_HEALTH
 
-func _create_hero(name: String) -> CardDefinition:
+func _create_hero(name: String, character_style: String = "guardian") -> CardDefinition:
 	var hero := CardDefinition.new()
 	hero.id = name.to_lower().replace(" ", "_")
 	hero.canonical_id = hero.id
@@ -396,10 +438,11 @@ func _create_hero(name: String) -> CardDefinition:
 	hero.cost = 0
 	hero.attack = HERO_ATTACK_POWER
 	hero.movement = 1
-	hero.attack_range = 0
+	hero.attack_range = BattleBoard.ROWS if character_style == "archer" else 1
 	hero.counter_attack = false
-	hero.canonical_source = "local"
-	hero.tags = ["personaje", "heroe"]
+	hero.canonical_source = "runtime"
+	hero.tags = ["personaje", "heroe", "ataque_lineal" if character_style == "archer" else "ataque_area"]
+	hero.ability_text = "Dispara en línea recta a distancia." if character_style == "archer" else "Golpea a todos los enemigos adyacentes."
 	return hero
 
 func _cleanup_boards() -> void:
