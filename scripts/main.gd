@@ -927,8 +927,12 @@ func _refresh() -> void:
 		mixer_result_label.text = ""
 		process_button.disabled = true
 
-	var attackable_slots: Array[int] = _attackable_slots_for(attack_preview_slot) if attack_preview_slot >= 0 else []
-	var movement_slots: Array[int] = _movement_slots_for(movement_preview_slot) if movement_preview_slot >= 0 else []
+	var attackable_slots: Array[int] = []
+	if attack_preview_slot >= 0:
+		attackable_slots = _attackable_slots_for(attack_preview_slot)
+	var movement_slots: Array[int] = []
+	if movement_preview_slot >= 0:
+		movement_slots = _movement_slots_for(movement_preview_slot)
 	for index in range(board_buttons.size()):
 		var button: Button = board_buttons[index]
 		var occupant: CardDefinition = state.board.get_card(index)
