@@ -23,7 +23,7 @@ var creature_start_slot: int = 1
 var player_attack_range: int = 1
 
 var creature: CardDefinition
-var supabase_client: Node = get_node("/root/GarliaSupabaseClient")
+@onready var supabase_client: Node = get_node("/root/GarliaSupabaseClient")
 var player_health: int = 30
 var creature_health: int = 1
 var player_slot: int = 7
