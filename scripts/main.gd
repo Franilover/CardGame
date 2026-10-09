@@ -602,6 +602,11 @@ func _on_board_gui_input(event: InputEvent, index: int) -> void:
 		return
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+		# Mientras el modo ataque está activo, ambos botones ejecutan el ataque
+		# al pulsar una casilla marcada como objetivo.
+		if attack_preview_slot >= 0 and _try_execute_attack_preview(index):
+			get_viewport().set_input_as_handled()
+			return
 		if selected_card_index < 0 and _is_draggable_player_unit(index):
 			var selected_card: CardDefinition = state.board.get_card(index)
 			selected_unit_slot = index
@@ -630,6 +635,9 @@ func _on_board_gui_input(event: InputEvent, index: int) -> void:
 				get_viewport().set_input_as_handled()
 				return
 
+		if attack_preview_slot >= 0 and _try_execute_attack_preview(index):
+			get_viewport().set_input_as_handled()
+			return
 		_on_board_pressed(index)
 		get_viewport().set_input_as_handled()
 		return
@@ -642,6 +650,42 @@ func _on_board_gui_input(event: InputEvent, index: int) -> void:
 				status_label.text = "Arrastrando %s · movimiento gratuito · una vez por turno." % state.board.get_card(drag_source_slot).display_name
 				_refresh()
 				get_viewport().set_input_as_handled()
+
+func _try_execute_attack_preview(target_slot: int) -> bool:
+	if state == null or attack_preview_slot < 0:
+		return false
+	if not _attackable_slots_for(attack_preview_slot).has(target_slot):
+		return false
+
+	var result: BattleResult
+	if attack_preview_slot == state.player_hero_slot:
+		var direction := Vector2i.ZERO
+		if state.player_hero.tags.has("ataque_lineal"):
+			var attacker_row: int = floori(float(attack_preview_slot) / float(BattleBoard.COLUMNS))
+			var attacker_column: int = attack_preview_slot % BattleBoard.COLUMNS
+			var target_row: int = floori(float(target_slot) / float(BattleBoard.COLUMNS))
+			var target_column: int = target_slot % BattleBoard.COLUMNS
+			if target_row < attacker_row:
+				direction = Vector2i.UP
+			elif target_row > attacker_row:
+				direction = Vector2i.DOWN
+			elif target_column < attacker_column:
+				direction = Vector2i.LEFT
+			else:
+				direction = Vector2i.RIGHT
+		result = engine.execute(BattleCommand.hero_attack(attack_preview_slot, direction))
+	else:
+		result = engine.execute(BattleCommand.attack(attack_preview_slot, target_slot))
+
+	if result.success:
+		selected_unit_slot = -1
+		attack_preview_slot = -1
+		movement_preview_slot = -1
+	else:
+		status_label.text = "ERROR · %s" % result.message
+	_refresh()
+	return true
+
 
 func _is_draggable_player_unit(index: int) -> bool:
 	if index < 0 or state == null:
