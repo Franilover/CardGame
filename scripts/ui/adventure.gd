@@ -109,7 +109,7 @@ func _populate_creatures() -> void:
 		return a.display_name.naturalcasecmp_to(b.display_name) < 0
 	)
 	for creature in creatures:
-		var unlocked := run_progress.is_creature_unlocked(creature.id)
+		var unlocked: bool = run_progress.is_creature_unlocked(creature.id)
 		var button := Button.new()
 		button.custom_minimum_size.y = 68
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
