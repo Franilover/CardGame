@@ -759,7 +759,7 @@ func _movement_slots_for(mover_slot: int) -> Array[int]:
 	if state.board.get_owner(mover_slot) != state.active_owner or mover == null or not mover.is_unit():
 		return targets
 	for target_slot in range(BattleBoard.CELL_COUNT):
-		if state.board.can_move(mover_slot, target_slot, BattleBoard.Owner.PLAYER, mover.movement):
+		if state.board.can_move(mover_slot, target_slot, state.active_owner, mover.movement):
 			targets.append(target_slot)
 	return targets
 
