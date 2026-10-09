@@ -107,36 +107,28 @@ func setup(
 	enemy_deck.shuffle()
 	_deploy_initial_player_guards(player_character_style)
 	_deploy_initial_enemy_creatures()
-	for index in range(min(START_HAND, deck.size())):
-		draw_card()
+	# En este modo táctico, todas las criaturas equipadas empiezan en el tablero.
+	# Los objetos equipados quedan disponibles desde el inicio; no se roban cartas.
+	for card in deck:
+		if card != null and card.card_type == CardDefinition.CardType.OBJECT:
+			hand.append(card)
+	deck.clear()
 	state_changed.emit()
 
 func _deploy_initial_player_guards(player_character_style: String) -> void:
-	var guard_count: int = 1 if player_character_style == "archer" else 3
-	var guard_slots: Array[int] = [
-		BattleBoard.COLUMNS * 6 + 1,
-		BattleBoard.COLUMNS * 6 + 3,
-		BattleBoard.COLUMNS * 5 + 2
-	]
-	var deployed := 0
-	for slot in guard_slots:
-		if deployed >= guard_count:
-			break
-		var card_index := -1
-		for index in range(deck.size()):
-			if deck[index] != null and deck[index].card_type == CardDefinition.CardType.CREATURE:
-				card_index = index
-				break
-		if card_index < 0:
-			break
-		var guard_card: CardDefinition = deck.pop_at(card_index)
-		if board.place(slot, guard_card, BattleBoard.Owner.PLAYER):
-			deployed += 1
-			_event("%s desplegó a %s." % [player_hero.display_name, guard_card.display_name])
-		else:
-			deck.append(guard_card)
-	if deployed < guard_count:
-		_event("Supabase solo proporcionó %d criatura(s) para la guardia inicial." % deployed)
+	var remaining_cards: Array[CardDefinition] = []
+	for card in deck:
+		if card == null:
+			continue
+		if not card.is_unit():
+			remaining_cards.append(card)
+			continue
+		var slot: int = board.first_empty_in_zone(BattleBoard.Owner.PLAYER)
+		if slot < 0 or not board.place(slot, card, BattleBoard.Owner.PLAYER):
+			_event("No hay espacio inicial para %s." % card.display_name)
+			continue
+		_event("%s desplegó a %s." % [player_hero.display_name, card.display_name])
+	deck = remaining_cards
 
 func _deploy_initial_enemy_creatures() -> void:
 	# Las criaturas enemigas que forman el encuentro aparecen una sola vez al inicio.
