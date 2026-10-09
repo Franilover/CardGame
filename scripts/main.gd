@@ -841,6 +841,8 @@ func _resolve_board_drag(source_slot: int, target_slot: int) -> void:
 		attack_preview_slot = -1
 		movement_preview_slot = -1
 		_refresh()
+		if state.local_mode and not state.setup_phase and state.get_active_actions() <= 0:
+			call_deferred("_auto_end_turn_if_needed")
 	else:
 		status_label.text = "ERROR · %s" % result.message
 		_refresh()
@@ -893,6 +895,8 @@ func _on_board_pressed(index: int) -> void:
 			attack_preview_slot = -1
 			movement_preview_slot = -1
 			_refresh()
+			if state.local_mode and not state.setup_phase and state.get_active_actions() <= 0:
+				call_deferred("_auto_end_turn_if_needed")
 		return
 
 func _on_hero_attack_pressed(direction: Vector2i) -> void:
