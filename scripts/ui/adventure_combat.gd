@@ -47,8 +47,10 @@ func _ready() -> void:
 
 func _load_rules() -> void:
 	var rule_rows: Array = canon_repository.get_table("cardgame_reglas_v1")
-	if rule_rows.is_empty() and supabase_client.is_configured():
-		rule_rows = await supabase_client.get_table_rows("cardgame_reglas_v1", "clave,configuracion,activo,version", 10)
+	if supabase_client.is_configured():
+		var remote_rows: Array = await supabase_client.get_table_rows("cardgame_reglas_v1", "clave,configuracion,activo,version", 10)
+		if supabase_client.last_error.is_empty() and not remote_rows.is_empty():
+			rule_rows = remote_rows
 	for row in rule_rows:
 		if not row is Dictionary or str(row.get("clave", "")) != "reglas_base" or not bool(row.get("activo", true)):
 			continue
