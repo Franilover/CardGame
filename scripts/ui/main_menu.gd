@@ -83,7 +83,7 @@ func _on_character_selector_back() -> void:
 		character_selector.queue_free()
 		character_selector = null
 	menu_container.visible = true
-	status_label.text = canon_repository.get_status_text()
+	status_label.text = ""
 
 func _on_online_pressed() -> void:
 	status_label.text = "Online estará disponible más adelante."
