@@ -26,6 +26,7 @@ var selected_unit_slot: int = -1
 
 var board_buttons: Array[Button] = []
 var board_piece_sprites: Array[TextureRect] = []
+var board_health_bars: Array[ProgressBar] = []
 var mixer_buttons: Array[Button] = []
 var hand_buttons: Array[Button] = []
 var hand_units_row: HBoxContainer
@@ -264,9 +265,29 @@ func _build_middle() -> Control:
 		tint_material.shader = TEAM_TINT_SHADER
 		piece_sprite.material = tint_material
 		cell.add_child(piece_sprite)
+
+		var health_bar := ProgressBar.new()
+		health_bar.name = "HealthBar"
+		health_bar.anchor_left = 0.0
+		health_bar.anchor_right = 1.0
+		health_bar.anchor_top = 1.0
+		health_bar.anchor_bottom = 1.0
+		health_bar.offset_left = 4.0
+		health_bar.offset_right = -4.0
+		health_bar.offset_top = -7.0
+		health_bar.offset_bottom = -3.0
+		health_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		health_bar.show_percentage = false
+		health_bar.min_value = 0.0
+		health_bar.max_value = 1.0
+		health_bar.value = 1.0
+		health_bar.add_theme_stylebox_override("background", _style_box(Color("#101714"), Color("#101714"), 0, 0))
+		health_bar.add_theme_stylebox_override("fill", _style_box(Color("#45E878"), Color("#45E878"), 0, 0))
+		cell.add_child(health_bar)
 		grid.add_child(cell)
 		board_buttons.append(cell)
 		board_piece_sprites.append(piece_sprite)
+		board_health_bars.append(health_bar)
 
 	var side_column := VBoxContainer.new()
 	side_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -827,18 +848,24 @@ func _refresh() -> void:
 		button.expand_icon = true
 		button.text = ""
 		var piece_sprite: TextureRect = board_piece_sprites[index]
+		var health_bar: ProgressBar = board_health_bars[index]
 		if occupant != null:
 			button.icon = null
 			piece_sprite.texture = _pixel_sprite_for(occupant, index == state.player_hero_slot or index == state.enemy_hero_slot)
 			var tint_material := piece_sprite.material as ShaderMaterial
+			var team_tint: Color = Color("#45E878") if owner == BattleBoard.Owner.PLAYER else Color("#4A9DFF")
 			if tint_material != null:
-				var team_tint: Color = Color("#45E878") if owner == BattleBoard.Owner.PLAYER else Color("#4A9DFF")
 				tint_material.set_shader_parameter("tint_color", team_tint)
 				tint_material.set_shader_parameter("tint_strength", 0.82)
-			button.tooltip_text = "%s · ATQ %d" % [occupant.display_name, occupant.attack]
+			health_bar.visible = occupant.is_unit()
+			health_bar.max_value = float(max(occupant.max_health, 1))
+			health_bar.value = float(clampi(occupant.health, 0, max(occupant.max_health, 1)))
+			health_bar.add_theme_stylebox_override("fill", _style_box(team_tint, team_tint, 0, 0))
+			button.tooltip_text = "%s · ATQ %d · VIDA %d/%d" % [occupant.display_name, occupant.attack, occupant.health, occupant.max_health]
 		else:
 			button.icon = null
 			piece_sprite.texture = null
+			health_bar.visible = false
 			button.tooltip_text = "Casilla vacía"
 		button.add_theme_stylebox_override("normal", _cell_style(index, selected))
 		button.add_theme_stylebox_override("hover", _cell_style(index, true))
@@ -942,9 +969,7 @@ func _cell_style(index: int, selected: bool) -> StyleBoxFlat:
 	var row: int = floori(float(index) / float(BattleBoard.COLUMNS))
 	var column: int = index % BattleBoard.COLUMNS
 	var background: Color = Color("#24483F") if (row + column) % 2 == 0 else Color("#293F58")
-	if selected:
-		background = SELECTED_COLOR
-	return _style_box(background, GOLD_COLOR if selected else Color("#0B1712"), 0, 2)
+	return _style_box(background, GOLD_COLOR if selected else Color("#0B1712"), 0, 3 if selected else 1)
 
 func _pixel_sprite_for(card: CardDefinition, is_hero: bool = false) -> Texture2D:
 	var cache_key: String = card.id + ("_hero" if is_hero else "_unit")
