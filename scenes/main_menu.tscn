@@ -48,14 +48,7 @@ theme_override_constants/separation = 12
 layout_mode = 2
 theme_override_colors/font_color = Color(0.88, 0.96, 0.90, 1)
 theme_override_font_sizes/font_size = 34
-text = "GARLIA"
-horizontal_alignment = 0
-
-[node name="Subtitle" type="Label" parent="Layout/Sidebar/SidebarContent"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.47, 0.81, 0.76, 1)
-theme_override_font_sizes/font_size = 12
-text = "CARDGAME"
+text = "The Crown Games"
 horizontal_alignment = 0
 
 [node name="Menu" type="VBoxContainer" parent="Layout/Sidebar/SidebarContent"]
@@ -80,28 +73,32 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 17
 text = "ONLINE"
 
-[node name="Configuracion" type="Button" parent="Layout/Sidebar/SidebarContent/Menu"]
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-theme_override_font_sizes/font_size = 17
-text = "CONFIGURACIÓN"
-
-[node name="Salir" type="Button" parent="Layout/Sidebar/SidebarContent/Menu"]
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-theme_override_font_sizes/font_size = 17
-text = "SALIR"
-
-[node name="Spacer" type="Control" parent="Layout/Sidebar/SidebarContent"]
-layout_mode = 2
-size_flags_vertical = 3
-
 [node name="Status" type="Label" parent="Layout/Sidebar/SidebarContent"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.47, 0.81, 0.76, 1)
 theme_override_font_sizes/font_size = 11
 text = "Conectando al catálogo..."
 autowrap_mode = 2
+
+[node name="Spacer" type="Control" parent="Layout/Sidebar/SidebarContent"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BottomMenu" type="VBoxContainer" parent="Layout/Sidebar/SidebarContent"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Configuracion" type="Button" parent="Layout/Sidebar/SidebarContent/BottomMenu"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "CONFIGURACIÓN"
+
+[node name="Salir" type="Button" parent="Layout/Sidebar/SidebarContent/BottomMenu"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "SALIR"
 
 [node name="CatalogArea" type="VBoxContainer" parent="Layout"]
 layout_mode = 2
