@@ -851,6 +851,7 @@ func _on_end_turn_pressed() -> void:
 		return
 	selected_card_index = -1
 	selected_unit_slot = -1
+	attack_preview_slot = -1
 	selected_ium_index = -1
 	engine.execute(BattleCommand.end_turn())
 
@@ -907,12 +908,13 @@ func _refresh() -> void:
 		mixer_result_label.text = ""
 		process_button.disabled = true
 
+	var attackable_slots: Array[int] = _attackable_slots_for(attack_preview_slot) if attack_preview_slot >= 0 else []
 	for index in range(board_buttons.size()):
 		var button: Button = board_buttons[index]
 		var occupant: CardDefinition = state.board.get_card(index)
 		var owner: int = state.board.get_owner(index)
 		var selected: bool = index == selected_unit_slot
-		var attackable: bool = attack_preview_slot >= 0 and _attackable_slots_for(attack_preview_slot).has(index)
+		var attackable: bool = attackable_slots.has(index)
 		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		button.expand_icon = true
 		button.text = ""
