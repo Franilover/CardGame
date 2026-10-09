@@ -75,7 +75,7 @@ func _build_ui() -> void:
 	var header := HBoxContainer.new()
 	root.add_child(header)
 	var heading := Label.new()
-	heading.text = "AVENTURA · COMBATE"
+	heading.text = "AVENTURA"
 	heading.add_theme_font_size_override("font_size", 25)
 	heading.add_theme_color_override("font_color", TEXT)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -147,7 +147,7 @@ func _build_ui() -> void:
 
 	actions_label = Label.new()
 	actions_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	actions_label.add_theme_font_size_override("font_size", 18)
+	actions_label.add_theme_font_size_override("font_size", 14)
 	actions_label.add_theme_color_override("font_color", GOLD)
 	root.add_child(actions_label)
 
