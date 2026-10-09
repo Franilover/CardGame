@@ -76,6 +76,7 @@ func get_opposing_owner() -> int:
 func reset(player_character_style: String = "guardian") -> void:
 	turn = 0
 	setup_phase = true
+	local_mode = false
 	active_owner = BattleBoard.Owner.PLAYER
 	player_max_actions = ACTIONS_PER_TURN
 	player_actions = 0
