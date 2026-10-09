@@ -29,7 +29,7 @@ func start_mode(mode_name: String) -> void:
 func is_creature_unlocked(creature_id: String) -> bool:
 	return unlocked_creature_ids.has(creature_id)
 
-func unlock_creature_after_adventure_victory(creature_id: String, creature_name: String) -> bool:
+func unlock_creature_after_adventure_victory(creature_id: String) -> bool:
 	if mode != "adventure" or creature_id.is_empty() or unlocked_creature_ids.has(creature_id):
 		return false
 	unlocked_creature_ids.append(creature_id)
