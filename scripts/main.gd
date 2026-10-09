@@ -593,6 +593,7 @@ func _on_hand_pressed(index: int) -> void:
 	selected_card_index = index
 	selected_unit_slot = -1
 	attack_preview_slot = -1
+	movement_preview_slot = -1
 	status_label.text = state.hand[index].display_name
 	_refresh()
 
@@ -745,6 +746,7 @@ func _on_board_pressed(index: int) -> void:
 		if result.success:
 			selected_card_index = -1
 			attack_preview_slot = -1
+			movement_preview_slot = -1
 		return
 
 	if _is_draggable_player_unit(index):
@@ -782,6 +784,7 @@ func _on_hero_attack_pressed(direction: Vector2i) -> void:
 	if result.success:
 		selected_unit_slot = -1
 		attack_preview_slot = -1
+		movement_preview_slot = -1
 	else:
 		status_label.text = "ERROR · %s" % result.message
 	_refresh()
@@ -882,6 +885,8 @@ func _auto_end_turn_if_needed() -> void:
 		return
 	selected_card_index = -1
 	selected_unit_slot = -1
+	attack_preview_slot = -1
+	movement_preview_slot = -1
 	selected_ium_index = -1
 	engine.execute(BattleCommand.end_turn())
 
