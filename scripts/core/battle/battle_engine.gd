@@ -15,11 +15,12 @@ func setup(
 	player_cards: Array[CardDefinition],
 	enemy_cards: Array[CardDefinition],
 	process_catalog: Array[CardDefinition] = [],
-	ium_catalog: Array[CardDefinition] = []
+	ium_catalog: Array[CardDefinition] = [],
+	player_character_style: String = "guardian"
 ) -> void:
 	_reset_connections()
 	state = BattleState.new()
-	state.setup(player_cards, enemy_cards, process_catalog, ium_catalog)
+	state.setup(player_cards, enemy_cards, process_catalog, ium_catalog, player_character_style)
 	state.event_occurred.connect(_on_state_event)
 	state.state_changed.connect(_on_state_changed)
 	state.battle_finished.connect(_on_state_battle_finished)
@@ -144,7 +145,7 @@ func _execute_hero_attack(command: BattleCommand) -> BattleResult:
 			"y": command.direction.y
 		}
 	})
-	return BattleResult.ok("El Rey atacó las 3 casillas frontales.")
+	return BattleResult.ok("Ataque del Rey resuelto.")
 
 func _execute_move(command: BattleCommand) -> BattleResult:
 	var unit: CardDefinition = state.board.get_card(command.attacker_slot)
