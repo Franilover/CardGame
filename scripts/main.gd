@@ -1025,6 +1025,8 @@ func _refresh() -> void:
 	else:
 		mixer_result_label.text = ""
 		process_button.disabled = true
+	if state.local_mode and state.active_owner != BattleBoard.Owner.PLAYER:
+		process_button.disabled = true
 
 	var attackable_slots: Array[int] = []
 	if attack_preview_slot >= 0:
@@ -1073,7 +1075,7 @@ func _refresh() -> void:
 		var mixer_button: Button = mixer_buttons[index]
 		var mixer_card: CardDefinition = state.mixer.get_ium(index)
 		mixer_button.text = mixer_card.display_name if mixer_card != null else "+"
-		mixer_button.disabled = state.setup_phase or state.finished
+		mixer_button.disabled = state.setup_phase or state.finished or (state.local_mode and state.active_owner != BattleBoard.Owner.PLAYER)
 		mixer_button.add_theme_stylebox_override("normal", _button_style(SELECTED_COLOR if mixer_card != null else SURFACE_ALT_COLOR, GOLD_COLOR if mixer_card != null else BORDER_COLOR, 7, 1))
 
 	for card_id in inventory_card_buttons.keys():
@@ -1097,7 +1099,7 @@ func _refresh() -> void:
 
 	for index in range(ium_buttons.size()):
 		var ium_button: Button = ium_buttons[index]
-		ium_button.disabled = state.finished or state.setup_phase
+		ium_button.disabled = state.finished or state.setup_phase or (state.local_mode and state.active_owner != BattleBoard.Owner.PLAYER)
 		ium_button.add_theme_stylebox_override(
 			"normal",
 			_button_style(
@@ -1108,10 +1110,12 @@ func _refresh() -> void:
 			)
 		)
 
-	end_turn_button.visible = state.setup_phase or state.finished
-	end_turn_button.disabled = not state.setup_phase and not state.finished
+	end_turn_button.visible = state.setup_phase or state.finished or state.local_mode
+	end_turn_button.disabled = not state.setup_phase and not state.finished and not state.local_mode
 	if state.setup_phase:
 		end_turn_button.text = "INICIAR COMBATE"
+	elif state.local_mode and not state.finished:
+		end_turn_button.text = "PASAR TURNO"
 	else:
 		end_turn_button.text = "CONTINUAR" if state.finished and state.winner_is_player else ("REINTENTAR" if state.finished else "FIN DEL TURNO")
 	var active_hero: CardDefinition = state.get_active_hero()
