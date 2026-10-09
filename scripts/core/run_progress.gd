@@ -133,10 +133,6 @@ func _find_reward_card(cards: Array[CardDefinition], desired_type: int, offset: 
 		if card != null and card.card_type == desired_type:
 			options.append(card)
 	if options.is_empty():
-		for card in CardCatalog.starter_deck():
-			if card.card_type == desired_type:
-				options.append(card)
-	if options.is_empty():
 		return null
 	return options[posmod(offset, options.size())]
 
