@@ -28,7 +28,7 @@ func _drop_data(_at_position: Vector2, data: Variant) -> void:
 		card_dropped.emit(slot_index, data)
 
 func _on_gui_input(event: InputEvent) -> void:
-	if slot_index >= 0 and event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and card_id.is_empty():
+	if slot_index >= 0 and event is InputEventMouseButton and event.pressed and (event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT):
 		slot_activated.emit(slot_index)
 
 func _preview_style() -> StyleBoxFlat:
