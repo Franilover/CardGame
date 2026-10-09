@@ -320,10 +320,6 @@ func _player_attack() -> void:
 func _end_player_turn() -> void:
 	if battle_finished or creature == null:
 		return
-	if player_actions > 0:
-		status_label.text = "Aún tienes %d acción(es). Puedes terminar el turno igualmente." % player_actions
-		# El botón confirma explícitamente que el jugador quiere ceder las acciones restantes.
-		return
 	_enemy_turn()
 
 func _enemy_turn() -> void:
