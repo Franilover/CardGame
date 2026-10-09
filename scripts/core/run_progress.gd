@@ -3,23 +3,41 @@ extends Node
 const SAVE_PATH := "user://run_progress.json"
 const EXPLORATION_COUNT := 5
 
-var mode: String = "exploration"
+var mode: String = "adventure"
 var selected_character_style: String = "guardian"
 var encounter_index: int = 0
 var deck_ids: Array[String] = []
+var unlocked_creature_ids: Array[String] = []
+var selected_adventure_creature_id: String = ""
 
 func _ready() -> void:
 	_load_progress()
 
 func start_mode(mode_name: String) -> void:
-	mode = "bosses" if mode_name == "bosses" else "exploration"
-	encounter_index = EXPLORATION_COUNT if mode == "bosses" else 0
-	if mode == "exploration":
-		deck_ids.clear()
+	if mode_name == "combat":
+		mode = "combat"
+		encounter_index = 0
+	elif mode_name == "bosses":
+		mode = "bosses"
+		encounter_index = EXPLORATION_COUNT
+	else:
+		mode = "adventure"
+		encounter_index = 0
+	selected_adventure_creature_id = ""
 	_save_progress()
 
+func is_creature_unlocked(creature_id: String) -> bool:
+	return unlocked_creature_ids.has(creature_id)
+
+func unlock_creature_after_adventure_victory(creature_id: String, creature_name: String) -> bool:
+	if mode != "adventure" or creature_id.is_empty() or unlocked_creature_ids.has(creature_id):
+		return false
+	unlocked_creature_ids.append(creature_id)
+	_save_progress()
+	return true
+
 func is_boss_encounter() -> bool:
-	return mode == "bosses" or encounter_index >= EXPLORATION_COUNT
+	return mode == "bosses" or (mode != "combat" and encounter_index >= EXPLORATION_COUNT)
 
 func encounter_label() -> String:
 	if is_boss_encounter():
@@ -113,33 +131,34 @@ func finish_battle(state: BattleState, player_won: bool, catalog_cards: Array[Ca
 		if lost_card != null:
 			_remove_one_id(lost_card.id)
 			lost_names.append(lost_card.display_name)
-	for gained_card in state.unlocked_cards:
-		if gained_card != null:
-			deck_ids.append(gained_card.id)
-			gained_names.append(gained_card.display_name)
+	# Las cartas de criatura no se desbloquean en el modo táctico.
+	# Solo la victoria en un encuentro individual de Aventura las añade a la colección.
 
 	var reward_message := ""
 	if not gained_names.is_empty():
 		reward_message += " · Obtenidas: " + ", ".join(gained_names)
 	if not lost_names.is_empty():
 		reward_message += " · Perdidas: " + ", ".join(lost_names)
-	if player_won:
-		if is_boss_encounter():
+	if mode == "combat":
+		if player_won:
+			reward_message += " · Combate completado"
+	else:
+		if player_won and is_boss_encounter():
 			var boss_reward := _find_reward_card(catalog_cards, CardDefinition.CardType.CREATURE, 0)
 			if boss_reward != null:
 				deck_ids.append(boss_reward.id)
 				reward_message += " · Recompensa: " + boss_reward.display_name
 			mode = "exploration"
 			encounter_index = 0
-		else:
+		elif player_won:
 			var object_reward := _find_reward_card(catalog_cards, CardDefinition.CardType.OBJECT, encounter_index)
 			if object_reward != null:
 				deck_ids.append(object_reward.id)
 				reward_message += " · Objeto añadido: " + object_reward.display_name
 			encounter_index += 1
-	else:
-		mode = "exploration"
-		encounter_index = 0
+		elif not player_won:
+			mode = "adventure"
+			encounter_index = 0
 	_save_progress()
 	return reward_message
 
@@ -166,7 +185,8 @@ func _save_progress() -> void:
 	file.store_string(JSON.stringify({
 		"mode": mode,
 		"encounter_index": encounter_index,
-		"deck_ids": deck_ids
+		"deck_ids": deck_ids,
+		"unlocked_creature_ids": unlocked_creature_ids
 	}))
 
 func _load_progress() -> void:
@@ -178,10 +198,18 @@ func _load_progress() -> void:
 	var parsed: Variant = JSON.parse_string(file.get_as_text())
 	if not parsed is Dictionary:
 		return
-	mode = "bosses" if str(parsed.get("mode", "exploration")) == "bosses" else "exploration"
+	var saved_mode := str(parsed.get("mode", "adventure"))
+	mode = saved_mode if saved_mode in ["adventure", "combat", "bosses"] else "adventure"
 	encounter_index = clampi(int(parsed.get("encounter_index", 0)), 0, EXPLORATION_COUNT)
 	deck_ids.clear()
 	var saved_ids: Variant = parsed.get("deck_ids", [])
 	if saved_ids is Array:
 		for card_id in saved_ids:
 			deck_ids.append(str(card_id))
+	unlocked_creature_ids.clear()
+	var saved_unlocked: Variant = parsed.get("unlocked_creature_ids", [])
+	if saved_unlocked is Array:
+		for creature_id in saved_unlocked:
+			var id_string := str(creature_id)
+			if not id_string.is_empty() and not unlocked_creature_ids.has(id_string):
+				unlocked_creature_ids.append(id_string)
