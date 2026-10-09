@@ -23,6 +23,8 @@ var engine: BattleEngine
 var state: BattleState
 var selected_card_index: int = -1
 var selected_unit_slot: int = -1
+var attack_preview_slot: int = -1
+var ignore_next_board_release: bool = false
 
 var board_buttons: Array[Button] = []
 var board_piece_sprites: Array[TextureRect] = []
@@ -589,6 +591,7 @@ func _on_hand_pressed(index: int) -> void:
 		return
 	selected_card_index = index
 	selected_unit_slot = -1
+	attack_preview_slot = -1
 	status_label.text = state.hand[index].display_name
 	_refresh()
 
@@ -598,9 +601,29 @@ func _on_board_gui_input(event: InputEvent, index: int) -> void:
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
+			if event.double_click and selected_card_index < 0 and _is_draggable_player_unit(index):
+				drag_source_slot = -1
+				drag_active = false
+				selected_unit_slot = index
+				attack_preview_slot = -1 if attack_preview_slot == index else index
+				var selected_card: CardDefinition = state.board.get_card(index)
+				var targets: Array[int] = _attackable_slots_for(index)
+				status_label.text = "%s · %d objetivo(s) posible(s)" % [selected_card.display_name, targets.size()]
+				ignore_next_board_release = true
+				_refresh()
+				get_viewport().set_input_as_handled()
+				return
+
 			drag_source_slot = index if _is_draggable_player_unit(index) else -1
 			drag_press_position = event.global_position
 			drag_active = false
+			return
+
+		if ignore_next_board_release:
+			ignore_next_board_release = false
+			drag_source_slot = -1
+			drag_active = false
+			get_viewport().set_input_as_handled()
 			return
 
 		if drag_source_slot >= 0:
@@ -634,6 +657,44 @@ func _is_draggable_player_unit(index: int) -> bool:
 	var unit: CardDefinition = state.board.get_card(index)
 	return unit != null and unit.is_unit()
 
+func _attackable_slots_for(attacker_slot: int) -> Array[int]:
+	var targets: Array[int] = []
+	if state == null or state.setup_phase or state.player_actions <= 0:
+		return targets
+	if attacker_slot < 0 or attacker_slot >= BattleBoard.CELL_COUNT:
+		return targets
+
+	var attacker: CardDefinition = state.board.get_card(attacker_slot)
+	if state.board.get_owner(attacker_slot) != BattleBoard.Owner.PLAYER:
+		return targets
+	if attacker == null or not attacker.can_attack():
+		return targets
+
+	if attacker == state.player_hero:
+		if attacker.tags.has("ataque_lineal"):
+			var directions: Array[Vector2i] = [
+				Vector2i.UP,
+				Vector2i.DOWN,
+				Vector2i.LEFT,
+				Vector2i.RIGHT
+			]
+			for direction in directions:
+				var target_slot: int = state.board.first_occupied_in_line(
+					attacker_slot, direction, attacker.attack_range
+				)
+				if target_slot >= 0 and state.board.get_owner(target_slot) == BattleBoard.Owner.ENEMY:
+					targets.append(target_slot)
+		else:
+			for target_slot in state.board.adjacent_indices(attacker_slot):
+				if state.board.get_owner(target_slot) == BattleBoard.Owner.ENEMY and state.board.get_card(target_slot) != null:
+					targets.append(target_slot)
+		return targets
+
+	for target_slot in state.board.indices_for_owner(BattleBoard.Owner.ENEMY):
+		if state.board.distance(attacker_slot, target_slot) <= max(1, attacker.attack_range):
+			targets.append(target_slot)
+	return targets
+
 func _resolve_board_drag(source_slot: int, target_slot: int) -> void:
 	if source_slot < 0 or target_slot < 0 or source_slot == target_slot:
 		selected_unit_slot = source_slot if source_slot >= 0 else -1
@@ -657,6 +718,7 @@ func _resolve_board_drag(source_slot: int, target_slot: int) -> void:
 
 	if result.success:
 		selected_unit_slot = -1
+		attack_preview_slot = -1
 		_refresh()
 	else:
 		status_label.text = "ERROR · %s" % result.message
@@ -674,6 +736,7 @@ func _on_board_pressed(index: int) -> void:
 		var result: BattleResult = engine.execute(BattleCommand.play_card(selected_card_index, index, enemy_target))
 		if result.success:
 			selected_card_index = -1
+			attack_preview_slot = -1
 		return
 
 	if selected_unit_slot >= 0:
@@ -690,6 +753,7 @@ func _on_board_pressed(index: int) -> void:
 			return
 		if result.success:
 			selected_unit_slot = -1
+			attack_preview_slot = -1
 			_refresh()
 		return
 
@@ -848,6 +912,7 @@ func _refresh() -> void:
 		var occupant: CardDefinition = state.board.get_card(index)
 		var owner: int = state.board.get_owner(index)
 		var selected: bool = index == selected_unit_slot
+		var attackable: bool = attack_preview_slot >= 0 and _attackable_slots_for(attack_preview_slot).has(index)
 		button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		button.expand_icon = true
 		button.text = ""
@@ -872,11 +937,11 @@ func _refresh() -> void:
 			piece_sprite.texture = null
 			health_bar.visible = false
 			button.tooltip_text = "Casilla vacía"
-		var cell_style: StyleBoxFlat = _cell_style(index, selected)
+		var cell_style: StyleBoxFlat = _cell_style(index, selected, attackable)
 		button.add_theme_stylebox_override("normal", cell_style)
-		button.add_theme_stylebox_override("hover", _cell_style(index, selected))
-		button.add_theme_stylebox_override("pressed", _cell_style(index, selected))
-		button.add_theme_stylebox_override("focus", _cell_style(index, selected))
+		button.add_theme_stylebox_override("hover", _cell_style(index, selected, attackable))
+		button.add_theme_stylebox_override("pressed", _cell_style(index, selected, attackable))
+		button.add_theme_stylebox_override("focus", _cell_style(index, selected, attackable))
 
 	for index in range(mixer_buttons.size()):
 		var mixer_button: Button = mixer_buttons[index]
@@ -973,11 +1038,13 @@ func _refresh() -> void:
 					break
 		hero_attack_buttons[direction_index].disabled = state.finished or state.player_actions <= 0 or not state.player_hero.can_attack() or not has_target
 
-func _cell_style(index: int, selected: bool) -> StyleBoxFlat:
+func _cell_style(index: int, selected: bool, attackable: bool = false) -> StyleBoxFlat:
 	var row: int = floori(float(index) / float(BattleBoard.COLUMNS))
 	var column: int = index % BattleBoard.COLUMNS
-	var background: Color = Color("#24483F") if (row + column) % 2 == 0 else Color("#293F58")
-	return _style_box(background, GOLD_COLOR if selected else Color("#0B1712"), 0, 3 if selected else 1)
+	var checker_color: Color = Color("#24483F") if (row + column) % 2 == 0 else Color("#293F58")
+	var background: Color = Color("#62531B") if attackable else checker_color
+	var highlighted: bool = selected or attackable
+	return _style_box(background, GOLD_COLOR if highlighted else Color("#0B1712"), 0, 3 if highlighted else 1)
 
 func _scan_creature_sprites() -> void:
 	creature_sprite_paths.clear()
