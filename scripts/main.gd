@@ -32,9 +32,8 @@ var board_piece_sprites: Array[TextureRect] = []
 var board_health_bars: Array[ProgressBar] = []
 var mixer_buttons: Array[Button] = []
 var hand_buttons: Array[Button] = []
-var hand_units_row: HBoxContainer
-var hand_objects_row: HBoxContainer
 var loadout_inventory_row: HBoxContainer
+var inventory_card_buttons: Dictionary = {}
 var ium_bar_row: HBoxContainer
 var ium_buttons: Array[Button] = []
 var available_iums: Array[CardDefinition] = []
@@ -407,7 +406,7 @@ func _fit_board_cells() -> void:
 	board_grid.custom_minimum_size = Vector2(cell_size * BattleBoard.COLUMNS, cell_size * BattleBoard.ROWS)
 
 func _build_hand_bar() -> Control:
-	var panel := _new_panel(Vector2(0, 128))
+	var panel := _new_panel(Vector2(0, 74))
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 7)
 	margin.add_theme_constant_override("margin_right", 7)
@@ -419,73 +418,19 @@ func _build_hand_bar() -> Control:
 	inventory_root.add_theme_constant_override("separation", 4)
 	margin.add_child(inventory_root)
 
-	var loadout_header := _make_label("MAZO EQUIPADO", 9, MUTED_COLOR)
-	inventory_root.add_child(loadout_header)
+	var inventory_header := _make_label("MAZO", 9, MUTED_COLOR)
+	inventory_root.add_child(inventory_header)
 
-	var loadout_scroll := ScrollContainer.new()
-	loadout_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	loadout_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	loadout_scroll.custom_minimum_size.y = 34
-	loadout_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inventory_root.add_child(loadout_scroll)
+	var inventory_scroll := ScrollContainer.new()
+	inventory_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	inventory_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	inventory_scroll.custom_minimum_size.y = 42
+	inventory_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inventory_root.add_child(inventory_scroll)
 
 	loadout_inventory_row = HBoxContainer.new()
 	loadout_inventory_row.add_theme_constant_override("separation", 4)
-	loadout_scroll.add_child(loadout_inventory_row)
-
-	var hand_header := _make_label("EN MANO", 9, MUTED_COLOR)
-	inventory_root.add_child(hand_header)
-
-	var groups := HBoxContainer.new()
-	groups.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	groups.add_theme_constant_override("separation", 7)
-	inventory_root.add_child(groups)
-
-	var units_section := VBoxContainer.new()
-	units_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	units_section.size_flags_stretch_ratio = 3.0
-	units_section.add_theme_constant_override("separation", 3)
-	groups.add_child(units_section)
-
-	var units_scroll := ScrollContainer.new()
-	units_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	units_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	units_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	units_section.add_child(units_scroll)
-
-	hand_units_row = HBoxContainer.new()
-	hand_units_row.add_theme_constant_override("separation", 5)
-	units_scroll.add_child(hand_units_row)
-
-	var divider := VSeparator.new()
-	divider.custom_minimum_size.x = 1
-	divider.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	groups.add_child(divider)
-
-	var objects_section := VBoxContainer.new()
-	objects_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	objects_section.size_flags_stretch_ratio = 1.0
-	objects_section.add_theme_constant_override("separation", 3)
-	groups.add_child(objects_section)
-
-	var objects_scroll := ScrollContainer.new()
-	objects_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	objects_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	objects_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	objects_section.add_child(objects_scroll)
-
-	hand_objects_row = HBoxContainer.new()
-	hand_objects_row.add_theme_constant_override("separation", 5)
-	objects_scroll.add_child(hand_objects_row)
-
-	for index in range(BattleState.MAX_HAND):
-		var button := Button.new()
-		button.custom_minimum_size = Vector2(120, 58)
-		button.add_theme_font_size_override("font_size", 10)
-		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		button.pressed.connect(_on_hand_pressed.bind(index))
-		button.visible = false
-		hand_buttons.append(button)
+	inventory_scroll.add_child(loadout_inventory_row)
 
 	return panel
 
@@ -495,10 +440,13 @@ func _populate_loadout_inventory() -> void:
 	for child in loadout_inventory_row.get_children():
 		loadout_inventory_row.remove_child(child)
 		child.queue_free()
+	inventory_card_buttons.clear()
+
 	var cards_by_id: Dictionary = {}
 	for card in catalog_cards:
 		if card != null and not cards_by_id.has(card.id):
 			cards_by_id[card.id] = card
+
 	for card_id in run_progress.loadout_ids:
 		if card_id.is_empty():
 			continue
@@ -506,16 +454,29 @@ func _populate_loadout_inventory() -> void:
 		if card == null:
 			continue
 		var card_button := Button.new()
-		card_button.custom_minimum_size = Vector2(88, 32)
-		card_button.custom_minimum_size.x = 88
+		card_button.custom_minimum_size = Vector2(88, 38)
 		card_button.text = card.display_name
 		card_button.tooltip_text = "%s · ATQ %d · VIDA %d" % [card.display_name, card.attack, card.health]
 		card_button.add_theme_font_size_override("font_size", 9)
 		card_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		card_button.add_theme_stylebox_override("normal", _button_style(SURFACE_ALT_COLOR, BORDER_COLOR, 0, 1))
 		card_button.add_theme_stylebox_override("hover", _button_style(SELECTED_COLOR, CYAN_COLOR, 0, 1))
-		card_button.disabled = true
+		if card.card_type == CardDefinition.CardType.OBJECT:
+			card_button.pressed.connect(_on_inventory_card_pressed.bind(card.id))
+		else:
+			card_button.disabled = true
 		loadout_inventory_row.add_child(card_button)
+		inventory_card_buttons[card.id] = card_button
+
+func _on_inventory_card_pressed(card_id: String) -> void:
+	if state == null or state.setup_phase or state.is_finished():
+		return
+	for index in range(state.hand.size()):
+		var card: CardDefinition = state.hand[index]
+		if card != null and card.id == card_id:
+			_on_hand_pressed(index)
+			return
+	status_label.text = "Ese objeto ya fue utilizado."
 
 func _build_bottom_bar() -> Control:
 	var bar := HBoxContainer.new()
@@ -1072,58 +1033,26 @@ func _refresh() -> void:
 		mixer_button.disabled = state.setup_phase or state.finished
 		mixer_button.add_theme_stylebox_override("normal", _button_style(SELECTED_COLOR if mixer_card != null else SURFACE_ALT_COLOR, GOLD_COLOR if mixer_card != null else BORDER_COLOR, 7, 1))
 
-	for hand_button in hand_buttons:
-		if hand_button.get_parent() != null:
-			hand_button.get_parent().remove_child(hand_button)
-		hand_button.visible = false
-
-	for index in range(hand_buttons.size()):
-		var hand_button: Button = hand_buttons[index]
-		if index >= state.hand.size():
+	for card_id in inventory_card_buttons.keys():
+		var inventory_button: Button = inventory_card_buttons[card_id] as Button
+		if inventory_button == null:
 			continue
-
-		var card: CardDefinition = state.hand[index]
-		var target_row: HBoxContainer = null
-
-		match card.card_type:
-			CardDefinition.CardType.CREATURE:
-				target_row = hand_units_row
-			CardDefinition.CardType.CHARACTER:
-				target_row = hand_units_row
-			CardDefinition.CardType.OBJECT:
-				target_row = hand_objects_row
-			CardDefinition.CardType.IUM:
-				continue
-			CardDefinition.CardType.PROCESS:
-				continue
-			CardDefinition.CardType.ORIS:
-				continue
-
-		if target_row == null:
-			continue
-
-		target_row.add_child(hand_button)
-		hand_button.visible = true
-
-		hand_button.text = card.display_name
-		var etherium_cost: int = state.get_etherium_cost_for_card(card)
-		hand_button.tooltip_text = card.description
-		if state.setup_phase:
-			hand_button.disabled = state.finished or not card.is_unit()
-		else:
-			hand_button.disabled = (
-				state.finished
-				or card.is_unit()
-				or etherium_cost > state.player_etherium
-				or state.player_actions <= 0
-			)
-		hand_button.add_theme_stylebox_override(
+		var hand_index := -1
+		for index in range(state.hand.size()):
+			var held_card: CardDefinition = state.hand[index]
+			if held_card != null and held_card.id == str(card_id):
+				hand_index = index
+				break
+		var available := hand_index >= 0
+		var is_selected := available and hand_index == selected_card_index
+		inventory_button.disabled = state.finished or state.setup_phase or not available
+		inventory_button.add_theme_stylebox_override(
 			"normal",
 			_button_style(
-				SELECTED_COLOR if index == selected_card_index else SURFACE_ALT_COLOR,
-				GOLD_COLOR if index == selected_card_index else BORDER_COLOR,
-				7,
-				2 if index == selected_card_index else 1
+				SELECTED_COLOR if is_selected else SURFACE_ALT_COLOR,
+				GOLD_COLOR if is_selected else BORDER_COLOR,
+				0,
+				2 if is_selected else 1
 			)
 		)
 
