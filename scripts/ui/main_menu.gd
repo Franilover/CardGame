@@ -50,7 +50,6 @@ func _on_local_selected() -> void:
 
 func _on_random_pressed() -> void:
 	run_progress.start_mode("combat")
-	run_progress.selected_character_style = "archer" if randi_range(0, 1) == 1 else "guardian"
 	status_label.text = "Preparando combate al azar..."
 	set_process_input(false)
 	get_tree().change_scene_to_file(BATTLE_SCENE_PATH)
