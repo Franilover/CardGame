@@ -105,30 +105,42 @@ func setup(
 	ium_catalog = _runtime_copies(canonical_iums)
 	deck.shuffle()
 	enemy_deck.shuffle()
-	_deploy_initial_player_guards(player_character_style)
 	_deploy_initial_enemy_creatures()
-	# En este modo táctico, todas las criaturas equipadas empiezan en el tablero.
-	# Los objetos equipados quedan disponibles desde el inicio; no se roban cartas.
-	for card in deck:
-		if card != null and card.card_type == CardDefinition.CardType.OBJECT:
-			hand.append(card)
-	deck.clear()
-	state_changed.emit()
-
-func _deploy_initial_player_guards(_player_character_style: String) -> void:
-	var remaining_cards: Array[CardDefinition] = []
+	# Las criaturas equipadas esperan en el mazo para que el jugador las despliegue
+	# manualmente durante la fase inicial. Los objetos quedan disponibles desde el inicio.
+	var creatures_waiting: Array[CardDefinition] = []
 	for card in deck:
 		if card == null:
 			continue
-		if not card.is_unit():
-			remaining_cards.append(card)
-			continue
-		var slot: int = board.first_empty_in_zone(BattleBoard.Owner.PLAYER)
-		if slot < 0 or not board.place(slot, card, BattleBoard.Owner.PLAYER):
-			_event("No hay espacio inicial para %s." % card.display_name)
-			continue
-		_event("%s desplegó a %s." % [player_hero.display_name, card.display_name])
-	deck = remaining_cards
+		if card.is_unit():
+			creatures_waiting.append(card)
+		elif card.card_type == CardDefinition.CardType.OBJECT:
+			hand.append(card)
+	deck = creatures_waiting
+	state_changed.emit()
+
+func deploy_equipped_creature(card_id: String, target_slot: int) -> bool:
+	if finished or not setup_phase or card_id.is_empty():
+		return false
+	if target_slot < 0 or target_slot >= BOARD_CELLS or not board.is_empty(target_slot):
+		return false
+	if not board.is_player_back_row(target_slot):
+		return false
+	var card_index := -1
+	for index in range(deck.size()):
+		var candidate: CardDefinition = deck[index]
+		if candidate != null and candidate.id == card_id and candidate.is_unit():
+			card_index = index
+			break
+	if card_index < 0:
+		return false
+	var card: CardDefinition = deck[card_index]
+	if not board.place(target_slot, card, BattleBoard.Owner.PLAYER):
+		return false
+	deck.remove_at(card_index)
+	_event("%s desplegó a %s." % [player_hero.display_name, card.display_name])
+	state_changed.emit()
+	return true
 
 func _deploy_initial_enemy_creatures() -> void:
 	# Las criaturas enemigas que forman el encuentro aparecen una sola vez al inicio.
@@ -475,6 +487,8 @@ func end_turn() -> void:
 		return
 	if setup_phase:
 		setup_phase = false
+		# Las criaturas no desplegadas durante la preparación no entran después.
+		deck.clear()
 		turn = 1
 		player_actions = player_max_actions
 		player_etherium = player_max_etherium
