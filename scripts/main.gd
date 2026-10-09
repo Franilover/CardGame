@@ -449,7 +449,7 @@ func _build_bottom_bar() -> Control:
 	for direction_data in directions:
 		var attack_button := Button.new()
 		attack_button.text = str(direction_data["label"])
-		attack_button.custom_minimum_size = Vector2(48, 34)
+		attack_button.custom_minimum_size = Vector2(132, 34) if direction_data["direction"] == Vector2i.ZERO else Vector2(64, 34)
 		attack_button.add_theme_font_size_override("font_size", 8)
 		attack_button.pressed.connect(_on_hero_attack_pressed.bind(direction_data["direction"]))
 		hero_attack_panel.add_child(attack_button)
@@ -963,6 +963,11 @@ func _pixel_sprite_for(card: CardDefinition, is_hero: bool = false) -> Texture2D
 		_paint_pixel_rect(image, 20, 4, 4, 8, GOLD_COLOR)
 		_paint_pixel_rect(image, 28, 0, 8, 12, GOLD_COLOR)
 		_paint_pixel_rect(image, 40, 4, 4, 8, GOLD_COLOR)
+		if card.tags.has("ataque_lineal"):
+			_paint_pixel_rect(image, 48, 20, 4, 24, GOLD_COLOR)
+			_paint_pixel_rect(image, 44, 16, 4, 4, GOLD_COLOR)
+			_paint_pixel_rect(image, 44, 44, 4, 4, GOLD_COLOR)
+			_paint_pixel_rect(image, 52, 28, 4, 8, skin_color)
 	elif seed_value % 3 == 0:
 		_paint_pixel_rect(image, 12, 8, 8, 12, outline)
 		_paint_pixel_rect(image, 44, 8, 8, 12, outline)
