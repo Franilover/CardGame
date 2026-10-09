@@ -49,63 +49,28 @@ func _refresh_online() -> bool:
 	refresh_in_progress = true
 
 	var successful := 0
-	var results: Array = [
-		await supabase_client.get_table_rows(
-			"criaturas",
-			"id,nombre,descripcion,imagen_url,stats_dnd,ia_config",
-			60
-		),
-		await supabase_client.get_table_rows(
-			"items",
-			"id,nombre,imagen_url,descripcion,origen,propiedades_fisicas,publicado",
-			80
-		),
-		await supabase_client.get_table_rows(
-			"items_game",
-			"id,item_id,tipo,max_stack,propiedades",
-			80
-		),
-		await supabase_client.get_table_rows(
-			"iums",
-			"id,orden,nombre,detalle,extra",
-			40
-		),
-		await supabase_client.get_table_rows(
-			"oris",
-			"id,orden,nombre,familia,formula,dominio,descripcion",
-			20
-		),
-		await supabase_client.get_table_rows(
-			"procesos",
-			"id,nombre,tipo,descripcion,regla_clave,entrada,transformacion,salida,estado_fundamento",
-			100
-		),
-		await supabase_client.get_table_rows(
-			"personajes_game",
-			"id,nombre,criatura_id,activo,personaje_id,reino_game_id",
-			40
-		),
-		await supabase_client.get_table_rows(
-			"reinos_game",
-			"id,reino_id,clave,activo,orden,propiedades",
-			30
+	var table_requests: Array[Dictionary] = [
+		{"key": "criaturas", "select": "id,nombre,descripcion,imagen_url,stats_dnd,ia_config", "limit": 60},
+		{"key": "items", "select": "id,nombre,imagen_url,descripcion,origen,propiedades_fisicas,publicado", "limit": 80},
+		{"key": "items_game", "select": "id,item_id,tipo,max_stack,propiedades", "limit": 80},
+		{"key": "iums", "select": "id,orden,nombre,detalle,extra", "limit": 40},
+		{"key": "oris", "select": "id,orden,nombre,familia,formula,dominio,descripcion", "limit": 20},
+		{"key": "procesos", "select": "id,nombre,tipo,descripcion,regla_clave,entrada,transformacion,salida,estado_fundamento", "limit": 100},
+		{"key": "personajes_game", "select": "id,nombre,criatura_id,activo,personaje_id,reino_game_id", "limit": 40},
+		{"key": "reinos_game", "select": "id,reino_id,clave,activo,orden,propiedades", "limit": 30}
+	]
+
+	for request_data in table_requests:
+		var key: String = str(request_data["key"])
+		var rows: Array = await supabase_client.get_table_rows(
+			key,
+			str(request_data["select"]),
+			int(request_data["limit"])
 		)
-	]
-
-	var keys: Array[String] = [
-		"criaturas",
-		"items",
-		"items_game",
-		"iums",
-		"oris",
-		"procesos",
-		"personajes_game",
-		"reinos_game"
-	]
-
-	for i in range(keys.size()):
-		if results[i] is Array and not results[i].is_empty():
-			data[keys[i]] = results[i]
+		# Un 200 con [] es un catálogo canónico vacío y debe reemplazar la caché.
+		# Un error de red/HTTP conserva la última copia local utilizable.
+		if supabase_client.last_error.is_empty():
+			data[key] = rows
 			successful += 1
 
 	if successful > 0:
