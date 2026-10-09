@@ -20,6 +20,9 @@ func start_mode(mode_name: String) -> void:
 	if mode_name == "combat":
 		mode = "combat"
 		encounter_index = 0
+	elif mode_name == "local":
+		mode = "local"
+		encounter_index = 0
 	elif mode_name == "bosses":
 		mode = "bosses"
 		encounter_index = EXPLORATION_COUNT
@@ -152,9 +155,11 @@ func unlock_creature_after_adventure_victory(creature_id: String) -> bool:
 	return true
 
 func is_boss_encounter() -> bool:
-	return mode == "bosses" or (mode != "combat" and encounter_index >= EXPLORATION_COUNT)
+	return mode == "bosses" or (mode not in ["combat", "local"] and encounter_index >= EXPLORATION_COUNT)
 
 func encounter_label() -> String:
+	if mode == "local":
+		return "COMBATE LOCAL"
 	if mode == "combat":
 		return "COMBATE TÁCTICO"
 	if is_boss_encounter():
@@ -263,6 +268,8 @@ func build_enemy_deck(base_deck: Array[CardDefinition]) -> Array[CardDefinition]
 	return result
 
 func finish_battle(state: BattleState, player_won: bool, catalog_cards: Array[CardDefinition]) -> String:
+	if mode == "local":
+		return " · Partida local finalizada"
 	var gained_names: Array[String] = []
 	var lost_names: Array[String] = []
 	for lost_card in state.lost_cards:
@@ -344,7 +351,7 @@ func _load_progress() -> void:
 	if selected_character_style not in ["guardian", "archer"]:
 		selected_character_style = "guardian"
 	var saved_mode := str(parsed.get("mode", "adventure"))
-	mode = saved_mode if saved_mode in ["adventure", "combat", "bosses"] else "adventure"
+	mode = saved_mode if saved_mode in ["adventure", "combat", "bosses", "local"] else "adventure"
 	encounter_index = clampi(int(parsed.get("encounter_index", 0)), 0, EXPLORATION_COUNT)
 	deck_ids.clear()
 	var saved_ids: Variant = parsed.get("deck_ids", [])
