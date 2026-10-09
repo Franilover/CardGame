@@ -27,7 +27,7 @@ func _ready() -> void:
 	settings_button.pressed.connect(_on_settings_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 	play_button.grab_focus()
-	status_label.text = canon_repository.get_status_text()
+	status_label.text = ""
 	await canon_repository.initialize()
 	_populate_home_cards()
 
