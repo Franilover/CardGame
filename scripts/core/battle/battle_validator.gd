@@ -92,11 +92,21 @@ static func _validate_hero_attack(state: BattleState, command: BattleCommand) ->
 	var hero: CardDefinition = state.player_hero
 	if hero == null or not hero.can_attack():
 		return BattleResult.error("HERO_ATTACK_NOT_ALLOWED", "El Rey no puede atacar ahora.")
-	if abs(command.direction.x) + abs(command.direction.y) != 1:
-		return BattleResult.error("HERO_DIRECTION_INVALID", "El ataque necesita una de las cuatro direcciones.")
-	if state.board.front_attack_indices(command.attacker_slot, command.direction).is_empty():
-		return BattleResult.error("HERO_ATTACK_OUT_OF_BOARD", "Ese lado queda fuera del tablero.")
-	return BattleResult.ok()
+
+	if hero.tags.has("ataque_lineal"):
+		if abs(command.direction.x) + abs(command.direction.y) != 1:
+			return BattleResult.error("HERO_DIRECTION_INVALID", "El disparo necesita una dirección recta.")
+		var first_target: int = state.board.first_occupied_in_line(command.attacker_slot, command.direction, hero.attack_range)
+		if first_target < 0 or state.board.get_owner(first_target) != BattleBoard.Owner.ENEMY:
+			return BattleResult.error("HERO_LINE_NO_TARGET", "No hay enemigo en esa línea de tiro.")
+		return BattleResult.ok()
+
+	if command.direction != Vector2i.ZERO:
+		return BattleResult.error("HERO_DIRECTION_INVALID", "El golpe circular no usa dirección.")
+	for index in state.board.adjacent_indices(command.attacker_slot):
+		if state.board.get_owner(index) == BattleBoard.Owner.ENEMY and state.board.get_card(index) != null:
+			return BattleResult.ok()
+	return BattleResult.error("HERO_AREA_NO_TARGET", "No hay enemigos junto al Rey.")
 
 static func _validate_move(state: BattleState, command: BattleCommand) -> BattleResult:
 	if command.attacker_slot < 0 or command.attacker_slot >= BattleBoard.CELL_COUNT:
