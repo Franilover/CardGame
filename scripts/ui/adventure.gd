@@ -96,34 +96,58 @@ func _populate_creatures() -> void:
 		child.queue_free()
 
 	var creatures: Array[CardDefinition] = []
+	var unlocked: Array[CardDefinition] = []
+	var locked: Array[CardDefinition] = []
 	for card in CardCatalog.from_canon(canon_repository):
-		if card != null and card.card_type == CardDefinition.CardType.CREATURE:
-			creatures.append(card)
+		if card == null or card.card_type != CardDefinition.CardType.CREATURE:
+			continue
+		creatures.append(card)
+		if run_progress.is_creature_unlocked(card.id):
+			unlocked.append(card)
+		else:
+			locked.append(card)
 
-	collection_label.text = "COLECCIÓN · %d / %d criaturas desbloqueadas" % [run_progress.unlocked_creature_ids.size(), creatures.size()]
+	collection_label.text = "CRIATURAS DESCUBIERTAS · %d" % unlocked.size()
 	if creatures.is_empty():
-		status_label.text = "No hay criaturas canónicas disponibles. Conéctate y sincroniza Supabase."
+		status_label.text = "No hay criaturas disponibles. Sincroniza el catálogo."
 		return
 
-	creatures.sort_custom(func(a: CardDefinition, b: CardDefinition) -> bool:
+	if not locked.is_empty():
+		var unknown_button := Button.new()
+		unknown_button.custom_minimum_size.y = 76
+		unknown_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		unknown_button.text = "ENCUENTRO DESCONOCIDO\nExplora para descubrir una criatura"
+		unknown_button.pressed.connect(_start_unknown_encounter)
+		list_root.add_child(unknown_button)
+
+	unlocked.sort_custom(func(a: CardDefinition, b: CardDefinition) -> bool:
 		return a.display_name.naturalcasecmp_to(b.display_name) < 0
 	)
-	for creature in creatures:
-		var unlocked: bool = run_progress.is_creature_unlocked(creature.id)
+	for creature in unlocked:
 		var button := Button.new()
 		button.custom_minimum_size.y = 68
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		var state_text := "DESBLOQUEADA" if unlocked else "NUEVA · DERROTA PARA DESBLOQUEAR"
-		button.text = "%s\nATQ %d · VIDA %d    |    %s" % [creature.display_name, creature.attack, creature.max_health, state_text]
-		button.add_theme_stylebox_override("normal", _style(PANEL, GOLD if unlocked else BORDER, 1))
+		button.text = "%s\nATQ %d · VIDA %d · DESCUBIERTA" % [creature.display_name, creature.attack, creature.max_health]
+		button.add_theme_stylebox_override("normal", _style(PANEL, GOLD, 1))
 		button.add_theme_stylebox_override("hover", _style(ALT, GOLD, 2))
 		button.add_theme_stylebox_override("pressed", _style(ALT, GOLD, 2))
 		button.pressed.connect(_start_encounter.bind(creature.id))
 		list_root.add_child(button)
 
-	status_label.text = "Selecciona una criatura para iniciar un combate individual. Solo una victoria en Aventura puede desbloquear su carta."
+	status_label.text = "Derrota una criatura desconocida para revelar y desbloquear su carta."
+
+func _start_unknown_encounter() -> void:
+	var candidates: Array[String] = []
+	for card in CardCatalog.from_canon(canon_repository):
+		if card != null and card.card_type == CardDefinition.CardType.CREATURE and not run_progress.is_creature_unlocked(card.id):
+			candidates.append(card.id)
+	if candidates.is_empty():
+		status_label.text = "Ya descubriste todas las criaturas."
+		return
+	candidates.shuffle()
+	_start_encounter(candidates[0])
 
 func _start_encounter(creature_id: String) -> void:
 	run_progress.mode = "adventure"
