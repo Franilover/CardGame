@@ -7,6 +7,8 @@ var mode: String = "adventure"
 var selected_character_style: String = "guardian"
 var encounter_index: int = 0
 var deck_ids: Array[String] = []
+var loadout_ids: Array[String] = ["", "", "", "", "", "", "", ""]
+var owned_card_counts: Dictionary = {}
 var unlocked_creature_ids: Array[String] = []
 var discovered_card_ids: Array[String] = []
 var selected_adventure_creature_id: String = ""
@@ -30,6 +32,85 @@ func start_mode(mode_name: String) -> void:
 func is_creature_unlocked(creature_id: String) -> bool:
 	return unlocked_creature_ids.has(creature_id)
 
+func get_owned_count(card_id: String) -> int:
+	return maxi(0, int(owned_card_counts.get(card_id, 0)))
+
+func initialize_collection(seed_cards: Array[CardDefinition]) -> void:
+	if owned_card_counts.is_empty():
+		for card in seed_cards:
+			if card == null or not _is_collectible_card(card):
+				continue
+			owned_card_counts[card.id] = get_owned_count(card.id) + 1
+		for creature_id in unlocked_creature_ids:
+			owned_card_counts[creature_id] = maxi(1, get_owned_count(creature_id))
+		for card_id in discovered_card_ids:
+			if _find_card_in_seed(seed_cards, card_id) and get_owned_count(card_id) == 0:
+				owned_card_counts[card_id] = 1
+
+	if _loadout_is_empty():
+		var valid_starters: Array[String] = []
+		for card in seed_cards:
+			if card != null and _is_collectible_card(card) and get_owned_count(card.id) > 0:
+				valid_starters.append(card.id)
+		for index in range(min(loadout_ids.size(), valid_starters.size())):
+			loadout_ids[index] = valid_starters[index]
+		if loadout_ids.all(func(id: String) -> bool: return id.is_empty()):
+			for index in range(min(loadout_ids.size(), deck_ids.size())):
+				loadout_ids[index] = deck_ids[index]
+	_sync_deck_from_loadout()
+	_save_progress()
+
+func _is_collectible_card(card: CardDefinition) -> bool:
+	return card.card_type == CardDefinition.CardType.CREATURE or card.card_type == CardDefinition.CardType.OBJECT
+
+func _find_card_in_seed(cards: Array[CardDefinition], card_id: String) -> bool:
+	for card in cards:
+		if card != null and card.id == card_id:
+			return true
+	return false
+
+func _loadout_is_empty() -> bool:
+	for card_id in loadout_ids:
+		if not card_id.is_empty():
+			return false
+	return true
+
+func _sync_deck_from_loadout() -> void:
+	deck_ids.clear()
+	for card_id in loadout_ids:
+		if not card_id.is_empty():
+			deck_ids.append(card_id)
+
+func set_loadout_card(slot: int, card_id: String) -> bool:
+	if slot < 0 or slot >= loadout_ids.size():
+		return false
+	if not card_id.is_empty():
+		var available := get_owned_count(card_id)
+		if available <= 0:
+			return false
+		var selected_count := 0
+		for index in range(loadout_ids.size()):
+			if index != slot and loadout_ids[index] == card_id:
+				selected_count += 1
+		if selected_count >= available:
+			return false
+	loadout_ids[slot] = card_id
+	_sync_deck_from_loadout()
+	_save_progress()
+	return true
+
+func remove_owned_card(card_id: String) -> void:
+	var count := get_owned_count(card_id)
+	if count <= 1:
+		owned_card_counts.erase(card_id)
+	else:
+		owned_card_counts[card_id] = count - 1
+	for index in range(loadout_ids.size()):
+		if loadout_ids[index] == card_id:
+			loadout_ids[index] = ""
+			break
+	_sync_deck_from_loadout()
+
 func is_card_discovered(card: CardDefinition) -> bool:
 	if card == null:
 		return false
@@ -48,6 +129,7 @@ func unlock_creature_after_adventure_victory(creature_id: String) -> bool:
 	if mode != "adventure" or creature_id.is_empty() or unlocked_creature_ids.has(creature_id):
 		return false
 	unlocked_creature_ids.append(creature_id)
+	owned_card_counts[creature_id] = maxi(1, get_owned_count(creature_id))
 	if not discovered_card_ids.has(creature_id):
 		discovered_card_ids.append(creature_id)
 	_save_progress()
@@ -170,6 +252,7 @@ func finish_battle(state: BattleState, player_won: bool, catalog_cards: Array[Ca
 			var object_reward := _find_reward_card(catalog_cards, CardDefinition.CardType.OBJECT, encounter_index)
 			if object_reward != null:
 				deck_ids.append(object_reward.id)
+				owned_card_counts[object_reward.id] = get_owned_count(object_reward.id) + 1
 				discover_card(object_reward.id)
 				reward_message += " · Objeto añadido: " + object_reward.display_name
 			encounter_index += 1
@@ -192,6 +275,7 @@ func _remove_one_id(card_id: String) -> void:
 	for index in range(deck_ids.size()):
 		if deck_ids[index] == card_id:
 			deck_ids.remove_at(index)
+			remove_owned_card(card_id)
 			return
 
 func _save_progress() -> void:
@@ -203,6 +287,9 @@ func _save_progress() -> void:
 		"mode": mode,
 		"encounter_index": encounter_index,
 		"deck_ids": deck_ids,
+		"loadout_ids": loadout_ids,
+		"owned_card_counts": owned_card_counts,
+		"selected_character_style": selected_character_style,
 		"unlocked_creature_ids": unlocked_creature_ids,
 		"discovered_card_ids": discovered_card_ids
 	}))
@@ -216,6 +303,9 @@ func _load_progress() -> void:
 	var parsed: Variant = JSON.parse_string(file.get_as_text())
 	if not parsed is Dictionary:
 		return
+	selected_character_style = str(parsed.get("selected_character_style", "guardian"))
+	if selected_character_style not in ["guardian", "archer"]:
+		selected_character_style = "guardian"
 	var saved_mode := str(parsed.get("mode", "adventure"))
 	mode = saved_mode if saved_mode in ["adventure", "combat", "bosses"] else "adventure"
 	encounter_index = clampi(int(parsed.get("encounter_index", 0)), 0, EXPLORATION_COUNT)
@@ -224,6 +314,24 @@ func _load_progress() -> void:
 	if saved_ids is Array:
 		for card_id in saved_ids:
 			deck_ids.append(str(card_id))
+	loadout_ids = ["", "", "", "", "", "", "", ""]
+	var saved_loadout: Variant = parsed.get("loadout_ids", [])
+	if saved_loadout is Array:
+		for index in range(min(loadout_ids.size(), saved_loadout.size())):
+			loadout_ids[index] = str(saved_loadout[index])
+	owned_card_counts.clear()
+	var saved_owned: Variant = parsed.get("owned_card_counts", {})
+	if saved_owned is Dictionary:
+		for card_id in saved_owned.keys():
+			var count := int(saved_owned[card_id])
+			if count > 0:
+				owned_card_counts[str(card_id)] = count
+	else:
+		for card_id in deck_ids:
+			owned_card_counts[card_id] = get_owned_count(card_id) + 1
+	if owned_card_counts.is_empty():
+		for card_id in deck_ids:
+			owned_card_counts[card_id] = get_owned_count(card_id) + 1
 	unlocked_creature_ids.clear()
 	var saved_unlocked: Variant = parsed.get("unlocked_creature_ids", [])
 	if saved_unlocked is Array:
