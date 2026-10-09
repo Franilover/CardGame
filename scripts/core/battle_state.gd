@@ -304,7 +304,7 @@ func move_unit(player_slot: int, target_slot: int) -> bool:
 		return false
 	if not unit.is_unit():
 		return false
-	if not board.move(player_slot, target_slot, BattleBoard.Owner.PLAYER, unit.movement):
+	if not board.move(player_slot, target_slot, active_owner, unit.movement):
 		return false
 	# El rey conserva su posición lógica al desplazarse por el tablero.
 	if unit == player_hero:
