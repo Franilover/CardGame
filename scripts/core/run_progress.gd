@@ -40,6 +40,8 @@ func is_boss_encounter() -> bool:
 	return mode == "bosses" or (mode != "combat" and encounter_index >= EXPLORATION_COUNT)
 
 func encounter_label() -> String:
+	if mode == "combat":
+		return "COMBATE TÁCTICO"
 	if is_boss_encounter():
 		return "JEFE"
 	return "EXPLORACIÓN %d/%d" % [encounter_index + 1, EXPLORATION_COUNT]
@@ -144,11 +146,8 @@ func finish_battle(state: BattleState, player_won: bool, catalog_cards: Array[Ca
 			reward_message += " · Combate completado"
 	else:
 		if player_won and is_boss_encounter():
-			var boss_reward := _find_reward_card(catalog_cards, CardDefinition.CardType.CREATURE, 0)
-			if boss_reward != null:
-				deck_ids.append(boss_reward.id)
-				reward_message += " · Recompensa: " + boss_reward.display_name
-			mode = "exploration"
+			# Los jefes del tablero táctico no desbloquean criaturas de la colección.
+			mode = "adventure"
 			encounter_index = 0
 		elif player_won:
 			var object_reward := _find_reward_card(catalog_cards, CardDefinition.CardType.OBJECT, encounter_index)
