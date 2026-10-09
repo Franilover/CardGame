@@ -744,6 +744,8 @@ func _try_execute_attack_preview(target_slot: int) -> bool:
 	else:
 		status_label.text = "ERROR · %s" % result.message
 	_refresh()
+	if result.success and state.local_mode and not state.setup_phase and state.get_active_actions() <= 0:
+		call_deferred("_auto_end_turn_if_needed")
 	return true
 
 
