@@ -963,7 +963,10 @@ func _on_end_turn_pressed() -> void:
 	if state == null:
 		return
 	if state.is_finished():
-		get_tree().reload_current_scene()
+		if state.local_mode:
+			get_tree().change_scene_to_file(MENU_SCENE_PATH)
+		else:
+			get_tree().reload_current_scene()
 		return
 	selected_card_index = -1
 	selected_unit_slot = -1
@@ -996,8 +999,12 @@ func _on_engine_event(event: BattleEvent) -> void:
 
 func _on_battle_finished(player_won: bool) -> void:
 	var reward_message: String = run_progress.finish_battle(state, player_won, catalog_cards)
-	status_label.text = ("VICTORIA" if player_won else "DERROTA") + reward_message
-	end_turn_button.text = "CONTINUAR" if player_won else "REINTENTAR"
+	if state.local_mode:
+		status_label.text = ("GANA JUGADOR 1" if player_won else "GANA JUGADOR 2") + reward_message
+		end_turn_button.text = "VOLVER AL MENÚ"
+	else:
+		status_label.text = ("VICTORIA" if player_won else "DERROTA") + reward_message
+		end_turn_button.text = "CONTINUAR" if player_won else "REINTENTAR"
 	end_turn_button.disabled = false
 	process_button.disabled = true
 	_refresh()
