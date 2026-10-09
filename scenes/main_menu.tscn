@@ -100,6 +100,13 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 17
 text = "SALIR"
 
+[node name="ColumnSeparator" type="ColorRect" parent="Layout"]
+custom_minimum_size = Vector2(1, 0)
+layout_mode = 2
+size_flags_vertical = 3
+color = Color(0.16, 0.43, 0.29, 0.8)
+mouse_filter = 2
+
 [node name="CatalogArea" type="VBoxContainer" parent="Layout"]
 layout_mode = 2
 size_flags_horizontal = 3
