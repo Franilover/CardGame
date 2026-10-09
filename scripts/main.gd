@@ -34,6 +34,7 @@ var mixer_buttons: Array[Button] = []
 var hand_buttons: Array[Button] = []
 var hand_units_row: HBoxContainer
 var hand_objects_row: HBoxContainer
+var loadout_inventory_row: HBoxContainer
 var ium_bar_row: HBoxContainer
 var ium_buttons: Array[Button] = []
 var available_iums: Array[CardDefinition] = []
@@ -406,18 +407,39 @@ func _fit_board_cells() -> void:
 	board_grid.custom_minimum_size = Vector2(cell_size * BattleBoard.COLUMNS, cell_size * BattleBoard.ROWS)
 
 func _build_hand_bar() -> Control:
-	var panel := _new_panel(Vector2(0, 88))
+	var panel := _new_panel(Vector2(0, 128))
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 7)
 	margin.add_theme_constant_override("margin_right", 7)
-	margin.add_theme_constant_override("margin_top", 6)
-	margin.add_theme_constant_override("margin_bottom", 6)
+	margin.add_theme_constant_override("margin_top", 5)
+	margin.add_theme_constant_override("margin_bottom", 5)
 	panel.add_child(margin)
+
+	var inventory_root := VBoxContainer.new()
+	inventory_root.add_theme_constant_override("separation", 4)
+	margin.add_child(inventory_root)
+
+	var loadout_header := _make_label("MAZO EQUIPADO", 9, MUTED_COLOR)
+	inventory_root.add_child(loadout_header)
+
+	var loadout_scroll := ScrollContainer.new()
+	loadout_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	loadout_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	loadout_scroll.custom_minimum_size.y = 34
+	loadout_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inventory_root.add_child(loadout_scroll)
+
+	loadout_inventory_row = HBoxContainer.new()
+	loadout_inventory_row.add_theme_constant_override("separation", 4)
+	loadout_scroll.add_child(loadout_inventory_row)
+
+	var hand_header := _make_label("EN MANO", 9, MUTED_COLOR)
+	inventory_root.add_child(hand_header)
 
 	var groups := HBoxContainer.new()
 	groups.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	groups.add_theme_constant_override("separation", 7)
-	margin.add_child(groups)
+	inventory_root.add_child(groups)
 
 	var units_section := VBoxContainer.new()
 	units_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -466,6 +488,34 @@ func _build_hand_bar() -> Control:
 		hand_buttons.append(button)
 
 	return panel
+
+func _populate_loadout_inventory() -> void:
+	if loadout_inventory_row == null:
+		return
+	for child in loadout_inventory_row.get_children():
+		loadout_inventory_row.remove_child(child)
+		child.queue_free()
+	var cards_by_id: Dictionary = {}
+	for card in catalog_cards:
+		if card != null and not cards_by_id.has(card.id):
+			cards_by_id[card.id] = card
+	for card_id in run_progress.loadout_ids:
+		if card_id.is_empty():
+			continue
+		var card: CardDefinition = cards_by_id.get(card_id) as CardDefinition
+		if card == null:
+			continue
+		var card_button := Button.new()
+		card_button.custom_minimum_size = Vector2(88, 32)
+		card_button.custom_minimum_size.x = 88
+		card_button.text = card.display_name
+		card_button.tooltip_text = "%s · ATQ %d · VIDA %d" % [card.display_name, card.attack, card.health]
+		card_button.add_theme_font_size_override("font_size", 9)
+		card_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		card_button.add_theme_stylebox_override("normal", _button_style(SURFACE_ALT_COLOR, BORDER_COLOR, 0, 1))
+		card_button.add_theme_stylebox_override("hover", _button_style(SELECTED_COLOR, CYAN_COLOR, 0, 1))
+		card_button.disabled = true
+		loadout_inventory_row.add_child(card_button)
 
 func _build_bottom_bar() -> Control:
 	var bar := HBoxContainer.new()
@@ -575,6 +625,7 @@ func _start_battle() -> void:
 	player_name_label.text = state.player_hero.display_name
 	enemy_name_label.text = state.enemy_hero.display_name
 	_populate_ium_bar()
+	_populate_loadout_inventory()
 	_refresh()
 
 func _character_name_from_canon(fallback: String) -> String:
