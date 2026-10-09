@@ -472,7 +472,7 @@ func _populate_loadout_inventory() -> void:
 		inventory_card_buttons[card.id] = card_button
 
 func _on_inventory_card_gui_input(event: InputEvent, card_id: String) -> void:
-	if state == null or state.is_finished() or (not state.setup_phase and state.player_actions <= 0):
+	if state == null or state.is_finished() or (state.local_mode and state.active_owner != BattleBoard.Owner.PLAYER) or (not state.setup_phase and state.get_active_actions() <= 0):
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
@@ -511,7 +511,7 @@ func _board_slot_at_global_position(global_position: Vector2) -> int:
 	return -1
 
 func _on_inventory_card_pressed(card_id: String) -> void:
-	if state == null or state.setup_phase or state.is_finished():
+	if state == null or state.setup_phase or state.is_finished() or (state.local_mode and state.active_owner != BattleBoard.Owner.PLAYER):
 		return
 	for index in range(state.hand.size()):
 		var card: CardDefinition = state.hand[index]
@@ -529,16 +529,13 @@ func _build_bottom_bar() -> Control:
 	hero_attack_panel.add_theme_constant_override("separation", 3)
 	hero_attack_panel.visible = false
 
-	var directions: Array[Dictionary] = []
-	if run_progress.selected_character_style == "archer":
-		directions = [
-			{"label": "FLECHA ↑", "direction": Vector2i.UP},
-			{"label": "FLECHA ↓", "direction": Vector2i.DOWN},
-			{"label": "FLECHA ←", "direction": Vector2i.LEFT},
-			{"label": "FLECHA →", "direction": Vector2i.RIGHT}
-		]
-	else:
-		directions = [{"label": "GOLPE CIRCULAR", "direction": Vector2i.ZERO}]
+	var directions: Array[Dictionary] = [
+		{"label": "FLECHA ↑", "direction": Vector2i.UP},
+		{"label": "FLECHA ↓", "direction": Vector2i.DOWN},
+		{"label": "FLECHA ←", "direction": Vector2i.LEFT},
+		{"label": "FLECHA →", "direction": Vector2i.RIGHT},
+		{"label": "GOLPE CIRCULAR", "direction": Vector2i.ZERO}
+	]
 	for direction_data in directions:
 		var attack_button := Button.new()
 		attack_button.text = str(direction_data["label"])
@@ -612,7 +609,8 @@ func _start_battle() -> void:
 	engine = BattleEngine.new()
 	engine.setup(player_deck, enemy_deck, process_catalog, available_iums, run_progress.selected_character_style)
 	state = engine.get_state()
-	status_label.text = "Tus guardias ya están desplegados. Pulsa INICIAR COMBATE."
+	state.local_mode = run_progress.mode == "local"
+	status_label.text = "Despliega tus criaturas y pulsa INICIAR COMBATE."
 	if run_progress.is_boss_encounter():
 		state.enemy_hero.display_name = "Jefe de Garlia"
 		state.enemy_hero.health = 45
@@ -625,8 +623,8 @@ func _start_battle() -> void:
 	engine.command_resolved.connect(_on_command_resolved)
 	engine.battle_finished.connect(_on_battle_finished)
 
-	player_name_label.text = state.player_hero.display_name
-	enemy_name_label.text = state.enemy_hero.display_name
+	player_name_label.text = "JUGADOR 1 · " + state.player_hero.display_name
+	enemy_name_label.text = ("JUGADOR 2 · " if state.local_mode else "") + state.enemy_hero.display_name
 	_populate_ium_bar()
 	_populate_loadout_inventory()
 	_refresh()
@@ -712,9 +710,9 @@ func _try_execute_attack_preview(target_slot: int) -> bool:
 		return false
 
 	var result: BattleResult
-	if attack_preview_slot == state.player_hero_slot:
+	if attack_preview_slot == state.get_active_hero_slot():
 		var direction := Vector2i.ZERO
-		if state.player_hero.tags.has("ataque_lineal"):
+		if state.get_active_hero().tags.has("ataque_lineal"):
 			var attacker_row: int = floori(float(attack_preview_slot) / float(BattleBoard.COLUMNS))
 			var attacker_column: int = attack_preview_slot % BattleBoard.COLUMNS
 			var target_row: int = floori(float(target_slot) / float(BattleBoard.COLUMNS))
@@ -744,19 +742,21 @@ func _try_execute_attack_preview(target_slot: int) -> bool:
 func _is_draggable_player_unit(index: int) -> bool:
 	if index < 0 or state == null:
 		return false
-	if state.board.get_owner(index) != BattleBoard.Owner.PLAYER:
+	if state.board.get_owner(index) != state.active_owner:
+		return false
+	if state.get_active_actions() <= 0 and not state.setup_phase:
 		return false
 	var unit: CardDefinition = state.board.get_card(index)
 	return unit != null and unit.is_unit()
 
 func _movement_slots_for(mover_slot: int) -> Array[int]:
 	var targets: Array[int] = []
-	if state == null or state.setup_phase or state.player_actions <= 0:
+	if state == null or state.setup_phase or state.get_active_actions() <= 0:
 		return targets
 	if mover_slot < 0 or mover_slot >= BattleBoard.CELL_COUNT:
 		return targets
 	var mover: CardDefinition = state.board.get_card(mover_slot)
-	if state.board.get_owner(mover_slot) != BattleBoard.Owner.PLAYER or mover == null or not mover.is_unit():
+	if state.board.get_owner(mover_slot) != state.active_owner or mover == null or not mover.is_unit():
 		return targets
 	for target_slot in range(BattleBoard.CELL_COUNT):
 		if state.board.can_move(mover_slot, target_slot, BattleBoard.Owner.PLAYER, mover.movement):
@@ -765,18 +765,18 @@ func _movement_slots_for(mover_slot: int) -> Array[int]:
 
 func _attackable_slots_for(attacker_slot: int) -> Array[int]:
 	var targets: Array[int] = []
-	if state == null or state.setup_phase or state.player_actions <= 0:
+	if state == null or state.setup_phase or state.get_active_actions() <= 0:
 		return targets
 	if attacker_slot < 0 or attacker_slot >= BattleBoard.CELL_COUNT:
 		return targets
 
 	var attacker: CardDefinition = state.board.get_card(attacker_slot)
-	if state.board.get_owner(attacker_slot) != BattleBoard.Owner.PLAYER:
+	if state.board.get_owner(attacker_slot) != state.active_owner:
 		return targets
 	if attacker == null or not attacker.can_attack():
 		return targets
 
-	if attacker == state.player_hero:
+	if attacker == state.get_active_hero():
 		if attacker.tags.has("ataque_lineal"):
 			var directions: Array[Vector2i] = [
 				Vector2i.UP,
@@ -788,15 +788,15 @@ func _attackable_slots_for(attacker_slot: int) -> Array[int]:
 				var target_slot: int = state.board.first_occupied_in_line(
 					attacker_slot, direction, attacker.attack_range
 				)
-				if target_slot >= 0 and state.board.get_owner(target_slot) == BattleBoard.Owner.ENEMY:
+				if target_slot >= 0 and state.board.get_owner(target_slot) == state.get_opposing_owner():
 					targets.append(target_slot)
 		else:
 			for target_slot in state.board.adjacent_indices(attacker_slot):
-				if state.board.get_owner(target_slot) == BattleBoard.Owner.ENEMY and state.board.get_card(target_slot) != null:
+				if state.board.get_owner(target_slot) == state.get_opposing_owner() and state.board.get_card(target_slot) != null:
 					targets.append(target_slot)
 		return targets
 
-	for target_slot in state.board.indices_for_owner(BattleBoard.Owner.ENEMY):
+	for target_slot in state.board.indices_for_owner(state.get_opposing_owner()):
 		if state.board.distance(attacker_slot, target_slot) <= max(1, attacker.attack_range):
 			targets.append(target_slot)
 	return targets
@@ -807,13 +807,13 @@ func _resolve_board_drag(source_slot: int, target_slot: int) -> void:
 		_refresh()
 		return
 
-	if source_slot == state.player_hero_slot and state.board.get_owner(target_slot) == BattleBoard.Owner.ENEMY:
+	if source_slot == state.get_active_hero_slot() and state.board.get_owner(target_slot) == state.get_opposing_owner():
 		status_label.text = "Selecciona ARRIBA, ABAJO, IZQ o DER para elegir el lado del ataque del Rey."
 		_refresh()
 		return
 
 	var result: BattleResult
-	if state.board.get_owner(target_slot) == BattleBoard.Owner.ENEMY:
+	if state.board.get_owner(target_slot) == state.get_opposing_owner():
 		result = engine.execute(BattleCommand.attack(source_slot, target_slot))
 	elif state.board.is_empty(target_slot):
 		result = engine.execute(BattleCommand.move_unit(source_slot, target_slot))
@@ -857,11 +857,11 @@ func _on_board_pressed(index: int) -> void:
 		return
 
 	if selected_unit_slot >= 0:
-		if selected_unit_slot == state.player_hero_slot and state.board.get_owner(index) == BattleBoard.Owner.ENEMY:
+		if selected_unit_slot == state.get_active_hero_slot() and state.board.get_owner(index) == state.get_opposing_owner():
 			_refresh()
 			return
 		var result: BattleResult
-		if state.board.get_owner(index) == BattleBoard.Owner.ENEMY:
+		if state.board.get_owner(index) == state.get_opposing_owner():
 			result = engine.execute(BattleCommand.attack(selected_unit_slot, index))
 		elif state.board.is_empty(index):
 			result = engine.execute(BattleCommand.move_unit(selected_unit_slot, index))
@@ -876,9 +876,9 @@ func _on_board_pressed(index: int) -> void:
 		return
 
 func _on_hero_attack_pressed(direction: Vector2i) -> void:
-	if state == null or state.is_finished() or selected_unit_slot != state.player_hero_slot:
+	if state == null or state.is_finished() or selected_unit_slot != state.get_active_hero_slot():
 		return
-	var result: BattleResult = engine.execute(BattleCommand.hero_attack(state.player_hero_slot, direction))
+	var result: BattleResult = engine.execute(BattleCommand.hero_attack(state.get_active_hero_slot(), direction))
 	if result.success:
 		selected_unit_slot = -1
 		attack_preview_slot = -1
@@ -975,11 +975,11 @@ func _on_command_resolved(result: BattleResult) -> void:
 	if not result.success:
 		status_label.text = "ERROR · %s" % result.message
 	_refresh()
-	if result.success and state != null and not state.finished and not state.setup_phase and state.player_actions <= 0:
+	if result.success and state != null and not state.finished and not state.setup_phase and state.get_active_actions() <= 0:
 		call_deferred("_auto_end_turn_if_needed")
 
 func _auto_end_turn_if_needed() -> void:
-	if state == null or state.finished or state.player_actions > 0:
+	if state == null or state.finished or state.get_active_actions() > 0:
 		return
 	selected_card_index = -1
 	selected_unit_slot = -1
@@ -1009,7 +1009,8 @@ func _refresh() -> void:
 		actions_label.text = "DESPLIEGUE GRATUITO · ARRASTRA TUS CRIATURAS"
 	else:
 		turn_label.text = "%s · T%d" % [current_encounter_label, state.turn]
-		actions_label.text = "ACCIÓN %d/%d" % [state.player_actions, state.player_max_actions]
+		var side_name := "JUGADOR 1" if state.active_owner == BattleBoard.Owner.PLAYER else ("JUGADOR 2" if state.local_mode else "IA")
+		actions_label.text = "%s · ACCIÓN %d/%d" % [side_name, state.get_active_actions(), state.get_active_max_actions()]
 	# Los reyes no muestran barras de vida: el primer impacto los derrota.
 	etherium_bar.value = state.player_etherium
 	etherium_label.text = "%d / %d" % [state.player_etherium, state.player_max_etherium]
@@ -1088,7 +1089,7 @@ func _refresh() -> void:
 			if card != null and card.id == str(card_id):
 				available = true
 				break
-		inventory_button.disabled = state.finished or not available
+		inventory_button.disabled = state.finished or not available or (state.local_mode and state.active_owner != BattleBoard.Owner.PLAYER)
 		inventory_button.add_theme_stylebox_override(
 			"normal",
 			_button_style(SURFACE_ALT_COLOR, BORDER_COLOR, 0, 1)
@@ -1113,19 +1114,23 @@ func _refresh() -> void:
 		end_turn_button.text = "INICIAR COMBATE"
 	else:
 		end_turn_button.text = "CONTINUAR" if state.finished and state.winner_is_player else ("REINTENTAR" if state.finished else "FIN DEL TURNO")
-	hero_attack_panel.visible = state.player_hero != null and selected_unit_slot == state.player_hero_slot and not state.finished
+	var active_hero: CardDefinition = state.get_active_hero()
+	var active_hero_slot: int = state.get_active_hero_slot()
+	hero_attack_panel.visible = active_hero != null and selected_unit_slot == active_hero_slot and not state.finished and not state.setup_phase
 	for direction_index in range(hero_attack_buttons.size()):
 		var direction: Vector2i = hero_attack_directions[direction_index]
 		var has_target := false
-		if state.player_hero.tags.has("ataque_lineal"):
-			var first_target: int = state.board.first_occupied_in_line(state.player_hero_slot, direction, state.player_hero.attack_range)
-			has_target = first_target >= 0 and state.board.get_owner(first_target) == BattleBoard.Owner.ENEMY
-		else:
-			for adjacent_index in state.board.adjacent_indices(state.player_hero_slot):
-				if state.board.get_owner(adjacent_index) == BattleBoard.Owner.ENEMY and state.board.get_card(adjacent_index) != null:
+		var is_ranged_hero: bool = active_hero != null and active_hero.tags.has("ataque_lineal")
+		hero_attack_buttons[direction_index].visible = direction != Vector2i.ZERO if is_ranged_hero else direction == Vector2i.ZERO
+		if active_hero != null and is_ranged_hero:
+			var first_target: int = state.board.first_occupied_in_line(active_hero_slot, direction, active_hero.attack_range)
+			has_target = first_target >= 0 and state.board.get_owner(first_target) == state.get_opposing_owner()
+		elif active_hero != null:
+			for adjacent_index in state.board.adjacent_indices(active_hero_slot):
+				if state.board.get_owner(adjacent_index) == state.get_opposing_owner() and state.board.get_card(adjacent_index) != null:
 					has_target = true
 					break
-		hero_attack_buttons[direction_index].disabled = state.finished or state.player_actions <= 0 or not state.player_hero.can_attack() or not has_target
+		hero_attack_buttons[direction_index].disabled = state.finished or state.get_active_actions() <= 0 or active_hero == null or not active_hero.can_attack() or not has_target
 
 func _cell_style(index: int, selected: bool, attackable: bool = false, movable: bool = false) -> StyleBoxFlat:
 	var row: int = floori(float(index) / float(BattleBoard.COLUMNS))
