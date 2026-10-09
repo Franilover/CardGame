@@ -47,6 +47,9 @@ func initialize_collection(seed_cards: Array[CardDefinition]) -> void:
 			if _find_card_in_seed(seed_cards, card_id) and get_owned_count(card_id) == 0:
 				owned_card_counts[card_id] = 1
 
+	for creature_id in unlocked_creature_ids:
+		owned_card_counts[creature_id] = maxi(1, get_owned_count(creature_id))
+
 	if _loadout_is_empty():
 		var valid_starters: Array[String] = []
 		for card in seed_cards:
