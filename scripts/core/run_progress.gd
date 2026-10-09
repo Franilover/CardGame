@@ -4,6 +4,7 @@ const SAVE_PATH := "user://run_progress.json"
 const EXPLORATION_COUNT := 5
 
 var mode: String = "exploration"
+var selected_character_style: String = "guardian"
 var encounter_index: int = 0
 var deck_ids: Array[String] = []
 
@@ -66,12 +67,13 @@ func build_player_deck(catalog_cards: Array[CardDefinition], fallback_cards: Arr
 		var card: CardDefinition = catalog.get(card_id) as CardDefinition
 		if card != null and (card.card_type == CardDefinition.CardType.CREATURE or card.card_type == CardDefinition.CardType.OBJECT or card.card_type == CardDefinition.CardType.CHARACTER):
 			result.append(card.make_runtime_copy())
-	if result.is_empty() and mode == "bosses":
+	if result.is_empty():
+		deck_ids.clear()
 		ensure_deck(fallback_cards)
 		for card_id in deck_ids:
-			var fallback: CardDefinition = catalog.get(card_id) as CardDefinition
-			if fallback != null:
-				result.append(fallback.make_runtime_copy())
+			var canonical_card: CardDefinition = catalog.get(card_id) as CardDefinition
+			if canonical_card != null and (canonical_card.card_type == CardDefinition.CardType.CREATURE or canonical_card.card_type == CardDefinition.CardType.OBJECT or canonical_card.card_type == CardDefinition.CardType.CHARACTER):
+				result.append(canonical_card.make_runtime_copy())
 	return result
 
 func build_enemy_deck(base_deck: Array[CardDefinition]) -> Array[CardDefinition]:
