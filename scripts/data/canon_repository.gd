@@ -17,7 +17,8 @@ var data: Dictionary = {
 	"oris": [],
 	"procesos": [],
 	"personajes_game": [],
-	"reinos_game": []
+	"reinos_game": [],
+	"cardgame_reglas_v1": []
 }
 
 func initialize() -> bool:
@@ -57,7 +58,8 @@ func _refresh_online() -> bool:
 		{"key": "oris", "select": "id,orden,nombre,familia,formula,dominio,descripcion", "limit": 20},
 		{"key": "procesos", "select": "id,nombre,tipo,descripcion,regla_clave,entrada,transformacion,salida,estado_fundamento", "limit": 100},
 		{"key": "personajes_game", "select": "id,nombre,criatura_id,activo,personaje_id,reino_game_id", "limit": 40},
-		{"key": "reinos_game", "select": "id,reino_id,clave,activo,orden,propiedades", "limit": 30}
+		{"key": "reinos_game", "select": "id,reino_id,clave,activo,orden,propiedades", "limit": 30},
+		{"key": "cardgame_reglas_v1", "select": "clave,configuracion,activo,version", "limit": 10}
 	]
 
 	for request_data in table_requests:
