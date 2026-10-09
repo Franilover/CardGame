@@ -472,7 +472,7 @@ func _populate_loadout_inventory() -> void:
 		inventory_card_buttons[card.id] = card_button
 
 func _on_inventory_card_gui_input(event: InputEvent, card_id: String) -> void:
-	if state == null or not state.setup_phase or state.is_finished():
+	if state == null or state.is_finished() or (not state.setup_phase and state.player_actions <= 0):
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
@@ -496,7 +496,7 @@ func _on_inventory_card_gui_input(event: InputEvent, card_id: String) -> void:
 	elif event is InputEventMouseMotion and inventory_drag_card_id == card_id:
 		if (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0 and event.global_position.distance_to(inventory_drag_start) >= 8.0:
 			inventory_drag_active = true
-			status_label.text = "Arrastra %s hasta la casilla donde quieres desplegarla." % card_id
+			status_label.text = ("Despliegue gratuito: %s." if state.setup_phase else "Despliegue cuesta 1 acción: %s.") % card_id
 			get_viewport().set_input_as_handled()
 
 func _board_slot_at_global_position(global_position: Vector2) -> int:
@@ -1002,10 +1002,10 @@ func _refresh() -> void:
 
 	if state.setup_phase:
 		turn_label.text = "%s · T0" % current_encounter_label
-		actions_label.text = "DESPLIEGUE GRATUITO"
+		actions_label.text = "DESPLIEGUE GRATUITO · ARRASTRA TUS CRIATURAS"
 	else:
 		turn_label.text = "%s · T%d" % [current_encounter_label, state.turn]
-		actions_label.text = "ACCIONES %d/%d" % [state.player_actions, state.player_max_actions]
+		actions_label.text = "ACCIÓN %d/%d" % [state.player_actions, state.player_max_actions]
 	# Los reyes no muestran barras de vida: el primer impacto los derrota.
 	etherium_bar.value = state.player_etherium
 	etherium_label.text = "%d / %d" % [state.player_etherium, state.player_max_etherium]
@@ -1084,7 +1084,7 @@ func _refresh() -> void:
 			if card != null and card.id == str(card_id):
 				available = true
 				break
-		inventory_button.disabled = state.finished or (state.setup_phase and not available)
+		inventory_button.disabled = state.finished or not available
 		inventory_button.add_theme_stylebox_override(
 			"normal",
 			_button_style(SURFACE_ALT_COLOR, BORDER_COLOR, 0, 1)
