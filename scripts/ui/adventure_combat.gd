@@ -244,7 +244,6 @@ func _on_cell_gui_input(event: InputEvent, index: int) -> void:
 	_refresh()
 	get_viewport().set_input_as_handled()
 
-const player_attack_range: int = 1
 
 func _move_player(target_slot: int) -> void:
 	if player_actions <= 0 or not _movement_targets(player_slot).has(target_slot):
