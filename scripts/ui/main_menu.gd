@@ -26,10 +26,12 @@ var king_selector: OptionButton
 @onready var loadout_scroll: ScrollContainer = $Layout/CatalogArea/LoadoutScroll
 
 func _ready() -> void:
-	play_button.pressed.connect(_on_play_pressed)
-	boss_button.pressed.connect(_on_bosses_pressed)
+	play_button.text = "LOCAL"
+	boss_button.text = "AZAR"
+	discoveries_button.visible = false
+	play_button.pressed.connect(_on_local_selected)
+	boss_button.pressed.connect(_on_random_pressed)
 	online_button.pressed.connect(_on_online_pressed)
-	discoveries_button.pressed.connect(_on_discoveries_pressed)
 	settings_button.pressed.connect(_on_settings_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 	play_button.grab_focus()
@@ -40,84 +42,21 @@ func _ready() -> void:
 	_build_loadout_row()
 	_populate_home_cards()
 
-func _on_play_pressed() -> void:
-	run_progress.start_mode("adventure")
-	get_tree().change_scene_to_file(ADVENTURE_SCENE_PATH)
-
-func _on_bosses_pressed() -> void:
-	_show_character_selector("combat")
-
-func _show_character_selector(mode_name: String) -> void:
-	selector_mode = mode_name
-	if mode_name == "combat":
-		run_progress.start_mode("combat")
-	menu_container.visible = false
-	status_label.text = "MODO COMBATE · Elige tu personaje."
-	if character_selector != null:
-		character_selector.queue_free()
-	character_selector = VBoxContainer.new()
-	character_selector.name = "CharacterSelector"
-	character_selector.add_theme_constant_override("separation", 10)
-	left_column.add_child(character_selector)
-	left_column.move_child(character_selector, status_label.get_index())
-
-	var guardian_button := Button.new()
-	guardian_button.custom_minimum_size.y = 76
-	guardian_button.text = "REY GUARDIÁN\n3 guardias · golpe circular adyacente"
-	guardian_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	guardian_button.pressed.connect(_on_character_selected.bind("guardian"))
-	character_selector.add_child(guardian_button)
-
-	var archer_button := Button.new()
-	archer_button.custom_minimum_size.y = 76
-	archer_button.text = "REY ARQUERO\n1 guardia · disparo a distancia en línea recta"
-	archer_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	archer_button.pressed.connect(_on_character_selected.bind("archer"))
-	character_selector.add_child(archer_button)
-
-	var local_button := Button.new()
-	local_button.custom_minimum_size.y = 48
-	local_button.text = "LOCAL · CONTROLAR AMBOS REYES"
-	local_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	local_button.pressed.connect(_on_local_selected)
-	character_selector.add_child(local_button)
-
-	var back_button := Button.new()
-	back_button.text = "VOLVER"
-	back_button.custom_minimum_size.y = 38
-	back_button.pressed.connect(_on_character_selector_back)
-	character_selector.add_child(back_button)
-
 func _on_local_selected() -> void:
 	run_progress.start_mode("local")
 	status_label.text = "Preparando partida local..."
 	set_process_input(false)
 	get_tree().change_scene_to_file(BATTLE_SCENE_PATH)
 
-func _on_character_selected(character_style: String) -> void:
+func _on_random_pressed() -> void:
 	run_progress.start_mode("combat")
-	run_progress.selected_character_style = character_style
-	status_label.text = "Preparando combate con %s..." % ("Rey Arquero" if character_style == "archer" else "Rey Guardián")
+	run_progress.selected_character_style = "archer" if randi_range(0, 1) == 1 else "guardian"
+	status_label.text = "Preparando combate al azar..."
 	set_process_input(false)
 	get_tree().change_scene_to_file(BATTLE_SCENE_PATH)
 
-func _on_character_selector_back() -> void:
-	if character_selector != null:
-		character_selector.queue_free()
-		character_selector = null
-	menu_container.visible = true
-	status_label.text = ""
-
 func _on_online_pressed() -> void:
 	status_label.text = "Online estará disponible más adelante."
-
-func _on_discoveries_pressed() -> void:
-	show_discoveries = not show_discoveries
-	discoveries_button.text = "VOLVER A CARTAS" if show_discoveries else "DESCUBRIMIENTOS"
-	_populate_home_cards()
-	_build_loadout_row()
-	loadout_scroll.visible = not show_discoveries
-	$Layout/CatalogArea/CatalogHeader/CatalogHeaderRow/CatalogTitle.text = "DESCUBRIMIENTOS" if show_discoveries else "CARTAS"
 
 func _on_settings_pressed() -> void:
 	status_label.text = "La configuración se agregará aquí."
@@ -129,12 +68,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if event.pressed and not event.echo:
 		if event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER:
 			if menu_container.visible and play_button.has_focus():
-				_on_play_pressed()
+				_on_local_selected()
 		elif event.keycode == KEY_ESCAPE:
-			if character_selector != null:
-				_on_character_selector_back()
-			else:
-				_on_quit_pressed()
+			_on_quit_pressed()
 
 func _build_loadout_row() -> void:
 	var row_node := loadout_scroll.get_node_or_null("LoadoutRow")
