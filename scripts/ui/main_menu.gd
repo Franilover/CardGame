@@ -109,9 +109,11 @@ func _populate_home_cards() -> void:
 	for child in card_grid.get_children():
 		child.queue_free()
 	var cards: Array[CardDefinition] = CardCatalog.from_canon(canon_repository)
+	var visible_count := 0
 	for card in cards:
-		if card == null:
+		if card == null or not run_progress.is_card_discovered(card):
 			continue
+		visible_count += 1
 		var tile := PanelContainer.new()
 		var card_style := StyleBoxFlat.new()
 		card_style.bg_color = Color(0.035, 0.105, 0.075, 1)
@@ -152,7 +154,7 @@ func _populate_home_cards() -> void:
 		type_label.add_theme_color_override("font_color", Color("#7FAF99"))
 		body.add_child(type_label)
 		card_grid.add_child(tile)
-	card_count.text = str(cards.size())
+	card_count.text = str(visible_count)
 
 func _find_card_art(card: CardDefinition) -> Texture2D:
 	var folders: Array[String] = ["res://assets/criatures/", "res://assets/art/items/"]
