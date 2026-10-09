@@ -175,6 +175,41 @@ func front_attack_indices(origin_index: int, direction: Vector2i) -> Array[int]:
 			result.append(index)
 	return result
 
+func adjacent_indices(origin_index: int) -> Array[int]:
+	var origin: Vector2i = position_from_index(origin_index)
+	if origin.x < 0 or origin.y < 0:
+		return []
+	var result: Array[int] = []
+	for y_offset in range(-1, 2):
+		for x_offset in range(-1, 2):
+			if x_offset == 0 and y_offset == 0:
+				continue
+			var target := origin + Vector2i(x_offset, y_offset)
+			var index := index_from_position_static(target)
+			if index >= 0:
+				result.append(index)
+	return result
+
+func line_attack_indices(origin_index: int, direction: Vector2i, max_range: int) -> Array[int]:
+	if abs(direction.x) + abs(direction.y) != 1:
+		return []
+	var origin: Vector2i = position_from_index(origin_index)
+	if origin.x < 0 or origin.y < 0:
+		return []
+	var result: Array[int] = []
+	for distance_step in range(1, max_range + 1):
+		var index := index_from_position_static(origin + direction * distance_step)
+		if index < 0:
+			break
+		result.append(index)
+	return result
+
+func first_occupied_in_line(origin_index: int, direction: Vector2i, max_range: int) -> int:
+	for index in line_attack_indices(origin_index, direction, max_range):
+		if get_card(index) != null:
+			return index
+	return -1
+
 func distance(index_a: int, index_b: int) -> int:
 	var a := position_from_index(index_a)
 	var b := position_from_index(index_b)
