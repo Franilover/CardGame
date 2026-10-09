@@ -26,32 +26,48 @@ func encounter_label() -> String:
 		return "JEFE"
 	return "EXPLORACIÓN %d/%d" % [encounter_index + 1, EXPLORATION_COUNT]
 
-func ensure_deck(seed_cards: Array[CardDefinition]) -> void:
-	if not deck_ids.is_empty():
-		return
-	var creatures: Array[CardDefinition] = []
-	var objects: Array[CardDefinition] = []
+func ensure_deck(seed_cards: Array[CardDefinition], minimum_creatures: int = 3) -> void:
+	var canonical_creatures: Array[CardDefinition] = []
+	var canonical_objects: Array[CardDefinition] = []
 	var seen: Dictionary = {}
+	var valid_ids: Dictionary = {}
 	for card in seed_cards:
-		if card == null or seen.has(card.id):
+		if card == null:
+			continue
+		valid_ids[card.id] = card
+		if seen.has(card.id):
 			continue
 		seen[card.id] = true
-		if card.card_type == CardDefinition.CardType.CREATURE and creatures.size() < 3:
-			creatures.append(card)
-		elif card.card_type == CardDefinition.CardType.OBJECT and objects.is_empty():
-			objects.append(card)
-	var starter_cards: Array[CardDefinition] = []
-	starter_cards.append_array(creatures)
-	starter_cards.append_array(objects)
-	for card in starter_cards:
-		for _copy_index in range(3):
-			deck_ids.append(card.id)
+		if card.card_type == CardDefinition.CardType.CREATURE:
+			canonical_creatures.append(card)
+		elif card.card_type == CardDefinition.CardType.OBJECT and canonical_objects.is_empty():
+			canonical_objects.append(card)
+
+	var filtered_ids: Array[String] = []
+	for card_id in deck_ids:
+		if valid_ids.has(card_id):
+			filtered_ids.append(card_id)
+	deck_ids = filtered_ids
+
 	if deck_ids.is_empty():
-		for card in seed_cards:
-			if card != null:
+		var starter_cards: Array[CardDefinition] = []
+		for index in range(min(3, canonical_creatures.size())):
+			starter_cards.append(canonical_creatures[index])
+		starter_cards.append_array(canonical_objects)
+		for card in starter_cards:
+			for _copy_index in range(3):
 				deck_ids.append(card.id)
-				if deck_ids.size() >= 12:
-					break
+
+	var creature_count := 0
+	for card_id in deck_ids:
+		var seed_card: CardDefinition = valid_ids.get(card_id) as CardDefinition
+		if seed_card != null and seed_card.card_type == CardDefinition.CardType.CREATURE:
+			creature_count += 1
+	while creature_count < minimum_creatures and not canonical_creatures.is_empty():
+		var next_creature: CardDefinition = canonical_creatures[creature_count % canonical_creatures.size()]
+		deck_ids.append(next_creature.id)
+		creature_count += 1
+
 	_save_progress()
 
 func build_player_deck(catalog_cards: Array[CardDefinition], fallback_cards: Array[CardDefinition]) -> Array[CardDefinition]:
