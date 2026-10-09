@@ -2,35 +2,12 @@ class_name CardCatalog
 extends RefCounted
 
 static func starter_deck() -> Array[CardDefinition]:
-	var cards: Array[CardDefinition] = []
-
-	var base: Array[CardDefinition] = [
-		_creature("aoris", "Aoris", 1, 4, 5, "Criatura veloz.", "criatura", "aoris"),
-		_creature("feerin", "Feerin", 1, 3, 6, "Criatura resistente.", "criatura", "feerin"),
-		_creature("ligniano", "Ligniano", 2, 5, 7, "Criatura robusta.", "criatura", "ligniano"),
-		_creature("guardian", "Guardián Verde", 3, 6, 8, "Defensor de primera línea.", "criatura", "guardian"),
-		_object("espada_madera", "Espada de Madera", 1, "Fortalece una criatura.", 2, 1),
-		_object("arco_aoris", "Arco Aoris", 2, "Fortalece y aumenta alcance.", 2, 1)
-	]
-
-	for i in range(20):
-		cards.append(base[i % base.size()].make_runtime_copy())
-
-	return cards
+	# Las criaturas jugables deben provenir de public.criaturas en Supabase.
+	return []
 
 static func enemy_deck() -> Array[CardDefinition]:
-	var cards: Array[CardDefinition] = []
-	var base: Array[CardDefinition] = [
-		_creature("enemy_aoris", "Aoris Hostil", 1, 3, 5, "Unidad enemiga.", "criatura", "enemy_aoris"),
-		_creature("enemy_ligniano", "Ligniano Hostil", 2, 5, 7, "Unidad enemiga resistente.", "criatura", "enemy_ligniano"),
-		_creature("enemy_guardian", "Guardián Hostil", 3, 6, 9, "Unidad pesada.", "criatura", "enemy_guardian"),
-		_object("enemy_espada_madera", "Espada de Madera", 1, "Refuerza una unidad.", 2, 1)
-	]
-
-	for i in range(20):
-		cards.append(base[i % base.size()].make_runtime_copy())
-
-	return cards
+	# El mazo enemigo también se construye desde el catálogo canónico.
+	return []
 
 static func starter_ium_catalog() -> Array[CardDefinition]:
 	var cards: Array[CardDefinition] = [
