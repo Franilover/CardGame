@@ -485,11 +485,15 @@ func _on_inventory_card_gui_input(event: InputEvent, card_id: String) -> void:
 				if target_slot >= 0:
 					if state.deploy_equipped_creature(card_id, target_slot):
 						status_label.text = "Criatura desplegada."
+						_refresh()
+						if not state.setup_phase and state.player_actions <= 0:
+							call_deferred("_auto_end_turn_if_needed")
 					else:
 						status_label.text = "No puedes desplegarla ahí. Elige una casilla vacía de tu zona."
+						_refresh()
 				else:
 					status_label.text = "Arrastra la criatura hasta una casilla de tu lado."
-				_refresh()
+					_refresh()
 			inventory_drag_card_id = ""
 			inventory_drag_active = false
 		get_viewport().set_input_as_handled()
