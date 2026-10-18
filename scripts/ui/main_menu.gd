@@ -233,7 +233,16 @@ func _populate_home_cards() -> void:
 		if card == null:
 			continue
 		var owned_count: int = run_progress.get_owned_count(card.id)
-		var should_show: bool = run_progress.is_card_discovered(card) if show_discoveries else owned_count > 0
+		var available_count: int = owned_count
+		# Las criaturas asignadas a la formación dejan de aparecer en el inventario.
+		# La propiedad total no cambia: solo se muestran las copias aún no equipadas.
+		if not show_discoveries and card.card_type == CardDefinition.CardType.CREATURE:
+			var equipped_count := 0
+			for equipped_id in run_progress.loadout_ids:
+				if equipped_id == card.id:
+					equipped_count += 1
+			available_count = maxi(0, owned_count - equipped_count)
+		var should_show: bool = run_progress.is_card_discovered(card) if show_discoveries else available_count > 0
 		if not should_show:
 			continue
 		visible_count += 1
@@ -278,7 +287,7 @@ func _populate_home_cards() -> void:
 		name_label.add_theme_font_size_override("font_size", 13)
 		body.add_child(name_label)
 		var type_label := Label.new()
-		type_label.text = _card_type_name(card) if show_discoveries else "%s · x%d" % [_card_type_name(card), owned_count]
+		type_label.text = _card_type_name(card) if show_discoveries else "%s · x%d" % [_card_type_name(card), available_count if card.card_type == CardDefinition.CardType.CREATURE else owned_count]
 		type_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		type_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		type_label.add_theme_font_size_override("font_size", 10)
