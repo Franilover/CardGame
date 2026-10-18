@@ -14,6 +14,7 @@ var owned_card_counts: Dictionary = {}
 var unlocked_creature_ids: Array[String] = []
 var discovered_card_ids: Array[String] = []
 var selected_adventure_creature_id: String = ""
+var collection_reset: bool = false
 
 func _ready() -> void:
 	_load_progress()
@@ -28,6 +29,7 @@ func reset_progress() -> void:
 	unlocked_creature_ids.clear()
 	discovered_card_ids.clear()
 	selected_adventure_creature_id = ""
+	collection_reset = true
 	_save_progress()
 
 func start_mode(mode_name: String) -> void:
@@ -53,6 +55,16 @@ func get_owned_count(card_id: String) -> int:
 	return maxi(0, int(owned_card_counts.get(card_id, 0)))
 
 func initialize_collection(seed_cards: Array[CardDefinition]) -> void:
+	# Un reinicio explícito deja la colección vacía; no volver a regalar
+	# cartas iniciales al reconstruir el menú tras borrar el progreso.
+	if collection_reset:
+		deck_ids.clear()
+		loadout_ids.clear()
+		owned_card_counts.clear()
+		unlocked_creature_ids.clear()
+		discovered_card_ids.clear()
+		_save_progress()
+		return
 	if owned_card_counts.is_empty():
 		for card in seed_cards:
 			if card == null or not _is_collectible_card(card):
@@ -403,7 +415,8 @@ func _save_progress() -> void:
 		"owned_card_counts": owned_card_counts,
 		"selected_character_style": selected_character_style,
 		"unlocked_creature_ids": unlocked_creature_ids,
-		"discovered_card_ids": discovered_card_ids
+		"discovered_card_ids": discovered_card_ids,
+		"collection_reset": collection_reset
 	}))
 
 func _load_progress() -> void:
@@ -415,6 +428,7 @@ func _load_progress() -> void:
 	var parsed: Variant = JSON.parse_string(file.get_as_text())
 	if not parsed is Dictionary:
 		return
+	collection_reset = bool(parsed.get("collection_reset", false))
 	selected_character_style = str(parsed.get("selected_character_style", "guardian"))
 	if selected_character_style not in ["guardian", "archer"]:
 		selected_character_style = "guardian"
