@@ -1275,16 +1275,16 @@ func _scan_creature_sprites() -> void:
 	creature_sprite_paths.clear()
 	character_sprite_paths.clear()
 	item_sprite_paths.clear()
-	var creature_directory := DirAccess.open("res://assets/criatures/")
+	var creature_directory := DirAccess.open("res://assets/art/criatures/")
 	if creature_directory == null:
-		push_warning("No existe res://assets/criatures/. Se usarán placeholders para las criaturas.")
+		push_warning("No existe res://assets/art/criatures/. Se usarán placeholders para las criaturas.")
 	else:
 		for file_name in creature_directory.get_files():
 			if not file_name.to_lower().ends_with(".png"):
 				continue
 			var key: String = _normalize_sprite_key(file_name.get_basename())
 			if not key.is_empty():
-				creature_sprite_paths[key] = "res://assets/criatures/" + file_name
+				creature_sprite_paths[key] = "res://assets/art/criatures/" + file_name
 
 	var character_directory := DirAccess.open("res://assets/art/characters/")
 	if character_directory != null:
@@ -1333,6 +1333,10 @@ func _load_character_sprite(card: CardDefinition) -> Texture2D:
 	candidate_keys.append(_normalize_sprite_key(card.id))
 	candidate_keys.append(_normalize_sprite_key(card.canonical_id))
 	candidate_keys.append(_normalize_sprite_key(card.display_name))
+	# Los sprites usan el prefijo "rey_", aunque la carta se llame "Guardia".
+	for key in candidate_keys.duplicate():
+		if not key.is_empty() and not key.begins_with("rey"):
+			candidate_keys.append("rey" + key)
 	for key in candidate_keys:
 		if key.is_empty() or not character_sprite_paths.has(key):
 			continue
