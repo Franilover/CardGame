@@ -92,7 +92,7 @@ func get_owner(index: int) -> int:
 	return owners[index]
 
 func can_place(index: int, owner: int) -> bool:
-	if not is_valid_index(index) or blocked[index] or occupants[index] != null or is_hero_slot(index):
+	if not is_valid_index(index) or blocked[index] or occupants[index] != null:
 		return false
 	if owner == Owner.PLAYER:
 		return is_player_zone(index)
@@ -138,14 +138,6 @@ func can_move(index_from: int, index_to: int, owner: int, movement: int) -> bool
 	var moving_card: CardDefinition = occupants[index_from]
 	if moving_card == null or movement <= 0:
 		return false
-
-	if is_hero_slot(index_from):
-		if moving_card.card_type != CardDefinition.CardType.CHARACTER or index_from != hero_slot(owner):
-			return false
-
-	if is_hero_slot(index_to):
-		if moving_card.card_type != CardDefinition.CardType.CHARACTER or index_to != hero_slot(owner):
-			return false
 
 	return distance(index_from, index_to) <= movement
 
