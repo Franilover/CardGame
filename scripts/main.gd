@@ -685,6 +685,19 @@ func _start_battle() -> void:
 	engine.setup(player_deck, enemy_deck, process_catalog, available_iums, run_progress.selected_character_style)
 	state = engine.get_state()
 	state.local_mode = run_progress.mode == "local"
+	# Cada encuentro de exploración presenta un rey rival distinto. El estilo
+	# alterna entre presión cuerpo a cuerpo y ataques en línea.
+	if run_progress.mode == "adventure" and not run_progress.is_boss_encounter():
+		var enemy_uses_archer := run_progress.encounter_index % 2 == 1
+		state.enemy_hero.display_name = "Rey Arquero Rival" if enemy_uses_archer else "Rey Guardián Rival"
+		state.enemy_hero.attack_range = BattleBoard.ROWS if enemy_uses_archer else 1
+		state.enemy_hero.tags = ["personaje", "heroe", "ataque_lineal" if enemy_uses_archer else "ataque_area"]
+		state.enemy_hero.ability_text = "Dispara en línea recta a distancia." if enemy_uses_archer else "Golpea a todos los enemigos adyacentes."
+		state.enemy_hero.attack = 4 if enemy_uses_archer else 5
+		state.enemy_hero.health = 24 if enemy_uses_archer else 30
+		state.enemy_hero.max_health = state.enemy_hero.health
+		state.enemy_hero_max_health = state.enemy_hero.max_health
+		state.enemy_health = state.enemy_hero.health
 	status_label.text = "Despliega tus criaturas y pulsa INICIAR COMBATE."
 	if not random_encounter.is_empty():
 		var encounter_description := str(random_encounter.get("descripcion", "")).strip_edges()
