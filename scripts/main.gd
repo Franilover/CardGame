@@ -621,6 +621,7 @@ func _start_battle() -> void:
 	current_encounter_label = run_progress.encounter_label()
 	selected_card_index = -1
 	selected_unit_slot = -1
+	inspected_slot = -1
 	selected_ium_index = -1
 	status_label.text = "Preparando el catálogo de criaturas de Supabase..."
 	if run_progress.mode == "combat":
@@ -1166,7 +1167,6 @@ func _on_battle_finished(player_won: bool) -> void:
 		status_label.text = ("VICTORIA" if player_won else "DERROTA") + reward_message
 		end_turn_button.text = "CONTINUAR" if player_won else "REINTENTAR"
 	end_turn_button.disabled = false
-	process_button.disabled = true
 	_refresh()
 
 
