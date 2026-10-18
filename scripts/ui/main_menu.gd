@@ -12,6 +12,7 @@ var show_discoveries: bool = false
 var combat_submenu: bool = false
 var loadout_row: HBoxContainer
 var king_selector: OptionButton
+var king_portrait: TextureRect
 
 @onready var left_column: VBoxContainer = $Layout/Sidebar/SidebarContent
 @onready var menu_container: VBoxContainer = $Layout/Sidebar/SidebarContent/Menu
@@ -39,6 +40,7 @@ func _ready() -> void:
 	var starter_cards: Array[CardDefinition] = CardCatalog.starter_deck_from_canon(canon_repository)
 	run_progress.initialize_collection(starter_cards)
 	_build_loadout_row()
+	_refresh_king_portrait()
 	_populate_home_cards()
 
 func _show_main_menu() -> void:
@@ -134,7 +136,7 @@ func _build_loadout_row() -> void:
 	loadout_row.add_theme_constant_override("separation", 8)
 
 	var king_panel := PanelContainer.new()
-	king_panel.custom_minimum_size = Vector2(130, 76)
+	king_panel.custom_minimum_size = Vector2(142, 116)
 	king_panel.add_theme_stylebox_override("panel", _loadout_style())
 	var king_content := VBoxContainer.new()
 	king_content.add_theme_constant_override("separation", 3)
@@ -146,6 +148,14 @@ func _build_loadout_row() -> void:
 	king_label.add_theme_font_size_override("font_size", 10)
 	king_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	king_content.add_child(king_label)
+	king_portrait = TextureRect.new()
+	king_portrait.custom_minimum_size = Vector2(0, 58)
+	king_portrait.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	king_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	king_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	king_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	king_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	king_content.add_child(king_portrait)
 	king_selector = OptionButton.new()
 	king_selector.add_item("Guardián", 0)
 	king_selector.add_item("Arquero", 1)
@@ -204,6 +214,15 @@ func _loadout_style() -> StyleBoxFlat:
 func _on_king_selected(index: int) -> void:
 	run_progress.selected_character_style = "archer" if index == 1 else "guardian"
 	run_progress._save_progress()
+	_refresh_king_portrait()
+
+func _refresh_king_portrait() -> void:
+	if king_portrait == null:
+		return
+	var sprite_path := "res://assets/art/characters/rey_arquero.png" if run_progress.selected_character_style == "archer" else "res://assets/art/characters/rey_guardia.png"
+	var texture := load(sprite_path) as Texture2D
+	king_portrait.texture = texture
+	king_portrait.visible = texture != null
 
 func _on_loadout_card_dropped(slot_index: int, data: Dictionary) -> void:
 	var card_id := str(data.get("card_id", ""))
@@ -297,7 +316,7 @@ func _populate_home_cards() -> void:
 	card_count.text = str(visible_count)
 
 func _find_card_art(card: CardDefinition) -> Texture2D:
-	var folders: Array[String] = ["res://assets/art/characters/", "res://assets/criatures/", "res://assets/art/items/"]
+	var folders: Array[String] = ["res://assets/art/characters/", "res://assets/art/criatures/", "res://assets/criatures/", "res://assets/art/items/"]
 	var keys: Array[String] = [
 		_normalize_art_key(card.id),
 		_normalize_art_key(card.canonical_id),
