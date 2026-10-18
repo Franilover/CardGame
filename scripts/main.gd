@@ -741,19 +741,11 @@ func _on_board_gui_input(event: InputEvent, index: int) -> void:
 		return
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
-		# Mientras el modo ataque está activo, ambos botones ejecutan el ataque
-		# al pulsar una casilla marcada como objetivo.
+		# Clic derecho y clic izquierdo comparten la misma selección y acción.
 		if attack_preview_slot >= 0 and _try_execute_attack_preview(index):
 			get_viewport().set_input_as_handled()
 			return
-		if selected_card_index < 0 and _is_draggable_player_unit(index):
-			var selected_card: CardDefinition = state.board.get_card(index)
-			selected_unit_slot = index
-			movement_preview_slot = -1
-			attack_preview_slot = -1 if attack_preview_slot == index else index
-			var targets: Array[int] = _attackable_slots_for(index)
-			status_label.text = "%s · %d objetivo(s) de ataque" % [selected_card.display_name, targets.size()]
-			_refresh()
+		_on_board_pressed(index)
 		get_viewport().set_input_as_handled()
 		return
 
@@ -951,39 +943,45 @@ func _on_board_pressed(index: int) -> void:
 		return
 
 	if _is_draggable_player_unit(index):
-		selected_unit_slot = index
-		movement_preview_slot = index
-		attack_preview_slot = -1
-		var selected_card: CardDefinition = state.board.get_card(index)
-		status_label.text = "%s · movimiento posible" % selected_card.display_name
+		if selected_unit_slot == index:
+			selected_unit_slot = -1
+			movement_preview_slot = -1
+			attack_preview_slot = -1
+			status_label.text = "Selección cancelada."
+		else:
+			selected_unit_slot = index
+			movement_preview_slot = index
+			attack_preview_slot = index
+			var selected_card: CardDefinition = state.board.get_card(index)
+			var moves: int = _movement_slots_for(index).size()
+			var attacks: int = _attackable_slots_for(index).size()
+			status_label.text = "%s · %d movimiento(s) · %d ataque(s)" % [selected_card.display_name, moves, attacks]
 		_refresh()
 		return
 
 	if selected_unit_slot >= 0:
-		if selected_unit_slot == state.get_active_hero_slot() and state.board.get_owner(index) == state.get_opposing_owner():
-			_refresh()
+		if attack_preview_slot >= 0 and _attackable_slots_for(selected_unit_slot).has(index):
+			_try_execute_attack_preview(index)
 			return
-		var result: BattleResult
-		if state.board.get_owner(index) == state.get_opposing_owner():
+		if state.board.is_empty(index) and _movement_slots_for(selected_unit_slot).has(index):
+			var move_result: BattleResult
 			if state.local_mode:
-				result = BattleResult.ok("Ataque ejecutado.") if state.attack_unit(selected_unit_slot, index) else BattleResult.error("LOCAL_ATTACK_FAILED", "No se pudo realizar el ataque.")
+				move_result = BattleResult.ok("Unidad movida.") if state.move_unit(selected_unit_slot, index) else BattleResult.error("LOCAL_MOVE_FAILED", "No se pudo mover esa unidad.")
 			else:
-				result = engine.execute(BattleCommand.attack(selected_unit_slot, index))
-		elif state.board.is_empty(index):
-			if state.local_mode:
-				result = BattleResult.ok("Unidad movida.") if state.move_unit(selected_unit_slot, index) else BattleResult.error("LOCAL_MOVE_FAILED", "No se pudo mover esa unidad.")
+				move_result = engine.execute(BattleCommand.move_unit(selected_unit_slot, index))
+			if move_result.success:
+				selected_unit_slot = -1
+				attack_preview_slot = -1
+				movement_preview_slot = -1
+				_refresh()
+				if state.local_mode and not state.setup_phase and state.get_active_actions() <= 0:
+					call_deferred("_auto_end_turn_if_needed")
 			else:
-				result = engine.execute(BattleCommand.move_unit(selected_unit_slot, index))
-		else:
-			status_label.text = "El destino está ocupado."
+				status_label.text = "ERROR · %s" % move_result.message
+				_refresh()
 			return
-		if result.success:
-			selected_unit_slot = -1
-			attack_preview_slot = -1
-			movement_preview_slot = -1
-			_refresh()
-			if state.local_mode and not state.setup_phase and state.get_active_actions() <= 0:
-				call_deferred("_auto_end_turn_if_needed")
+		status_label.text = "Esa casilla no es un destino válido para esta unidad."
+		_refresh()
 		return
 
 func _on_hero_attack_pressed(direction: Vector2i) -> void:
