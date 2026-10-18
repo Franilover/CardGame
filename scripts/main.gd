@@ -1333,9 +1333,14 @@ func _refresh() -> void:
 				available = true
 				break
 		inventory_button.disabled = state.finished or not available or (state.local_mode and state.active_owner != BattleBoard.Owner.PLAYER)
+		var inventory_selected: bool = str(card_id) == selected_inventory_creature_id
 		inventory_button.add_theme_stylebox_override(
 			"normal",
-			_button_style(SURFACE_ALT_COLOR, BORDER_COLOR, 0, 1)
+			_button_style(SELECTED_COLOR if inventory_selected else SURFACE_ALT_COLOR, GOLD_COLOR if inventory_selected else BORDER_COLOR, 0, 2 if inventory_selected else 1)
+		)
+		inventory_button.add_theme_stylebox_override(
+			"hover",
+			_button_style(SELECTED_COLOR, CYAN_COLOR, 0, 2)
 		)
 
 	_refresh_creature_info()
