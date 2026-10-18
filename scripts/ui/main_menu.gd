@@ -172,7 +172,7 @@ func _build_settings_panel() -> void:
 
 	reset_confirmation = ConfirmationDialog.new()
 	reset_confirmation.title = "Reiniciar partida"
-	reset_confirmation.dialog_text = "¿Borrar todo el progreso guardado?\n\nSe perderán las cartas obtenidas, los descubrimientos y las criaturas desbloqueadas. Se restaurará la colección inicial. Esta acción no se puede deshacer."
+	reset_confirmation.dialog_text = "¿Borrar todo el progreso guardado?\n\nSe perderán las cartas, el inventario, los descubrimientos, las criaturas desbloqueadas y el mazo. La colección quedará vacía; las criaturas se añadirán cuando las desbloquees jugando. Esta acción no se puede deshacer."
 	reset_confirmation.ok_button_text = "Borrar progreso"
 	reset_confirmation.cancel_button_text = "Cancelar"
 	reset_confirmation.confirmed.connect(_on_reset_confirmed)
@@ -191,7 +191,7 @@ func _on_reset_confirmed() -> void:
 	discoveries_button.text = "DESCUBRIMIENTOS"
 	_populate_home_cards()
 	status_label.visible = true
-	status_label.text = "Partida reiniciada. Se restauró la colección inicial."
+	status_label.text = "Progreso borrado. La colección está vacía; desbloquea criaturas jugando Aventura."
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()
@@ -200,7 +200,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if event.pressed and not event.echo:
 		if event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER:
 			if menu_container.visible and play_button.has_focus():
-				_on_local_selected()
+				_on_play_pressed()
 		elif event.keycode == KEY_ESCAPE:
 			_on_quit_pressed()
 
