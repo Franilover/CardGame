@@ -221,6 +221,38 @@ func _build_loadout_row() -> void:
 		slot_content.add_child(count_label)
 		loadout_row.add_child(slot)
 
+	# Contador global: cuenta copias individuales, no solo tipos distintos.
+	var total_panel := PanelContainer.new()
+	total_panel.custom_minimum_size = Vector2(76, 94)
+	total_panel.add_theme_stylebox_override("panel", _loadout_style())
+	var total_content := VBoxContainer.new()
+	total_content.alignment = BoxContainer.ALIGNMENT_CENTER
+	total_content.add_theme_constant_override("separation", 4)
+	total_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	total_panel.add_child(total_content)
+	var total_title := Label.new()
+	total_title.text = "TOTAL"
+	total_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	total_title.add_theme_font_size_override("font_size", 10)
+	total_title.add_theme_color_override("font_color", Color("#7FAF99"))
+	total_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	total_content.add_child(total_title)
+	var total_count := Label.new()
+	total_count.text = "%d / %d" % [run_progress.get_loadout_total_count(), RunProgress.LOADOUT_MAX_CARDS]
+	total_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	total_count.add_theme_font_size_override("font_size", 16)
+	total_count.add_theme_color_override("font_color", Color("#E3C34F"))
+	total_count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	total_content.add_child(total_count)
+	var total_caption := Label.new()
+	total_caption.text = "CARTAS"
+	total_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	total_caption.add_theme_font_size_override("font_size", 9)
+	total_caption.add_theme_color_override("font_color", Color("#E0EEE5"))
+	total_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	total_content.add_child(total_caption)
+	loadout_row.add_child(total_panel)
+
 	# La fila se reconstruye al cambiar el mazo: volver a cargar el retrato
 	# porque el TextureRect anterior se libera junto con el panel del rey.
 	_refresh_king_portrait()
