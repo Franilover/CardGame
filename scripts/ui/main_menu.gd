@@ -238,7 +238,7 @@ func _on_loadout_card_dropped(slot_index: int, data: Dictionary) -> void:
 	if source_slot >= 0:
 		run_progress.move_loadout_card(source_slot, slot_index)
 	elif not run_progress.set_loadout_card(slot_index, card_id):
-		status_label.text = "No tienes otra copia de esa carta."
+		status_label.text = "Mazo completo: máximo 10 cartas y 5 tipos distintos, o no quedan copias disponibles."
 		return
 	status_label.text = ""
 	_build_loadout_row()
@@ -310,7 +310,7 @@ func _populate_home_cards() -> void:
 		name_label.add_theme_font_size_override("font_size", 13)
 		body.add_child(name_label)
 		var type_label := Label.new()
-		type_label.text = _card_type_name(card) if show_discoveries else "%s · x%d" % [_card_type_name(card), available_count if card.card_type == CardDefinition.CardType.CREATURE else owned_count]
+		type_label.text = _card_type_name(card) if show_discoveries else "%s · x%d" % [_card_type_name(card), available_count]
 		type_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		type_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		type_label.add_theme_font_size_override("font_size", 10)
