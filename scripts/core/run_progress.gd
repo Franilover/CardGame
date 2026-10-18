@@ -57,7 +57,11 @@ func initialize_collection(seed_cards: Array[CardDefinition]) -> void:
 		for card in seed_cards:
 			if card == null or not _is_collectible_card(card):
 				continue
-			owned_card_counts[card.id] = get_owned_count(card.id) + 1
+			# El mazo semilla contiene copias repetidas para el combate.
+			# La colección inicial debe otorgar una copia por tipo, no una por
+			# cada aparición repetida en ese mazo.
+			if get_owned_count(card.id) == 0:
+				owned_card_counts[card.id] = 1
 		for creature_id in unlocked_creature_ids:
 			owned_card_counts[creature_id] = maxi(1, get_owned_count(creature_id))
 		for card_id in discovered_card_ids:
