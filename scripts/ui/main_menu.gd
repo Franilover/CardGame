@@ -192,6 +192,16 @@ func _build_loadout_row() -> void:
 		number_label.add_theme_color_override("font_color", Color("#7FAF99"))
 		number_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		slot_content.add_child(number_label)
+		var art := TextureRect.new()
+		art.custom_minimum_size = Vector2(0, 42)
+		art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if card != null:
+			art.texture = _find_card_art(card)
+		slot_content.add_child(art)
 		var name_label := Label.new()
 		name_label.text = card.display_name if card != null else "TIPO VACÍO"
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -210,6 +220,10 @@ func _build_loadout_row() -> void:
 		count_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		slot_content.add_child(count_label)
 		loadout_row.add_child(slot)
+
+	# La fila se reconstruye al cambiar el mazo: volver a cargar el retrato
+	# porque el TextureRect anterior se libera junto con el panel del rey.
+	_refresh_king_portrait()
 
 func _loadout_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
