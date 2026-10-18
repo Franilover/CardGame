@@ -121,16 +121,18 @@ func move_loadout_card(source_slot: int, target_slot: int) -> bool:
 		return false
 	if source_slot >= unique_ids.size() or source_slot == target_slot:
 		return true
-	if target_slot < unique_ids.size():
-		var source_id := unique_ids[source_slot]
-		var target_id := unique_ids[target_slot]
-		for index in range(loadout_ids.size()):
-			if loadout_ids[index] == source_id:
-				loadout_ids[index] = target_id
-			elif loadout_ids[index] == target_id:
-				loadout_ids[index] = source_id
-	else:
+	if target_slot >= unique_ids.size():
 		return true
+	var source_id := unique_ids[source_slot]
+	unique_ids[source_slot] = unique_ids[target_slot]
+	unique_ids[target_slot] = source_id
+	var counts: Dictionary = {}
+	for card_id in loadout_ids:
+		counts[card_id] = int(counts.get(card_id, 0)) + 1
+	loadout_ids.clear()
+	for card_id in unique_ids:
+		for _copy_index in range(int(counts.get(card_id, 0))):
+			loadout_ids.append(card_id)
 	_sync_deck_from_loadout()
 	_save_progress()
 	return true
