@@ -175,7 +175,15 @@ func _build_side_status() -> PanelContainer:
 	enemy_name_label = _make_label("REY ENEMIGO", 11, DANGER_COLOR)
 	enemy_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heroes_row.add_child(enemy_name_label)
+	enemy_turn_dot = _make_label("●", 16, Color("#514A2C"))
+	enemy_turn_dot.custom_minimum_size = Vector2(18, 18)
+	enemy_turn_dot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heroes_row.add_child(enemy_turn_dot)
 
+	player_turn_dot = _make_label("●", 16, Color("#514A2C"))
+	player_turn_dot.custom_minimum_size = Vector2(18, 18)
+	player_turn_dot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heroes_row.add_child(player_turn_dot)
 	player_name_label = _make_label("TU REY", 11, CYAN_COLOR)
 	player_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	player_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
