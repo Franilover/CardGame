@@ -459,10 +459,13 @@ func _populate_loadout_inventory() -> void:
 		if card == null:
 			continue
 		var card_button := Button.new()
-		card_button.custom_minimum_size = Vector2(112, 48)
+		# El mazo usa fichas cuadradas para que los sprites tengan espacio propio.
+		card_button.custom_minimum_size = Vector2(72, 72)
 		card_button.text = card.display_name
-		card_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		card_button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		card_button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 		card_button.expand_icon = true
+		card_button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		var card_sprite: Texture2D = _load_available_card_sprite(card)
 		if card_sprite != null:
 			card_button.icon = card_sprite
@@ -1175,7 +1178,9 @@ func _refresh() -> void:
 			var team_tint: Color = Color("#45E878") if owner == BattleBoard.Owner.PLAYER else Color("#4A9DFF")
 			if tint_material != null:
 				tint_material.set_shader_parameter("tint_color", team_tint)
-				var tint_strength: float = 0.0 if _has_character_sprite(occupant) else 0.82
+				# El color de equipo solo debe distinguir el bando, no teñir la ilustración.
+				var has_original_sprite: bool = _load_available_card_sprite(occupant) != null
+				var tint_strength: float = 0.12 if has_original_sprite else 0.32
 				tint_material.set_shader_parameter("tint_strength", tint_strength)
 			health_bar.visible = occupant.is_unit()
 			health_bar.max_value = float(max(occupant.max_health, 1))
