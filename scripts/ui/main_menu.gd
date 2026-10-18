@@ -297,7 +297,7 @@ func _populate_home_cards() -> void:
 	card_count.text = str(visible_count)
 
 func _find_card_art(card: CardDefinition) -> Texture2D:
-	var folders: Array[String] = ["res://assets/criatures/", "res://assets/art/items/"]
+	var folders: Array[String] = ["res://assets/art/characters/", "res://assets/criatures/", "res://assets/art/items/"]
 	var keys: Array[String] = [
 		_normalize_art_key(card.id),
 		_normalize_art_key(card.canonical_id),
