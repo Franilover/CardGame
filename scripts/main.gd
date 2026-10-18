@@ -50,6 +50,9 @@ var drag_active: bool = false
 
 var enemy_name_label: Label
 var player_name_label: Label
+var enemy_turn_dot: Label
+var player_turn_dot: Label
+var last_turn_owner: int = -1
 var turn_label: Label
 var actions_label: Label
 var etherium_label: Label
@@ -211,12 +214,27 @@ func _build_character_panel(player: bool) -> PanelContainer:
 	info.alignment = BoxContainer.ALIGNMENT_CENTER
 	content.add_child(info)
 
+	var name_row := HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", 6)
+	info.add_child(name_row)
+
 	var name_label := _make_label("TU REY" if player else "REY ENEMIGO", 14, CYAN_COLOR if player else DANGER_COLOR)
-	info.add_child(name_label)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_row.add_child(name_label)
+
+	var turn_dot := _make_label("●", 20, Color("#514A2C"))
+	turn_dot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	turn_dot.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	turn_dot.custom_minimum_size = Vector2(24, 24)
+	turn_dot.add_theme_color_override("font_color", Color("#514A2C"))
+	name_row.add_child(turn_dot)
+
 	if player:
 		player_name_label = name_label
+		player_turn_dot = turn_dot
 	else:
 		enemy_name_label = name_label
+		enemy_turn_dot = turn_dot
 
 	return panel
 
@@ -1133,6 +1151,21 @@ func _refresh() -> void:
 		turn_label.text = "%s · T%d" % [current_encounter_label, state.turn]
 		var side_name := "JUGADOR 1" if state.active_owner == BattleBoard.Owner.PLAYER else ("JUGADOR 2" if state.local_mode else "IA")
 		actions_label.text = "%s · ACCIÓN %d/%d" % [side_name, state.get_active_actions(), state.get_active_max_actions()]
+
+	# El punto dorado identifica visualmente a quién le toca actuar.
+	var active_owner: int = state.active_owner
+	var active_dot: Label = player_turn_dot if active_owner == BattleBoard.Owner.PLAYER else enemy_turn_dot
+	var inactive_dot: Label = enemy_turn_dot if active_owner == BattleBoard.Owner.PLAYER else player_turn_dot
+	if state.setup_phase:
+		active_dot = player_turn_dot
+		inactive_dot = enemy_turn_dot
+	active_dot.add_theme_color_override("font_color", GOLD_COLOR)
+	inactive_dot.add_theme_color_override("font_color", Color("#514A2C"))
+	if last_turn_owner != active_owner:
+		last_turn_owner = active_owner
+		active_dot.scale = Vector2(1.35, 1.35)
+		var pulse := create_tween()
+		pulse.tween_property(active_dot, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	# Los reyes no muestran barras de vida: el primer impacto los derrota.
 	etherium_bar.value = state.player_etherium
 	etherium_label.text = "%d / %d" % [state.player_etherium, state.player_max_etherium]
