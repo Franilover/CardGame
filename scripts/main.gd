@@ -64,6 +64,7 @@ var hero_attack_directions: Array[Vector2i] = []
 var pixel_sprite_cache: Dictionary = {}
 var creature_sprite_paths: Dictionary = {}
 var character_sprite_paths: Dictionary = {}
+var item_sprite_paths: Dictionary = {}
 var middle_container: Control
 var board_grid: GridContainer
 
@@ -458,8 +459,13 @@ func _populate_loadout_inventory() -> void:
 		if card == null:
 			continue
 		var card_button := Button.new()
-		card_button.custom_minimum_size = Vector2(88, 38)
+		card_button.custom_minimum_size = Vector2(112, 48)
 		card_button.text = card.display_name
+		card_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		card_button.expand_icon = true
+		var card_sprite: Texture2D = _load_available_card_sprite(card)
+		if card_sprite != null:
+			card_button.icon = card_sprite
 		card_button.tooltip_text = "%s · ATQ %d · VIDA %d" % [card.display_name, card.attack, card.health]
 		card_button.add_theme_font_size_override("font_size", 9)
 		card_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1268,6 +1274,7 @@ func _cell_style(index: int, selected: bool, attackable: bool = false, movable: 
 func _scan_creature_sprites() -> void:
 	creature_sprite_paths.clear()
 	character_sprite_paths.clear()
+	item_sprite_paths.clear()
 	var creature_directory := DirAccess.open("res://assets/criatures/")
 	if creature_directory == null:
 		push_warning("No existe res://assets/criatures/. Se usarán placeholders para las criaturas.")
@@ -1287,6 +1294,15 @@ func _scan_creature_sprites() -> void:
 			var key: String = _normalize_sprite_key(file_name.get_basename())
 			if not key.is_empty():
 				character_sprite_paths[key] = "res://assets/art/characters/" + file_name
+
+	var item_directory := DirAccess.open("res://assets/art/items/")
+	if item_directory != null:
+		for file_name in item_directory.get_files():
+			if not file_name.to_lower().ends_with(".png"):
+				continue
+			var key: String = _normalize_sprite_key(file_name.get_basename())
+			if not key.is_empty():
+				item_sprite_paths[key] = "res://assets/art/items/" + file_name
 
 
 func _load_creature_sprite(card: CardDefinition) -> Texture2D:
@@ -1328,6 +1344,29 @@ func _load_character_sprite(card: CardDefinition) -> Texture2D:
 
 func _has_character_sprite(card: CardDefinition) -> bool:
 	return _load_character_sprite(card) != null
+
+
+func _load_available_card_sprite(card: CardDefinition) -> Texture2D:
+	if card == null:
+		return null
+	var creature_texture: Texture2D = _load_creature_sprite(card)
+	if creature_texture != null:
+		return creature_texture
+	var character_texture: Texture2D = _load_character_sprite(card)
+	if character_texture != null:
+		return character_texture
+	var candidate_keys: Array[String] = [
+		_normalize_sprite_key(card.id),
+		_normalize_sprite_key(card.canonical_id),
+		_normalize_sprite_key(card.display_name)
+	]
+	for key in candidate_keys:
+		if key.is_empty() or not item_sprite_paths.has(key):
+			continue
+		var item_texture := load(str(item_sprite_paths[key])) as Texture2D
+		if item_texture != null:
+			return item_texture
+	return null
 
 
 func _pixel_sprite_for(card: CardDefinition, is_hero: bool = false) -> Texture2D:
