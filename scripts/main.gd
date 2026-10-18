@@ -688,7 +688,7 @@ func _start_battle() -> void:
 	# Cada encuentro de exploración presenta un rey rival distinto. El estilo
 	# alterna entre presión cuerpo a cuerpo y ataques en línea.
 	if run_progress.mode == "adventure" and not run_progress.is_boss_encounter():
-		var enemy_uses_archer := run_progress.encounter_index % 2 == 1
+		var enemy_uses_archer: bool = int(run_progress.encounter_index) % 2 == 1
 		state.enemy_hero.display_name = "Rey Arquero Rival" if enemy_uses_archer else "Rey Guardián Rival"
 		state.enemy_hero.attack_range = BattleBoard.ROWS if enemy_uses_archer else 1
 		state.enemy_hero.tags = ["personaje", "heroe", "ataque_lineal" if enemy_uses_archer else "ataque_area"]
