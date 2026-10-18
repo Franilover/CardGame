@@ -1,0 +1,41 @@
+name: Validate CardGame
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: "4.7"
+  GODOT_RELEASE: "stable"
+
+jobs:
+  validate:
+    name: Godot headless validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Install Godot
+        run: |
+          FILE="Godot_v${GODOT_VERSION}-${GODOT_RELEASE}_linux.x86_64"
+          URL="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_RELEASE}/${FILE}.zip"
+          wget -q "${URL}"
+          unzip -q "${FILE}.zip"
+          sudo mv "${FILE}" /usr/local/bin/godot
+          sudo chmod +x /usr/local/bin/godot
+          godot --version
+
+      - name: Import and validate project
+        run: godot --headless --editor --path . --quit
+
+      - name: Run battle smoke tests
+        run: godot --headless --path . --script res://scripts/debug/battle_smoke_test_runner.gd
