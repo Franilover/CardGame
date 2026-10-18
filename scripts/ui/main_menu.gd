@@ -129,12 +129,16 @@ func _on_settings_pressed() -> void:
 		return
 	settings_open = true
 	combat_submenu = false
+	show_discoveries = false
+	# Sustituye los botones del menú en la misma columna; el catálogo y el
+	# resto de la pantalla permanecen visibles, sin cambiar de escena.
 	menu_container.visible = false
-	status_label.visible = false
 	settings_panel.visible = true
+	status_label.visible = true
+	status_label.text = ""
 	settings_button.text = "VOLVER"
-	quit_button.visible = false
-	$Layout/CatalogArea.visible = false
+	quit_button.visible = true
+	$Layout/CatalogArea.visible = true
 
 func _build_settings_panel() -> void:
 	settings_panel = VBoxContainer.new()
