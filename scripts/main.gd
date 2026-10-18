@@ -699,6 +699,7 @@ func _start_battle() -> void:
 	if run_progress.is_boss_encounter():
 		state.enemy_hero.display_name = "Jefe de Garlia"
 		state.enemy_hero.health = 45
+		state.enemy_hero.max_health = 45
 		state.enemy_hero.attack = 8
 		state.enemy_hero_max_health = 45
 		state.enemy_health = 45
@@ -1193,7 +1194,7 @@ func _refresh_creature_info() -> void:
 	creature_info_owner.add_theme_color_override("font_color", CYAN_COLOR if owner == BattleBoard.Owner.PLAYER else DANGER_COLOR)
 	var max_health: int = max(card.max_health, 1)
 	creature_info_health.text = "VIDA  %d / %d" % [max(0, card.health), max_health]
-	creature_info_health_bar.visible = card.is_unit()
+	creature_info_health_bar.visible = card.is_unit() or is_hero
 	creature_info_health_bar.max_value = max_health
 	creature_info_health_bar.value = clampi(card.health, 0, max_health)
 	creature_info_attack.text = "DAÑO  %d" % card.attack
@@ -1227,7 +1228,7 @@ func _refresh() -> void:
 		active_dot.scale = Vector2(1.35, 1.35)
 		var pulse := create_tween()
 		pulse.tween_property(active_dot, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	# Los reyes no muestran barras de vida: el primer impacto los derrota.
+	# La vida de ambos reyes forma parte de la batalla y se muestra como la de las demás unidades.
 	etherium_bar.value = state.player_etherium
 	etherium_label.text = "%d / %d" % [state.player_etherium, state.player_max_etherium]
 
@@ -1263,7 +1264,7 @@ func _refresh() -> void:
 				var has_original_sprite: bool = _load_available_card_sprite(occupant) != null
 				var tint_strength: float = 0.12 if has_original_sprite else 0.32
 				tint_material.set_shader_parameter("tint_strength", tint_strength)
-			health_bar.visible = occupant.is_unit()
+			health_bar.visible = occupant.is_unit() or is_hero
 			health_bar.max_value = float(max(occupant.max_health, 1))
 			health_bar.value = float(clampi(occupant.health, 0, max(occupant.max_health, 1)))
 			health_bar.add_theme_stylebox_override("fill", _style_box(team_tint, team_tint, 0, 0))
