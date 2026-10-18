@@ -227,6 +227,9 @@ func discover_card(card_id: String) -> bool:
 func unlock_creature_after_adventure_victory(creature_id: String) -> bool:
 	if mode != "adventure" or creature_id.is_empty() or unlocked_creature_ids.has(creature_id):
 		return false
+	# Un desbloqueo ganado en juego termina el estado de colección vacía
+	# establecido por el reinicio; conservarlo al volver al menú.
+	collection_reset = false
 	unlocked_creature_ids.append(creature_id)
 	owned_card_counts[creature_id] = maxi(1, get_owned_count(creature_id))
 	if not discovered_card_ids.has(creature_id):
