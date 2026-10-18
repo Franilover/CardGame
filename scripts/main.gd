@@ -1410,8 +1410,11 @@ func _normalize_sprite_key(value: String) -> String:
 
 func _load_character_sprite(card: CardDefinition) -> Texture2D:
 	var candidate_keys: Array[String] = []
-	if state != null and card == state.player_hero and run_progress.selected_character_style == "archer":
-		candidate_keys.append("reyarquero")
+	if state != null and card == state.player_hero:
+		candidate_keys.append("reyarquero" if run_progress.selected_character_style == "archer" else "reyguardia")
+	# Guardia es el sprite predeterminado de los reyes enemigos y de cartas
+	# cuyo identificador canónico no coincide con el nombre del archivo.
+	candidate_keys.append("reyguardia")
 	candidate_keys.append(_normalize_sprite_key(card.id))
 	candidate_keys.append(_normalize_sprite_key(card.canonical_id))
 	candidate_keys.append(_normalize_sprite_key(card.display_name))
@@ -1460,7 +1463,7 @@ func _pixel_sprite_for(card: CardDefinition, is_hero: bool = false) -> Texture2D
 	if pixel_sprite_cache.has(cache_key):
 		return pixel_sprite_cache[cache_key] as Texture2D
 
-	if is_hero:
+	if is_hero or card.card_type == CardDefinition.CardType.CHARACTER:
 		var character_texture: Texture2D = _load_character_sprite(card)
 		if character_texture != null:
 			pixel_sprite_cache[cache_key] = character_texture
