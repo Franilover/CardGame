@@ -201,6 +201,14 @@ func _normalize_sprite_key(value: String) -> String:
 	var normalized := value.get_file().get_basename().to_lower().strip_edges()
 	return normalized.replace(" ", "").replace("_", "").replace("-", "").replace(".", "")
 
+func _load_player_king_sprite() -> Texture2D:
+	if run_progress.selected_character_style != "archer":
+		return null
+	var sprite_path := "res://assets/art/characters/rey_arquero.png"
+	if not ResourceLoader.exists(sprite_path):
+		return null
+	return load(sprite_path) as Texture2D
+
 func _on_cell_gui_input(event: InputEvent, index: int) -> void:
 	if battle_finished or creature == null or not event is InputEventMouseButton:
 		return
@@ -375,7 +383,13 @@ func _refresh() -> void:
 			background = Color("#62531B")
 			border = GOLD
 		if is_player:
-			cell.text = "TÚ"
+			var king_texture: Texture2D = _load_player_king_sprite()
+			if king_texture != null:
+				cell.icon = king_texture
+				cell.text = ""
+				cell.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			else:
+				cell.text = "TÚ"
 			background = Color("#174B37")
 			border = GREEN
 		elif is_creature and creature != null:
