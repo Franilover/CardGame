@@ -18,6 +18,18 @@ var selected_adventure_creature_id: String = ""
 func _ready() -> void:
 	_load_progress()
 
+func reset_progress() -> void:
+	mode = "adventure"
+	selected_character_style = "guardian"
+	encounter_index = 0
+	deck_ids.clear()
+	loadout_ids.clear()
+	owned_card_counts.clear()
+	unlocked_creature_ids.clear()
+	discovered_card_ids.clear()
+	selected_adventure_creature_id = ""
+	_save_progress()
+
 func start_mode(mode_name: String) -> void:
 	if mode_name == "combat":
 		mode = "combat"
