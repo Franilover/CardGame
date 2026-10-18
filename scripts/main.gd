@@ -38,6 +38,7 @@ var inventory_card_buttons: Dictionary = {}
 var inventory_drag_card_id: String = ""
 var inventory_drag_start: Vector2 = Vector2.ZERO
 var inventory_drag_active: bool = false
+var selected_inventory_creature_id: String = ""
 var ium_bar_row: HBoxContainer
 var ium_buttons: Array[Button] = []
 var available_iums: Array[CardDefinition] = []
@@ -541,6 +542,7 @@ func _on_inventory_card_gui_input(event: InputEvent, card_id: String) -> void:
 				var target_slot := _board_slot_at_global_position(event.global_position)
 				if target_slot >= 0:
 					if state.deploy_equipped_creature(card_id, target_slot):
+						selected_inventory_creature_id = ""
 						status_label.text = "Criatura desplegada."
 						_refresh()
 						if not state.setup_phase and state.player_actions <= 0:
@@ -551,6 +553,14 @@ func _on_inventory_card_gui_input(event: InputEvent, card_id: String) -> void:
 				else:
 					status_label.text = "Arrastra la criatura hasta una casilla de tu lado."
 					_refresh()
+			else:
+				selected_inventory_creature_id = card_id
+				selected_card_index = -1
+				selected_unit_slot = -1
+				attack_preview_slot = -1
+				movement_preview_slot = -1
+				status_label.text = "Criatura seleccionada: haz clic en una casilla vacía de tu zona para desplegarla."
+				_refresh()
 			inventory_drag_card_id = ""
 			inventory_drag_active = false
 		get_viewport().set_input_as_handled()
@@ -991,6 +1001,21 @@ func _on_board_pressed(index: int) -> void:
 		return
 
 	inspected_slot = index if state.board.get_card(index) != null else -1
+
+	if not selected_inventory_creature_id.is_empty():
+		if state.deploy_equipped_creature(selected_inventory_creature_id, index):
+			selected_inventory_creature_id = ""
+			selected_unit_slot = -1
+			attack_preview_slot = -1
+			movement_preview_slot = -1
+			status_label.text = "Criatura desplegada."
+			_refresh()
+			if not state.setup_phase and state.player_actions <= 0:
+				call_deferred("_auto_end_turn_if_needed")
+		else:
+			status_label.text = "No puedes desplegarla ahí. Elige una casilla vacía de tu zona."
+			_refresh()
+		return
 
 	if selected_card_index >= 0 and selected_card_index < state.hand.size():
 		var card: CardDefinition = state.hand[selected_card_index]
