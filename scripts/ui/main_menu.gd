@@ -50,10 +50,9 @@ func _ready() -> void:
 func _show_main_menu() -> void:
 	combat_submenu = false
 	show_discoveries = false
-	play_button.text = "AVENTURA"
+	play_button.text = "COMBATE"
 	play_button.visible = true
-	boss_button.text = "COMBATE"
-	boss_button.visible = true
+	boss_button.visible = false
 	online_button.visible = false
 	discoveries_button.text = "DESCUBRIMIENTOS"
 	discoveries_button.visible = true
@@ -69,26 +68,26 @@ func _show_main_menu() -> void:
 
 func _open_combat_menu() -> void:
 	combat_submenu = true
-	play_button.text = "LOCAL"
+	play_button.text = "AVENTURA"
 	play_button.visible = true
-	boss_button.text = "AZAR"
+	boss_button.text = "LOCAL"
 	boss_button.visible = true
-	online_button.text = "ONLINE"
+	online_button.text = "AZAR"
 	online_button.visible = true
 	discoveries_button.text = "VOLVER"
 	discoveries_button.visible = true
-	status_label.text = "Elige cómo quieres jugar el combate."
+	status_label.text = "Elige el modo de juego."
 	play_button.grab_focus()
 
 func _on_play_pressed() -> void:
 	if combat_submenu:
-		_on_local_selected()
-	else:
 		_on_adventure_selected()
+	else:
+		_open_combat_menu()
 
 func _on_boss_pressed() -> void:
 	if combat_submenu:
-		_on_random_pressed()
+		_on_local_selected()
 	else:
 		_open_combat_menu()
 
@@ -120,7 +119,10 @@ func _on_random_pressed() -> void:
 	get_tree().change_scene_to_file(BATTLE_SCENE_PATH)
 
 func _on_online_pressed() -> void:
-	status_label.text = "Online estará disponible más adelante."
+	if combat_submenu:
+		_on_random_pressed()
+	else:
+		status_label.text = "Online estará disponible más adelante."
 
 func _on_settings_pressed() -> void:
 	if settings_open:
