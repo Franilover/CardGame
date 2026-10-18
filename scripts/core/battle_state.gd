@@ -457,18 +457,16 @@ func resolve_mixer() -> BattleResult:
 	return BattleResult.ok("Proceso generado: %s." % process.display_name)
 
 func _damage_unit(unit: CardDefinition, amount: int) -> void:
-	if unit == null:
+	if unit == null or amount <= 0:
 		return
-	if unit == player_hero or unit == enemy_hero:
-		unit.health = 0
-		_sync_health_mirrors()
-		return
-	var remaining: int = max(0, amount)
+	# Los reyes usan el mismo sistema de vida y armadura que las demás unidades:
+	# recibir un impacto no los derrota automáticamente.
+	var remaining: int = amount
 	if unit.armor > 0:
 		var absorbed: int = min(unit.armor, remaining)
 		unit.armor -= absorbed
 		remaining -= absorbed
-	unit.health -= remaining
+	unit.health = maxi(0, unit.health - remaining)
 	_sync_health_mirrors()
 
 func _sync_health_mirrors() -> void:
