@@ -170,14 +170,15 @@ func _build_loadout_row() -> void:
 		if card != null and not cards_by_id.has(card.id):
 			cards_by_id[card.id] = card
 
-	for index in range(run_progress.loadout_ids.size()):
-		var card_id: String = run_progress.loadout_ids[index]
+	var loadout_types: Array[String] = run_progress.get_loadout_type_ids()
+	for index in range(RunProgress.LOADOUT_TYPE_SLOTS):
+		var card_id: String = loadout_types[index] if index < loadout_types.size() else ""
 		var card: CardDefinition = cards_by_id.get(card_id) as CardDefinition
 		var slot := PanelContainer.new()
 		slot.set_script(load("res://scripts/ui/card_loadout_item.gd"))
 		slot.set("slot_index", index)
 		slot.set("card_id", card_id)
-		slot.custom_minimum_size = Vector2(92, 76)
+		slot.custom_minimum_size = Vector2(92, 94)
 		slot.add_theme_stylebox_override("panel", _loadout_style())
 		slot.connect("card_dropped", _on_loadout_card_dropped)
 		slot.connect("slot_activated", _on_loadout_slot_activated)
@@ -192,7 +193,7 @@ func _build_loadout_row() -> void:
 		number_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		slot_content.add_child(number_label)
 		var name_label := Label.new()
-		name_label.text = card.display_name if card != null else "ARRASTRA"
+		name_label.text = card.display_name if card != null else "TIPO VACÍO"
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -201,6 +202,13 @@ func _build_loadout_row() -> void:
 		name_label.add_theme_color_override("font_color", Color("#E0EEE5") if card != null else Color("#7FAF99"))
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		slot_content.add_child(name_label)
+		var count_label := Label.new()
+		count_label.text = "×%d" % run_progress.get_loadout_count(card_id) if not card_id.is_empty() else "0/10"
+		count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		count_label.add_theme_font_size_override("font_size", 12)
+		count_label.add_theme_color_override("font_color", Color("#E3C34F"))
+		count_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot_content.add_child(count_label)
 		loadout_row.add_child(slot)
 
 func _loadout_style() -> StyleBoxFlat:
@@ -255,12 +263,8 @@ func _populate_home_cards() -> void:
 		var available_count: int = owned_count
 		# Las criaturas asignadas a la formación dejan de aparecer en el inventario.
 		# La propiedad total no cambia: solo se muestran las copias aún no equipadas.
-		if not show_discoveries and card.card_type == CardDefinition.CardType.CREATURE:
-			var equipped_count := 0
-			for equipped_id in run_progress.loadout_ids:
-				if equipped_id == card.id:
-					equipped_count += 1
-			available_count = maxi(0, owned_count - equipped_count)
+		if not show_discoveries and (card.card_type == CardDefinition.CardType.CREATURE or card.card_type == CardDefinition.CardType.OBJECT):
+			available_count = maxi(0, owned_count - run_progress.get_loadout_count(card.id))
 		var should_show: bool = run_progress.is_card_discovered(card) if show_discoveries else available_count > 0
 		if not should_show:
 			continue
