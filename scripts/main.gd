@@ -23,6 +23,7 @@ var engine: BattleEngine
 var state: BattleState
 var selected_card_index: int = -1
 var selected_unit_slot: int = -1
+var inspected_slot: int = -1
 var attack_preview_slot: int = -1
 var movement_preview_slot: int = -1
 var ignore_next_board_release: bool = false
@@ -59,6 +60,14 @@ var etherium_label: Label
 var etherium_bar: ProgressBar
 var mixer_result_label: Label
 var status_label: Label
+var creature_info_image: TextureRect
+var creature_info_name: Label
+var creature_info_owner: Label
+var creature_info_health: Label
+var creature_info_health_bar: ProgressBar
+var creature_info_attack: Label
+var creature_info_ability: Label
+var creature_info_description: Label
 var process_button: Button
 var end_turn_button: Button
 var hero_attack_panel: HBoxContainer
@@ -336,84 +345,94 @@ func _build_middle() -> Control:
 	battle_status_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	side_column.add_child(battle_status_panel)
 
-	var mixer_panel := _new_panel(Vector2(315, 0))
-	mixer_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mixer_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	mixer_panel.size_flags_stretch_ratio = 2.0
-	side_column.add_child(mixer_panel)
+	var info_panel := _new_panel(Vector2(245, 0))
+	info_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	info_panel.size_flags_stretch_ratio = 2.0
+	side_column.add_child(info_panel)
 
-	var mixer_margin := MarginContainer.new()
-	mixer_margin.add_theme_constant_override("margin_left", 9)
-	mixer_margin.add_theme_constant_override("margin_right", 9)
-	mixer_margin.add_theme_constant_override("margin_top", 9)
-	mixer_margin.add_theme_constant_override("margin_bottom", 9)
-	mixer_panel.add_child(mixer_margin)
+	var info_margin := MarginContainer.new()
+	info_margin.add_theme_constant_override("margin_left", 10)
+	info_margin.add_theme_constant_override("margin_right", 10)
+	info_margin.add_theme_constant_override("margin_top", 10)
+	info_margin.add_theme_constant_override("margin_bottom", 10)
+	info_panel.add_child(info_margin)
 
-	var mixer_root := VBoxContainer.new()
-	mixer_root.add_theme_constant_override("separation", 7)
-	mixer_margin.add_child(mixer_root)
+	var info_root := VBoxContainer.new()
+	info_root.add_theme_constant_override("separation", 7)
+	info_margin.add_child(info_root)
 
-	var mixer_grid := GridContainer.new()
-	mixer_grid.columns = 3
-	mixer_grid.custom_minimum_size = Vector2(0, 165)
-	mixer_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mixer_grid.add_theme_constant_override("h_separation", 4)
-	mixer_grid.add_theme_constant_override("v_separation", 4)
-	mixer_root.add_child(mixer_grid)
+	var info_heading := _make_label("FICHA DE CRIATURA", 11, GOLD_COLOR)
+	info_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	info_root.add_child(info_heading)
 
-	for index in range(MixerState.SIZE):
-		var cell := Button.new()
-		cell.custom_minimum_size = Vector2(0, 51)
-		cell.add_theme_font_size_override("font_size", 10)
-		cell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		cell.text = "+"
-		cell.pressed.connect(_on_mixer_pressed.bind(index))
-		mixer_grid.add_child(cell)
-		mixer_buttons.append(cell)
+	creature_info_image = TextureRect.new()
+	creature_info_image.custom_minimum_size = Vector2(0, 132)
+	creature_info_image.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	creature_info_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	creature_info_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	creature_info_image.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	info_root.add_child(creature_info_image)
+
+	creature_info_name = _make_label("Selecciona una criatura", 15, TEXT_COLOR)
+	creature_info_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	creature_info_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info_root.add_child(creature_info_name)
+
+	creature_info_owner = _make_label("Haz clic en una casilla ocupada", 10, MUTED_COLOR)
+	creature_info_owner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	creature_info_owner.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info_root.add_child(creature_info_owner)
+
+	creature_info_health = _make_label("VIDA —", 12, CYAN_COLOR)
+	creature_info_health.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	info_root.add_child(creature_info_health)
+
+	creature_info_health_bar = ProgressBar.new()
+	creature_info_health_bar.custom_minimum_size.y = 14
+	creature_info_health_bar.show_percentage = false
+	creature_info_health_bar.visible = false
+	creature_info_health_bar.add_theme_stylebox_override("background", _style_box(Color("#101714"), BORDER_COLOR, 2, 1))
+	creature_info_health_bar.add_theme_stylebox_override("fill", _style_box(Color("#45E878"), Color("#45E878"), 2, 0))
+	info_root.add_child(creature_info_health_bar)
+
+	creature_info_attack = _make_label("DAÑO —", 12, DANGER_COLOR)
+	creature_info_attack.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	info_root.add_child(creature_info_attack)
+
+	creature_info_ability = _make_label("HABILIDAD\n—", 11, GOLD_COLOR)
+	creature_info_ability.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	creature_info_ability.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	info_root.add_child(creature_info_ability)
+
+	creature_info_description = _make_label("", 10, MUTED_COLOR)
+	creature_info_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info_root.add_child(creature_info_description)
 
 	etherium_bar = ProgressBar.new()
-	etherium_bar.custom_minimum_size.y = 20
+	etherium_bar.custom_minimum_size.y = 14
 	etherium_bar.max_value = BattleState.MAX_ETHERIUM
 	etherium_bar.value = 3
 	etherium_bar.show_percentage = false
-	etherium_bar.add_theme_stylebox_override("background", _style_box(Color("#151308"), BORDER_COLOR, 6, 1))
-	etherium_bar.add_theme_stylebox_override("fill", _style_box(GOLD_COLOR, GOLD_COLOR, 6, 1))
-	mixer_root.add_child(etherium_bar)
+	etherium_bar.add_theme_stylebox_override("background", _style_box(Color("#151308"), BORDER_COLOR, 4, 1))
+	etherium_bar.add_theme_stylebox_override("fill", _style_box(GOLD_COLOR, GOLD_COLOR, 4, 0))
+	info_root.add_child(etherium_bar)
 
-	etherium_label = _make_label("3 / 3", 12, GOLD_COLOR)
+	etherium_label = _make_label("ETERIUM 3 / 3", 10, GOLD_COLOR)
 	etherium_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mixer_root.add_child(etherium_label)
-
-	mixer_result_label = _make_label("", 10, MUTED_COLOR)
-	mixer_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mixer_result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	mixer_root.add_child(mixer_result_label)
-
-	process_button = Button.new()
-	process_button.text = "PROCESAR"
-	process_button.custom_minimum_size.y = 34
-	process_button.add_theme_font_size_override("font_size", 11)
-	process_button.add_theme_stylebox_override("normal", _button_style(GOLD_COLOR, Color("#F0D76A"), 7, 1))
-	process_button.add_theme_color_override("font_color", Color("#182016"))
-	process_button.pressed.connect(_on_process_pressed)
-	mixer_root.add_child(process_button)
-
-	var ium_scroll := ScrollContainer.new()
-	ium_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	ium_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	ium_scroll.custom_minimum_size.y = 62
-	ium_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ium_scroll.visible = run_progress.mode == "bosses"
-	mixer_root.add_child(ium_scroll)
-
-	ium_bar_row = HBoxContainer.new()
-	ium_bar_row.add_theme_constant_override("separation", 5)
-	ium_scroll.add_child(ium_bar_row)
+	info_root.add_child(etherium_label)
 
 	status_label = _make_label("", 10, CYAN_COLOR)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	mixer_root.add_child(status_label)
+	info_root.add_child(status_label)
+
+	# Se mantiene el contenedor de catálogo fuera de la interfaz para no romper
+	# la carga de IUMs existente; el tablero del mezclador ya no se muestra.
+	mixer_result_label = null
+	process_button = null
+	mixer_buttons.clear()
+	ium_bar_row = HBoxContainer.new()
 
 	var hand_panel := _build_hand_bar()
 	hand_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -956,6 +975,8 @@ func _on_board_pressed(index: int) -> void:
 	if state == null or state.is_finished():
 		return
 
+	inspected_slot = index if state.board.get_card(index) != null else -1
+
 	if selected_card_index >= 0 and selected_card_index < state.hand.size():
 		var card: CardDefinition = state.hand[selected_card_index]
 		if card.card_type == CardDefinition.CardType.IUM:
@@ -1148,6 +1169,38 @@ func _on_battle_finished(player_won: bool) -> void:
 	process_button.disabled = true
 	_refresh()
 
+
+func _refresh_creature_info() -> void:
+	if creature_info_image == null:
+		return
+	var card: CardDefinition = state.board.get_card(inspected_slot) if inspected_slot >= 0 and inspected_slot < BattleBoard.CELL_COUNT else null
+	if card == null:
+		creature_info_image.texture = null
+		creature_info_name.text = "Selecciona una criatura"
+		creature_info_owner.text = "Haz clic en una casilla ocupada"
+		creature_info_health.text = "VIDA —"
+		creature_info_health_bar.visible = false
+		creature_info_attack.text = "DAÑO —"
+		creature_info_ability.text = "HABILIDAD\n—"
+		creature_info_description.text = ""
+		return
+
+	var is_hero: bool = card == state.player_hero or card == state.enemy_hero
+	creature_info_image.texture = _pixel_sprite_for(card, is_hero)
+	creature_info_name.text = card.display_name
+	var owner: int = state.board.get_owner(inspected_slot)
+	creature_info_owner.text = "ALIADO" if owner == BattleBoard.Owner.PLAYER else "ENEMIGO"
+	creature_info_owner.add_theme_color_override("font_color", CYAN_COLOR if owner == BattleBoard.Owner.PLAYER else DANGER_COLOR)
+	var max_health: int = max(card.max_health, 1)
+	creature_info_health.text = "VIDA  %d / %d" % [max(0, card.health), max_health]
+	creature_info_health_bar.visible = card.is_unit()
+	creature_info_health_bar.max_value = max_health
+	creature_info_health_bar.value = clampi(card.health, 0, max_health)
+	creature_info_attack.text = "DAÑO  %d" % card.attack
+	var ability: String = card.ability_text.strip_edges()
+	creature_info_ability.text = "HABILIDAD\n%s" % (ability if not ability.is_empty() else "Sin habilidad")
+	creature_info_description.text = card.description.strip_edges()
+
 func _refresh() -> void:
 	if state == null:
 		return
@@ -1178,18 +1231,7 @@ func _refresh() -> void:
 	etherium_bar.value = state.player_etherium
 	etherium_label.text = "%d / %d" % [state.player_etherium, state.player_max_etherium]
 
-	var recipe: CardDefinition = MixerEngine.find_process(state.mixer, state.process_catalog)
-	if state.mixer.count() == 0:
-		mixer_result_label.text = ""
-		process_button.disabled = true
-	elif recipe != null:
-		mixer_result_label.text = recipe.display_name
-		process_button.disabled = state.player_actions <= 0 or state.player_etherium <= 0 or state.hand.size() >= BattleState.MAX_HAND
-	else:
-		mixer_result_label.text = ""
-		process_button.disabled = true
-	if state.local_mode and state.active_owner != BattleBoard.Owner.PLAYER:
-		process_button.disabled = true
+	# El mezclador de IUMs se retiró de la interfaz; el estado de combate se conserva.
 
 	var attackable_slots: Array[int] = []
 	if attack_preview_slot >= 0:
@@ -1237,12 +1279,6 @@ func _refresh() -> void:
 		button.add_theme_stylebox_override("pressed", _cell_style(index, selected, attackable, movable))
 		button.add_theme_stylebox_override("focus", _cell_style(index, selected, attackable, movable))
 
-	for index in range(mixer_buttons.size()):
-		var mixer_button: Button = mixer_buttons[index]
-		var mixer_card: CardDefinition = state.mixer.get_ium(index)
-		mixer_button.text = mixer_card.display_name if mixer_card != null else "+"
-		mixer_button.disabled = state.setup_phase or state.finished or (state.local_mode and state.active_owner != BattleBoard.Owner.PLAYER)
-		mixer_button.add_theme_stylebox_override("normal", _button_style(SELECTED_COLOR if mixer_card != null else SURFACE_ALT_COLOR, GOLD_COLOR if mixer_card != null else BORDER_COLOR, 7, 1))
 
 	for card_id in inventory_card_buttons.keys():
 		var inventory_button: Button = inventory_card_buttons[card_id] as Button
@@ -1262,6 +1298,8 @@ func _refresh() -> void:
 			"normal",
 			_button_style(SURFACE_ALT_COLOR, BORDER_COLOR, 0, 1)
 		)
+
+	_refresh_creature_info()
 
 	for index in range(ium_buttons.size()):
 		var ium_button: Button = ium_buttons[index]
