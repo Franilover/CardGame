@@ -135,8 +135,6 @@ func _on_settings_pressed() -> void:
 	settings_button.text = "VOLVER"
 	quit_button.visible = false
 	$Layout/CatalogArea.visible = false
-	reset_confirmation.popup_centered(Vector2i(440, 230))
-	reset_confirmation.hide()
 
 func _build_settings_panel() -> void:
 	settings_panel = VBoxContainer.new()
