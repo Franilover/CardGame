@@ -1,6 +1,6 @@
 # Garlia CardGame
 
-Primer juego de Garlia: deckbuilder roguelite táctico de combate por turnos.
+Primer juego de Garlia: roguelite táctico de combate por turnos.
 
 ## Estado actual
 
@@ -20,6 +20,22 @@ Primer juego de Garlia: deckbuilder roguelite táctico de combate por turnos.
 - Smoke test headless
 - Catálogo canónico de Supabase
 - Caché local offline
+
+## Validación automática
+
+El workflow **Validate CardGame** se ejecuta en cada push a `main`, en pull requests hacia `main` y manualmente desde GitHub Actions. Importa el proyecto con Godot 4.7 y ejecuta las pruebas de combate en modo headless.
+
+Para comprobarlo localmente desde la raíz del repositorio:
+
+```sh
+# Validar/importar recursos y scripts
+godot --headless --editor --path . --quit
+
+# Ejecutar pruebas de humo del motor de batalla
+godot --headless --path . --script res://scripts/debug/battle_smoke_test_runner.gd
+```
+
+El segundo comando termina con código distinto de cero si falla alguna comprobación. La validación headless no sustituye una prueba manual de interfaz, controles, renderizado ni conexión real a Supabase.
 
 ## Arquitectura
 
