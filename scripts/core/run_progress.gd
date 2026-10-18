@@ -2,12 +2,14 @@ extends Node
 
 const SAVE_PATH := "user://run_progress.json"
 const EXPLORATION_COUNT := 5
+const LOADOUT_TYPE_SLOTS := 5
+const LOADOUT_MAX_CARDS := 10
 
 var mode: String = "adventure"
 var selected_character_style: String = "guardian"
 var encounter_index: int = 0
 var deck_ids: Array[String] = []
-var loadout_ids: Array[String] = ["", "", "", "", "", "", "", ""]
+var loadout_ids: Array[String] = []
 var owned_card_counts: Dictionary = {}
 var unlocked_creature_ids: Array[String] = []
 var discovered_card_ids: Array[String] = []
@@ -54,15 +56,23 @@ func initialize_collection(seed_cards: Array[CardDefinition]) -> void:
 		owned_card_counts[creature_id] = maxi(1, get_owned_count(creature_id))
 
 	if _loadout_is_empty():
-		var valid_starters: Array[String] = []
+		var starter_types: Array[String] = []
 		for card in seed_cards:
-			if card != null and _is_collectible_card(card) and get_owned_count(card.id) > 0:
-				valid_starters.append(card.id)
-		for index in range(min(loadout_ids.size(), valid_starters.size())):
-			loadout_ids[index] = valid_starters[index]
-		if _loadout_is_empty():
-			for index in range(min(loadout_ids.size(), deck_ids.size())):
-				loadout_ids[index] = deck_ids[index]
+			if card == null or not _is_collectible_card(card) or get_owned_count(card.id) <= 0:
+				continue
+			if not starter_types.has(card.id):
+				starter_types.append(card.id)
+		for card_id in starter_types:
+			if _loadout_unique_type_count() >= LOADOUT_TYPE_SLOTS or loadout_ids.size() >= LOADOUT_MAX_CARDS:
+				break
+			loadout_ids.append(card_id)
+		if loadout_ids.is_empty():
+			for card_id in deck_ids:
+				if loadout_ids.size() >= LOADOUT_MAX_CARDS:
+					break
+				if not loadout_ids.has(card_id) and _loadout_unique_type_count() >= LOADOUT_TYPE_SLOTS:
+					continue
+				loadout_ids.append(card_id)
 	_sync_deck_from_loadout()
 	_save_progress()
 
@@ -76,10 +86,28 @@ func _find_card_in_seed(cards: Array[CardDefinition], card_id: String) -> bool:
 	return false
 
 func _loadout_is_empty() -> bool:
+	return loadout_ids.is_empty()
+
+func _loadout_unique_type_count() -> int:
+	var unique_ids: Array[String] = []
 	for card_id in loadout_ids:
-		if not card_id.is_empty():
-			return false
-	return true
+		if not card_id.is_empty() and not unique_ids.has(card_id):
+			unique_ids.append(card_id)
+	return unique_ids.size()
+
+func get_loadout_type_ids() -> Array[String]:
+	var unique_ids: Array[String] = []
+	for card_id in loadout_ids:
+		if not card_id.is_empty() and not unique_ids.has(card_id):
+			unique_ids.append(card_id)
+	return unique_ids
+
+func get_loadout_count(card_id: String) -> int:
+	var count := 0
+	for selected_id in loadout_ids:
+		if selected_id == card_id:
+			count += 1
+	return count
 
 func _sync_deck_from_loadout() -> void:
 	deck_ids.clear()
@@ -88,32 +116,47 @@ func _sync_deck_from_loadout() -> void:
 			deck_ids.append(card_id)
 
 func move_loadout_card(source_slot: int, target_slot: int) -> bool:
-	if source_slot < 0 or source_slot >= loadout_ids.size() or target_slot < 0 or target_slot >= loadout_ids.size():
+	var unique_ids := get_loadout_type_ids()
+	if source_slot < 0 or source_slot >= LOADOUT_TYPE_SLOTS or target_slot < 0 or target_slot >= LOADOUT_TYPE_SLOTS:
 		return false
-	if source_slot == target_slot:
+	if source_slot >= unique_ids.size() or source_slot == target_slot:
 		return true
-	var source_id := loadout_ids[source_slot]
-	var target_id := loadout_ids[target_slot]
-	loadout_ids[target_slot] = source_id
-	loadout_ids[source_slot] = target_id
+	if target_slot < unique_ids.size():
+		var source_id := unique_ids[source_slot]
+		var target_id := unique_ids[target_slot]
+		for index in range(loadout_ids.size()):
+			if loadout_ids[index] == source_id:
+				loadout_ids[index] = target_id
+			elif loadout_ids[index] == target_id:
+				loadout_ids[index] = source_id
+	else:
+		return true
 	_sync_deck_from_loadout()
 	_save_progress()
 	return true
 
 func set_loadout_card(slot: int, card_id: String) -> bool:
-	if slot < 0 or slot >= loadout_ids.size():
+	if slot < 0 or slot >= LOADOUT_TYPE_SLOTS:
 		return false
-	if not card_id.is_empty():
-		var available := get_owned_count(card_id)
-		if available <= 0:
-			return false
-		var selected_count := 0
-		for index in range(loadout_ids.size()):
-			if index != slot and loadout_ids[index] == card_id:
-				selected_count += 1
-		if selected_count >= available:
-			return false
-	loadout_ids[slot] = card_id
+	var unique_ids := get_loadout_type_ids()
+	if card_id.is_empty():
+		if slot >= unique_ids.size():
+			return true
+		var remove_id := unique_ids[slot]
+		for index in range(loadout_ids.size() - 1, -1, -1):
+			if loadout_ids[index] == remove_id:
+				loadout_ids.remove_at(index)
+				break
+		_sync_deck_from_loadout()
+		_save_progress()
+		return true
+	if get_owned_count(card_id) <= get_loadout_count(card_id):
+		return false
+	if loadout_ids.size() >= LOADOUT_MAX_CARDS:
+		return false
+	if not unique_ids.has(card_id) and unique_ids.size() >= LOADOUT_TYPE_SLOTS:
+		return false
+	loadout_ids.append(card_id)
 	_sync_deck_from_loadout()
 	_save_progress()
 	return true
@@ -358,11 +401,16 @@ func _load_progress() -> void:
 	if saved_ids is Array:
 		for card_id in saved_ids:
 			deck_ids.append(str(card_id))
-	loadout_ids = ["", "", "", "", "", "", "", ""]
+	loadout_ids.clear()
 	var saved_loadout: Variant = parsed.get("loadout_ids", [])
 	if saved_loadout is Array:
-		for index in range(min(loadout_ids.size(), saved_loadout.size())):
-			loadout_ids[index] = str(saved_loadout[index])
+		for card_id in saved_loadout:
+			var saved_card_id := str(card_id)
+			if saved_card_id.is_empty() or loadout_ids.size() >= LOADOUT_MAX_CARDS:
+				continue
+			if not loadout_ids.has(saved_card_id) and _loadout_unique_type_count() >= LOADOUT_TYPE_SLOTS:
+				continue
+			loadout_ids.append(saved_card_id)
 	owned_card_counts.clear()
 	var saved_owned: Variant = parsed.get("owned_card_counts", {})
 	if saved_owned is Dictionary:
