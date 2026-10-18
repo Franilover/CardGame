@@ -13,6 +13,9 @@ var combat_submenu: bool = false
 var loadout_row: HBoxContainer
 var king_selector: OptionButton
 var king_portrait: TextureRect
+var settings_panel: VBoxContainer
+var reset_confirmation: ConfirmationDialog
+var settings_open: bool = false
 
 @onready var left_column: VBoxContainer = $Layout/Sidebar/SidebarContent
 @onready var menu_container: VBoxContainer = $Layout/Sidebar/SidebarContent/Menu
@@ -34,6 +37,7 @@ func _ready() -> void:
 	discoveries_button.pressed.connect(_on_discoveries_or_back_pressed)
 	settings_button.pressed.connect(_on_settings_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
+	_build_settings_panel()
 	_show_main_menu()
 	status_label.text = ""
 	await canon_repository.initialize()
@@ -53,6 +57,13 @@ func _show_main_menu() -> void:
 	online_button.visible = false
 	discoveries_button.text = "DESCUBRIMIENTOS"
 	discoveries_button.visible = true
+	settings_open = false
+	settings_panel.visible = false
+	menu_container.visible = true
+	status_label.visible = true
+	settings_button.text = "CONFIGURACIÓN"
+	quit_button.visible = true
+	$Layout/CatalogArea.visible = true
 	_populate_home_cards()
 	play_button.grab_focus()
 
@@ -112,7 +123,71 @@ func _on_online_pressed() -> void:
 	status_label.text = "Online estará disponible más adelante."
 
 func _on_settings_pressed() -> void:
-	status_label.text = "La configuración se agregará aquí."
+	if settings_open:
+		_show_main_menu()
+		status_label.text = ""
+		return
+	settings_open = true
+	combat_submenu = false
+	menu_container.visible = false
+	status_label.visible = false
+	settings_panel.visible = true
+	settings_button.text = "VOLVER"
+	quit_button.visible = false
+	$Layout/CatalogArea.visible = false
+	reset_confirmation.popup_centered(Vector2i(440, 230))
+	reset_confirmation.hide()
+
+func _build_settings_panel() -> void:
+	settings_panel = VBoxContainer.new()
+	settings_panel.name = "SettingsPanel"
+	settings_panel.visible = false
+	settings_panel.add_theme_constant_override("separation", 12)
+	var heading := Label.new()
+	heading.text = "CONFIGURACIÓN"
+	heading.add_theme_font_size_override("font_size", 20)
+	settings_panel.add_child(heading)
+	var description := Label.new()
+	description.text = "Gestiona los datos guardados de esta partida."
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.add_theme_font_size_override("font_size", 12)
+	settings_panel.add_child(description)
+	var reset_button := Button.new()
+	reset_button.text = "REINICIAR PARTIDA"
+	reset_button.custom_minimum_size = Vector2(0, 48)
+	reset_button.pressed.connect(_on_reset_requested)
+	settings_panel.add_child(reset_button)
+	var warning := Label.new()
+	warning.text = "Borra cartas, descubrimientos, criaturas desbloqueadas y progreso de aventura."
+	warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	warning.add_theme_font_size_override("font_size", 11)
+	warning.add_theme_color_override("font_color", Color("#E3C34F"))
+	settings_panel.add_child(warning)
+	left_column.add_child(settings_panel)
+	left_column.move_child(settings_panel, menu_container.get_index() + 1)
+
+	reset_confirmation = ConfirmationDialog.new()
+	reset_confirmation.title = "Reiniciar partida"
+	reset_confirmation.dialog_text = "¿Borrar todo el progreso guardado?\n\nSe perderán las cartas obtenidas, los descubrimientos y las criaturas desbloqueadas. Se restaurará la colección inicial. Esta acción no se puede deshacer."
+	reset_confirmation.ok_button_text = "Borrar progreso"
+	reset_confirmation.cancel_button_text = "Cancelar"
+	reset_confirmation.confirmed.connect(_on_reset_confirmed)
+	add_child(reset_confirmation)
+
+func _on_reset_requested() -> void:
+	reset_confirmation.popup_centered(Vector2i(440, 230))
+
+func _on_reset_confirmed() -> void:
+	run_progress.reset_progress()
+	var starter_cards: Array[CardDefinition] = CardCatalog.starter_deck_from_canon(canon_repository)
+	run_progress.initialize_collection(starter_cards)
+	_build_loadout_row()
+	_refresh_king_portrait()
+	show_discoveries = false
+	discoveries_button.text = "DESCUBRIMIENTOS"
+	_populate_home_cards()
+	status_label.visible = true
+	status_label.text = "Partida reiniciada. Se restauró la colección inicial."
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()
