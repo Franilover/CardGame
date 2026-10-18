@@ -612,6 +612,13 @@ func _enemy_turn() -> void:
 		if attacker == null or not attacker.can_attack():
 			continue
 
+		if attacker == enemy_hero:
+			if _enemy_hero_use_ability():
+				_check_finished()
+				if finished:
+					return
+			continue
+
 		var target: int = board.nearest_index(index, BattleBoard.Owner.PLAYER)
 		if target >= 0 and board.distance(index, target) <= max(1, attacker.attack_range):
 			var defender: CardDefinition = board.get_card(target)
@@ -624,6 +631,36 @@ func _enemy_turn() -> void:
 				return
 
 	_cleanup_boards()
+
+func _enemy_hero_use_ability() -> bool:
+	if enemy_hero == null or enemy_actions <= 0:
+		return false
+	var targets_hit := 0
+	if enemy_hero.tags.has("ataque_lineal"):
+		var directions: Array[Vector2i] = [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]
+		for direction in directions:
+			var target_slot := board.first_occupied_in_line(enemy_hero_slot, direction, enemy_hero.attack_range)
+			if target_slot < 0 or board.get_owner(target_slot) != BattleBoard.Owner.PLAYER:
+				continue
+			var target := board.get_card(target_slot)
+			if target != null:
+				_damage_unit(target, enemy_hero.attack)
+				targets_hit += 1
+			break
+	else:
+		for target_slot in board.adjacent_indices(enemy_hero_slot):
+			if board.get_owner(target_slot) != BattleBoard.Owner.PLAYER:
+				continue
+			var target := board.get_card(target_slot)
+			if target != null:
+				_damage_unit(target, enemy_hero.attack)
+				targets_hit += 1
+	if targets_hit <= 0:
+		return false
+	enemy_actions -= 1
+	_event("%s usó su habilidad y alcanzó %d objetivo(s)." % [enemy_hero.display_name, targets_hit])
+	_cleanup_boards()
+	return true
 
 func _enemy_move_units() -> void:
 	if player_hero == null or not player_hero.alive():
