@@ -63,12 +63,12 @@ func initialize_collection(seed_cards: Array[CardDefinition]) -> void:
 			if not starter_types.has(card.id):
 				starter_types.append(card.id)
 		for card_id in starter_types:
-			if _loadout_unique_type_count() >= LOADOUT_TYPE_SLOTS or loadout_ids.size() >= LOADOUT_MAX_CARDS:
+			if _loadout_unique_type_count() >= LOADOUT_TYPE_SLOTS or get_loadout_total_count() >= LOADOUT_MAX_CARDS:
 				break
 			loadout_ids.append(card_id)
 		if loadout_ids.is_empty():
 			for card_id in deck_ids:
-				if loadout_ids.size() >= LOADOUT_MAX_CARDS:
+				if get_loadout_total_count() >= LOADOUT_MAX_CARDS:
 					break
 				if not loadout_ids.has(card_id) and _loadout_unique_type_count() >= LOADOUT_TYPE_SLOTS:
 					continue
@@ -86,7 +86,14 @@ func _find_card_in_seed(cards: Array[CardDefinition], card_id: String) -> bool:
 	return false
 
 func _loadout_is_empty() -> bool:
-	return loadout_ids.is_empty()
+	return get_loadout_total_count() == 0
+
+func get_loadout_total_count() -> int:
+	var total := 0
+	for card_id in loadout_ids:
+		if not card_id.is_empty():
+			total += 1
+	return total
 
 func _loadout_unique_type_count() -> int:
 	var unique_ids: Array[String] = []
@@ -154,7 +161,7 @@ func set_loadout_card(slot: int, card_id: String) -> bool:
 		return true
 	if get_owned_count(card_id) <= get_loadout_count(card_id):
 		return false
-	if loadout_ids.size() >= LOADOUT_MAX_CARDS:
+	if get_loadout_total_count() >= LOADOUT_MAX_CARDS:
 		return false
 	if not unique_ids.has(card_id) and unique_ids.size() >= LOADOUT_TYPE_SLOTS:
 		return false
@@ -408,7 +415,7 @@ func _load_progress() -> void:
 	if saved_loadout is Array:
 		for card_id in saved_loadout:
 			var saved_card_id := str(card_id)
-			if saved_card_id.is_empty() or loadout_ids.size() >= LOADOUT_MAX_CARDS:
+			if saved_card_id.is_empty() or get_loadout_total_count() >= LOADOUT_MAX_CARDS:
 				continue
 			if not loadout_ids.has(saved_card_id) and _loadout_unique_type_count() >= LOADOUT_TYPE_SLOTS:
 				continue
