@@ -63,6 +63,7 @@ var hero_attack_buttons: Array[Button] = []
 var hero_attack_directions: Array[Vector2i] = []
 var pixel_sprite_cache: Dictionary = {}
 var creature_sprite_paths: Dictionary = {}
+var character_sprite_paths: Dictionary = {}
 var middle_container: Control
 var board_grid: GridContainer
 
@@ -1168,7 +1169,8 @@ func _refresh() -> void:
 			var team_tint: Color = Color("#45E878") if owner == BattleBoard.Owner.PLAYER else Color("#4A9DFF")
 			if tint_material != null:
 				tint_material.set_shader_parameter("tint_color", team_tint)
-				tint_material.set_shader_parameter("tint_strength", 0.82)
+				var tint_strength: float = 0.0 if _has_character_sprite(occupant) else 0.82
+				tint_material.set_shader_parameter("tint_strength", tint_strength)
 			health_bar.visible = occupant.is_unit()
 			health_bar.max_value = float(max(occupant.max_health, 1))
 			health_bar.value = float(clampi(occupant.health, 0, max(occupant.max_health, 1)))
@@ -1265,18 +1267,26 @@ func _cell_style(index: int, selected: bool, attackable: bool = false, movable: 
 
 func _scan_creature_sprites() -> void:
 	creature_sprite_paths.clear()
-	var directory := DirAccess.open("res://assets/criatures/")
-	if directory == null:
+	character_sprite_paths.clear()
+	var creature_directory := DirAccess.open("res://assets/criatures/")
+	if creature_directory == null:
 		push_warning("No existe res://assets/criatures/. Se usarán placeholders para las criaturas.")
-		return
+	else:
+		for file_name in creature_directory.get_files():
+			if not file_name.to_lower().ends_with(".png"):
+				continue
+			var key: String = _normalize_sprite_key(file_name.get_basename())
+			if not key.is_empty():
+				creature_sprite_paths[key] = "res://assets/criatures/" + file_name
 
-	for file_name in directory.get_files():
-		if not file_name.to_lower().ends_with(".png"):
-			continue
-		var key: String = _normalize_sprite_key(file_name.get_basename())
-		if key.is_empty():
-			continue
-		creature_sprite_paths[key] = "res://assets/criatures/" + file_name
+	var character_directory := DirAccess.open("res://assets/art/characters/")
+	if character_directory != null:
+		for file_name in character_directory.get_files():
+			if not file_name.to_lower().ends_with(".png"):
+				continue
+			var key: String = _normalize_sprite_key(file_name.get_basename())
+			if not key.is_empty():
+				character_sprite_paths[key] = "res://assets/art/characters/" + file_name
 
 
 func _load_creature_sprite(card: CardDefinition) -> Texture2D:
@@ -1300,10 +1310,36 @@ func _normalize_sprite_key(value: String) -> String:
 	return normalized
 
 
+func _load_character_sprite(card: CardDefinition) -> Texture2D:
+	var candidate_keys: Array[String] = []
+	if state != null and card == state.player_hero and run_progress.selected_character_style == "archer":
+		candidate_keys.append("reyarquero")
+	candidate_keys.append(_normalize_sprite_key(card.id))
+	candidate_keys.append(_normalize_sprite_key(card.canonical_id))
+	candidate_keys.append(_normalize_sprite_key(card.display_name))
+	for key in candidate_keys:
+		if key.is_empty() or not character_sprite_paths.has(key):
+			continue
+		var texture := load(str(character_sprite_paths[key])) as Texture2D
+		if texture != null:
+			return texture
+	return null
+
+
+func _has_character_sprite(card: CardDefinition) -> bool:
+	return _load_character_sprite(card) != null
+
+
 func _pixel_sprite_for(card: CardDefinition, is_hero: bool = false) -> Texture2D:
 	var cache_key: String = card.id + ("_hero" if is_hero else "_unit")
 	if pixel_sprite_cache.has(cache_key):
 		return pixel_sprite_cache[cache_key] as Texture2D
+
+	if is_hero:
+		var character_texture: Texture2D = _load_character_sprite(card)
+		if character_texture != null:
+			pixel_sprite_cache[cache_key] = character_texture
+			return character_texture
 
 	if card.card_type == CardDefinition.CardType.CREATURE:
 		var creature_texture: Texture2D = _load_creature_sprite(card)
